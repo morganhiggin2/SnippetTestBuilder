@@ -1,7 +1,7 @@
 <script>
     import NavigationBar from './navigation-bar.svelte';
     import Sidebar from './sidebar/sidebar.svelte';
-    import Workarea from './workarea.svelte'
+    import Workarea from './workarea.svelte';
 </script>
 
 <div class="container">

@@ -4,10 +4,25 @@
     export let file = true;
 
     let expanded = false;
+
+    function onDragStart(e) {
+        e.dataTransfer.setData('id', e.target.getAttribute('id'));
+        e.dataTransfer.setData('type', 'snippet');
+    }
+
+    function onDragEnd(e) {
+    }
 </script>
 
-<!--visual file component-->
-<div class="body" style="--indent: {level * 5}px">
+<!--visual file component with draggable properties-->
+<div 
+    id={name}
+    class="body" 
+    style="--indent: {level * 5}px"
+    draggable=true
+    on:dragstart={onDragStart}
+    on:dragend={onDragEnd}
+>
     <!--if it is not a file (i.e, is a directory)-->
     {#if !file}
         <!--if the directory is expanded-->

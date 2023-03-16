@@ -2,6 +2,7 @@
     import SidebarElement from "./sidebar-element.svelte";
     import ContextMenu from './context_menus/context_menu.svelte';
     import ContextMenuOption from './context_menus/context_menu_option.svelte';
+
     //files to sidebar
     let files = [
         {id: 0, name: "CustomProject", level: 0, file: false},
@@ -13,6 +14,7 @@
     let showContextMenu;
     let contextMenuPosition = {x: 0, y: 0};
 
+    //right click on body detected
     function onRightClick(e) {
         if (showContextMenu) {
             showContextMenu = false;
@@ -22,14 +24,18 @@
         showContextMenu = true;
     }
 
+    //close the context menu
     function closeContextMenu() {
         showContextMenu = false;
     }
 </script>
 
-<div on:contextmenu|preventDefault={onRightClick} class="body">
+<div on:contextmenu|preventDefault={onRightClick} class="body" >
     {#each files as file}
+    <div>
+        
         <SidebarElement {...file}/>
+    </div>
     {/each}
 </div>
 

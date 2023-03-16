@@ -5,7 +5,8 @@
 	
 	let pos = { x: 0, y: 0 };
 	let showMenu = false;
-	
+
+    //right click detected on body
 	async function onRightClick(e) {
 		if (showMenu) {
 			showMenu = false;

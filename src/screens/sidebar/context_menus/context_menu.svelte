@@ -8,24 +8,38 @@
 	
 	// whenever x and y is changed, restrict box to be within bounds
     function onPositionChange() {
-        if (!menuElement) return;
+        // if the menu element is null
+        if (!menuElement) {
+            return;
+        } 
 		
+        //get the bounding rectangle and make sure the context menu is within the window
 		const rect = menuElement.getBoundingClientRect();
 		x = Math.min(window.innerWidth - rect.width, x);
-		if (y > window.innerHeight - rect.height) y -= rect.height;
+
+        //make sure that the context menu is within the window
+		if (y > window.innerHeight - rect.height) { 
+            y -= rect.height;
+        }
     }
 
 	$: x, y, onPositionChange(); 
 	
 	const dispatch = createEventDispatcher();	
 	
+    //send event to children to dispatch to parent of context menu
 	setContext(key, {
 		dispatchClick: () => dispatch('click')
 	});
 	
 	let menuElement;
+
+    //if the page is clicked
 	function onPageClick(e) {
-		if (e.target === menuElement || menuElement.contains(e.target)) return;
+		if (e.target === menuElement || menuElement.contains(e.target)) {
+            return;
+        } 
+
 		dispatch('clickoutside');
 	}
 </script>

@@ -38,11 +38,7 @@
 	}
 </style>
 
-<div 
-  class:disabled={isDisabled}
-  on:click={handleClick}
-  on:contextmenu|preventDefault={() => {}}
->
+<div class:disabled={isDisabled} on:click={handleClick} on:contextmenu|preventDefault={() => {}}>
 	{#if text}
 		{text}
 	{:else}
