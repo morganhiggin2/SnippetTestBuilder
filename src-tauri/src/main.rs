@@ -13,8 +13,7 @@ pub mod tauri_services;
 fn main() {
     tauri::Builder::default()
         .manage(MutexApplicationState (Mutex::new(ApplicationState::default())))
-        .invoke_handler(tauri::generate_handler![logln])
-        .invoke_handler(tauri::generate_handler![new_window_session])
+        .invoke_handler(tauri::generate_handler![logln, new_window_session])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,4 +1,6 @@
 <script>
+    import { invoke } from "@tauri-apps/api";
+
     export let name = "";
     export let level = 0;
     export let file = true;

@@ -1,16 +1,52 @@
 <script>
     import NavigationBar from './navigation-bar.svelte';
-    import Sidebar from './sidebar/sidebar.svelte';
+    import FileDisplay from './sidebar/file_display.svelte';
+    import SectionSidebar from './sidebar/section_sidebar.svelte';
     import Workarea from './workarea.svelte';
+
+    //for border resizing
+    //sidebar-workarea
+    let mouse_pos = {x: 0, y: 0};
+
+    let secondary_sidebar_width = 150;
+    let secondary_sidebar_workarea_resize_x_pos = 0;
+    let secondary_sidebar_workarea_resize_in_action = false;
+
+    function secondarySidebarWorkareaResizeStart(event) {
+        secondary_sidebar_workarea_resize_x_pos = event.pageX;
+        secondary_sidebar_workarea_resize_in_action = true;
+    }
+
+    function handleMouseMove(event) {
+        mouse_pos = {x: event.clientX, y: event.clientY};
+
+        if (secondary_sidebar_workarea_resize_in_action) {
+            //change in position of mouse from when it was on the resizable border
+            let delta = event.pageX - secondary_sidebar_workarea_resize_x_pos;
+
+            secondary_sidebar_width += delta;
+            secondary_sidebar_workarea_resize_x_pos += delta;
+        }
+    }
+
+    function handleMouseUp() {
+        //clear all possible events that require mousedown to be active
+        secondary_sidebar_workarea_resize_in_action = false;
+    }
+
 </script>
 
-<div class="container">
+<div class="container" style="grid-template-columns: 50px {secondary_sidebar_width}px 2px 100%;" on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}>
     <div class="navigation-bar">
         <NavigationBar/> 
     </div>
-    <div class="body sidebar">
-        <Sidebar/>
+    <div class="body sidebar" id="primary">
+        <SectionSidebar/>
     </div>
+    <div class="body sidebar" id="secondary">
+        <FileDisplay/>
+    </div>
+    <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
     <div class="body work-area">
         <Workarea/> 
     </div>
@@ -19,19 +55,29 @@
 <style>
     .container{
         display: grid;
-        grid-template-columns: 150px 100%;
     }
 
     .navigation-bar {
-        grid-column: 1 / span 2;
+        grid-column: 1 / span 3;
     }
 
-    .sidebar {
+    #primary.sidebar {
         grid-column: 1 / span 1;
     }
 
-    .work-area{
+    #secondary.sidebar {
         grid-column: 2 / span 1;
+        overflow-y: auto;
+    }
+    
+    #sidebar-workarea.border {
+        grid-column: 3 / span 1;
+        background-color: lightgrey;
+        cursor: col-resize;
+    }
+
+    .work-area{
+        grid-column: 4 / span 1;
     }
 
     .body {

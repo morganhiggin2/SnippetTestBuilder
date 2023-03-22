@@ -1,17 +1,31 @@
 <script>
     import {invoke} from '@tauri-apps/api';
     import { onMount } from 'svelte';
+    import Konva from 'konva';
+
+    let stage;
 
     onMount(() => {
-        ctx = canvas.getContext("2d");
+        //create stage
+        stage = new Konva.Stage({
+            container: 'stage',
+            width: window.innerWidth,
+            height: window.innerHeight,
+            draggable: true
+        });
+
+        //create bottom layer
+        let layer = new Konva.Layer();
+
+        //add objects to layer
+
+        //add layer to stage
+        stage.add(layer);
+        /*ctx = canvas.getContext("2d");
 
         ctx.fillStyle = "green";
-        ctx.fillRect(10, 10, 150, 150);
+        ctx.fillRect(10, 10, 150, 150);*/
     });
-
-    //canvas
-    let canvas;
-    let ctx;
 
     //workarea state
     let snippets = [{id: 0, name: "testing snippet"}];
@@ -19,7 +33,7 @@
     function handleDrop(e) {
         e.preventDefault();
         //var element_text = e.dataTransfer.getData("text");
-
+        invoke('logln', {text: 'drag drop confirmed of any type'});
         //type
         let type = e.dataTransfer.getData('type');
 
@@ -45,9 +59,12 @@
             this is a snippet
         </p>
     {/each}-->
-    <canvas id="canvas" bind:this={canvas}>
+    <!--<canvas id="canvas" bind:this={canvas}>
 
-    </canvas>
+    </canvas>-->
+    <div class="stage">
+
+    </div>
 </div>
 
 <style>

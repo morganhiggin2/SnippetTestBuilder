@@ -2,12 +2,14 @@
     import SidebarElement from "./sidebar-element.svelte";
     import ContextMenu from './context_menus/context_menu.svelte';
     import ContextMenuOption from './context_menus/context_menu_option.svelte';
+    import { invoke } from "@tauri-apps/api";
 
     //files to sidebar
     let files = [
         {id: 0, name: "CustomProject", level: 0, file: false},
         {id: 1, name: "src", level: 1, file: false},
-        {id: 2, name: "main.rs", level: 2, file: true}
+        {id: 2, name: "main.rs", level: 2, file: true},
+        {id: 3, name: "write module {}", level: 3, file: true}
     ];
 
     //for context menu
@@ -30,7 +32,7 @@
     }
 </script>
 
-<div on:contextmenu|preventDefault={onRightClick} class="body" >
+<div on:contextmenu|preventDefault={onRightClick} class="body">
     {#each files as file}
     <div>
         
@@ -49,11 +51,11 @@
 
 <style>
     .body {
-        background-color: white;
+        background-color: lightcyan;
         height: 100%;
         padding-left: 5px;
         padding-top: 2px;
         border-top: 2px solid lightgrey;
-        border-right: 2px solid lightgrey;
+        white-space: nowrap;
     }
 </style>

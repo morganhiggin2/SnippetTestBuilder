@@ -1,5 +1,9 @@
+use std::sync::MutexGuard;
+
 use crate::utils::sequential_id_generator::SequentialIdGenerator;
 use crate::core_components::snippet::SnippetManager;
+
+use super::ApplicationState;
 
 pub struct WindowManager {
     window_sessions: Vec<WindowSession> 
@@ -13,15 +17,15 @@ struct WindowSession {
 impl WindowManager {
     /// create a new window session for the window sessions manager
     /// returns uuid of session
-    pub fn new_window_session(&mut self, seq_id_gen: &mut SequentialIdGenerator) -> u32 {
+    pub fn new_window_session(application_state: &mut MutexGuard<ApplicationState>) -> u32 {
         //create new window session
-        let window_session = WindowSession::new(seq_id_gen);
-        
+        let window_session = WindowSession::new(application_state);
+
         //copy window session uuid
         let window_session_uuid = window_session.uuid;
 
         //add window session to window sessions list
-        self.window_sessions.push(window_session);
+        application_state.window_manager.window_sessions.push(window_session);
 
         //return uuid of window session
         return window_session_uuid;
@@ -57,9 +61,9 @@ impl Default for WindowManager {
 
 impl WindowSession {
     /// create a new window session
-    pub fn new(seq_id_gen: &mut SequentialIdGenerator) -> Self {
+    pub fn new(application_state: &mut MutexGuard<ApplicationState>) -> Self {
         return WindowSession {
-            uuid: seq_id_gen.get_id(),
+            uuid: application_state.seq_id_generator.get_id(),
             snippet_manager: SnippetManager::default()
         }
     }

@@ -7,7 +7,7 @@ pub mod window_manager;
 pub struct MutexApplicationState(pub Mutex<ApplicationState>);
 pub struct ApplicationState {
     //sequential id generator
-    seq_id_generaor: SequentialIdGenerator,
+    seq_id_generator: SequentialIdGenerator,
     window_manager: WindowManager
 }
 
@@ -15,7 +15,7 @@ impl Default for ApplicationState {
     /// implement default application state
     fn default() -> ApplicationState {
         return ApplicationState {
-            seq_id_generaor: SequentialIdGenerator::default(),
+            seq_id_generator: SequentialIdGenerator::default(),
             window_manager: WindowManager::default()
         };
     }    
@@ -28,7 +28,7 @@ impl ApplicationState {
     }
 
     pub fn get_sequence_id_generator(&mut self) ->  &mut SequentialIdGenerator {
-        return  &mut self.seq_id_generaor;
+        return  &mut self.seq_id_generator;
     }
 }
 
