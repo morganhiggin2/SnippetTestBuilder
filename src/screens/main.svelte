@@ -1,8 +1,8 @@
 <script>
-    import NavigationBar from './navigation-bar.svelte';
+    import NavigationBar from './navigation_bar.svelte';
     import FileDisplay from './sidebar/file_display.svelte';
     import SectionSidebar from './sidebar/section_sidebar.svelte';
-    import Workarea from './workarea.svelte';
+    import Workarea from './workarea/work_area.svelte';
 
     //for border resizing
     //sidebar-workarea
@@ -58,7 +58,7 @@
     }
 
     .navigation-bar {
-        grid-column: 1 / span 3;
+        grid-column: 1 / span 4;
     }
 
     #primary.sidebar {
@@ -67,7 +67,6 @@
 
     #secondary.sidebar {
         grid-column: 2 / span 1;
-        overflow-y: auto;
     }
     
     #sidebar-workarea.border {

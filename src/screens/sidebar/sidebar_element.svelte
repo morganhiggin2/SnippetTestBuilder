@@ -1,5 +1,10 @@
 <script>
     import { invoke } from "@tauri-apps/api";
+    import { createEvent } from "konva/lib/PointerEvents";
+    import { createEventDispatcher } from "svelte";
+    
+    //for dispatching events
+    const dispatch = createEventDispatcher();
 
     export let name = "";
     export let level = 0;
@@ -13,7 +18,16 @@
     }
 
     function onDragEnd(e) {
+
     }
+
+    /*
+    dispatch('expand', {
+        id: id
+    })
+    dispatch('contract', {
+        id: id
+    })*/
 </script>
 
 <!--visual file component with draggable properties-->
