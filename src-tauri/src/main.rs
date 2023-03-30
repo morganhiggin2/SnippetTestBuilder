@@ -9,6 +9,7 @@ pub mod state_management;
 pub mod utils;
 pub mod core_components;
 pub mod tauri_services;
+pub mod core_services;
 
 fn main() {
     tauri::Builder::default()

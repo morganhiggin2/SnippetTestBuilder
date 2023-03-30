@@ -7,6 +7,16 @@
   resolved "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.16.17.tgz"
   integrity sha512-mdPjPxfnmoqhgpiEArqi4egmBAMYvaObgn4poorpUaqmvzzbvqbowRllQ+ZgzGVMGKaPkqUmPDOOFQRUFDmeUw==
 
+"@fontsource/inter@^4.5.15":
+  version "4.5.15"
+  resolved "https://registry.npmjs.org/@fontsource/inter/-/inter-4.5.15.tgz"
+  integrity sha512-FzleM9AxZQK2nqsTDtBiY0PMEVWvnKnuu2i09+p6DHvrHsuucoV2j0tmw+kAT3L4hvsLdAIDv6MdGehsPIdT+Q==
+
+"@fontsource/pt-mono@^4.5.11":
+  version "4.5.11"
+  resolved "https://registry.npmjs.org/@fontsource/pt-mono/-/pt-mono-4.5.11.tgz"
+  integrity sha512-WS5IuinkjjzMHSpevPdAle99NCVfodZsIzF1oX21zRaoWvqW0fsFzoKgJ0qpx9xXWHIOdkyJLn1xB7iCkCD7+Q==
+
 "@jridgewell/resolve-uri@3.1.0":
   version "3.1.0"
   resolved "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.0.tgz"

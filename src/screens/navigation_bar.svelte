@@ -103,6 +103,7 @@
         overflow: hidden;
     }
 
+
     .navigation-bar #plain.navigation-option{
         float: left;
         font-size: 16px;
