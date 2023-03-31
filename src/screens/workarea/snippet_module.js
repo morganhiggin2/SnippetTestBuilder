@@ -1,20 +1,22 @@
 import Konva from 'konva';
 import { invoke } from '@tauri-apps/api';
 
-export function generateSnippet(xPos, yPos) {
+export function generateSnippet(id, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
     // make the snippet 
     var snippet_group = new Konva.Group({
-        draggable: true
+        id: id,
+        draggable: true 
     });
 
     //the title text
     var titleText = new Konva.Text({
+        id: "title_text",
         x: xPos,
         y: yPos + 2,
         text: 'hello',
         fontSize: 16,
         fontFamily: 'Inter',
-        fill: 'black'
+        fill: 'white'
     });
 
     //get dimensions of title text
@@ -25,12 +27,15 @@ export function generateSnippet(xPos, yPos) {
     var leftPipeInserts = [];
     var rightPipeInserts = [];
 
-    //create left pipe inserts
-    leftPipeInserts.push(createPipeInsert(xPos, yPos + textHeight + 8, true));
-    leftPipeInserts.push(createPipeInsert(xPos, yPos + textHeight + 8, true));
-    
-    //create right pipe inserts
-    rightPipeInserts.push(createPipeInsert(xPos, yPos + textHeight + 8, false));
+    //go though pipelines, with assigning id
+    for (var i = 0; i < pipeline_connectors.length; i++) {
+        if (pipeline_connectors[i].input) {
+            leftPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, true, spawnPipeline));
+        }
+        else {
+            rightPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, false, spawnPipeline));
+        }
+    }
 
     //get needed measurements
     //get the max width of the left and right pipe inserts
@@ -41,8 +46,6 @@ export function generateSnippet(xPos, yPos) {
         rightPipeInserts.map(pipeInsert => pipeInsert.height).reduce((partSum, a) => partSum + a + 4, 0)
     );
     
-    invoke('logln', {text: (leftPipeInsertsWidth + 4 + rightPipeInsertsWidth).toString()});
-
     //get rect width
     let rectWidth = Math.max(textWidth + 40, leftPipeInsertsWidth + 4 + rightPipeInsertsWidth, 20);
     let rectHeight = textHeight + 4 + pipeInsertsHeight + 4;
@@ -85,6 +88,7 @@ export function generateSnippet(xPos, yPos) {
 
     //main rectangle
     var backgroundRect = new Konva.Rect({
+        id: "background_rect",
         x: xPos,
         y: yPos,
         width: rectWidth,
@@ -99,6 +103,7 @@ export function generateSnippet(xPos, yPos) {
     }); 
 
     var titleBackgroundRect = new Konva.Rect({
+        id: "title_backgrond_rect",
         x: xPos,
         y: yPos,
         width: rectWidth,
@@ -108,6 +113,7 @@ export function generateSnippet(xPos, yPos) {
     });
 
     var titleSeperatorLine = new Konva.Line({
+        id: "title_seperator_line",
         x: xPos,
         y: yPos + textHeight + 3,
         points: [0, 0, rectWidth, 0],
@@ -116,7 +122,10 @@ export function generateSnippet(xPos, yPos) {
     });
 
 
+    //snippet events
     backgroundRect.on('dblclick', () => {});
+    backgroundRect.on('dragstart', () => {dragStart(id)});
+    backgroundRect.on('dragend', () => {dragEnd(id)});
     //singlePipeInsert.pipe.on('click', () => {});
 
     snippet_group.add(backgroundRect);
@@ -124,15 +133,20 @@ export function generateSnippet(xPos, yPos) {
     snippet_group.add(titleSeperatorLine);
     snippet_group.add(titleText);
 
-    //add left pipe inserts
+    //add pipe inserts to stage and visualComponents
     for (var i = 0; i < leftPipeInserts.length; i++) {
         snippet_group.add(leftPipeInserts[i].pipe);
+        visualComponents[leftPipeInserts[i].pipe.id()] = leftPipeInserts[i].pipe;
     }
 
     for (var i = 0; i < rightPipeInserts.length; i++) {
         snippet_group.add(rightPipeInserts[i].pipe);
+        visualComponents[rightPipeInserts[i].pipe.id()] = rightPipeInserts[i].pipe;
     }
     //snippet_group.add(singlePipeInsert.pipe);
+
+    //add all visually linked components to visualComponents map
+    visualComponents[id] = snippet_group;
 
     return snippet_group;
 
@@ -140,15 +154,36 @@ export function generateSnippet(xPos, yPos) {
     //on top and moves the + down, this will be its own type, multiplePipeInsert
 }
 
-function createPipeInsert(xPos, yPos, left = false) {
+export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_start, deletePipeline) {
+    var line = new Konva.Line({
+        id: id,
+        x: x_pos_start,
+        y: y_pos_start,
+        points: [0, 0, 0, 0],
+        stroke: '#fcd777',
+        strokeWidth: 6
+    });
+
+    line.on('dbclick', () => {deletePipeline(line)});
+
+    //add visually linked component to map
+    visualComponents[id] = line;
+
+    return line;
+}
+
+function createPipeInsert(id, name, xPos, yPos, left = false, spawnPipeline) {
     //create group for pipe
-    var pipeGroup = new Konva.Group({});
+    var pipeGroup = new Konva.Group({
+        id: id
+    });
 
     //crete text next to pipe insert
     var titleText = new Konva.Text({
+        id: "title_text",
         x: xPos,
         y: yPos,
-        text: 'jsonanator',
+        text: name,
         fontSize: 12,
         fontFamily: 'Inter',
         fill: 'black'
@@ -159,15 +194,18 @@ function createPipeInsert(xPos, yPos, left = false) {
 
     //set title position to offset from pipe insert
     if (left) {
-        titleText.setPosition({x: xPos + 10, y: yPos});
+        titleText.setPosition({x: xPos + 10, y: yPos + (14 - titleText.getHeight()) / 2});
     }
     else {
-        titleText.setPosition({x: xPos - titleTextWidth - 10, y: yPos});
+        titleText.setPosition({x: xPos - titleTextWidth - 10, y: yPos + (14 - titleText.getHeight()) / 2});
     }
 
     //set the background position
     var backgroundRectPosition = {x: 0, y:0};
     var backgroundRectCorners = [0, 0, 0, 0];
+
+    //for pipeline start point
+    var pipelineConnectorPositionOffset = {x: 0, y: 0};
 
     if (left) {
         backgroundRectPosition = {
@@ -176,6 +214,11 @@ function createPipeInsert(xPos, yPos, left = false) {
         };
 
         backgroundRectCorners = [0, 2, 2, 0];
+
+        pipelineConnectorPositionOffset = {
+            x: 0,
+            y: 7 //half the height
+        };
     }
     else {
         backgroundRectPosition = {
@@ -184,10 +227,16 @@ function createPipeInsert(xPos, yPos, left = false) {
         };
 
         backgroundRectCorners = [2, 0, 0, 2];
+
+        pipelineConnectorPositionOffset = {
+            x: 8, //the pipeline starts on the right side
+            y: 7 //half the height
+        }
     }
 
     //create background rect for pipe
     var backgroundRect = new Konva.Rect({
+        id: "background_rect",
         x: backgroundRectPosition.x, 
         y: backgroundRectPosition.y,
         width: 8,
@@ -200,6 +249,7 @@ function createPipeInsert(xPos, yPos, left = false) {
     //set events such going over pipe insert selects it
     backgroundRect.on('mouseover', () => {backgroundRect.fill('#fcd777')});
     backgroundRect.on('mouseout', () => {backgroundRect.fill('#a1a1a1')});
+    backgroundRect.on('click', () => {spawnPipeline(pipeGroup, pipelineConnectorPositionOffset)});
 
     //add elements to group
     pipeGroup.add(backgroundRect);
