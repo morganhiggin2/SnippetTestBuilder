@@ -30,10 +30,10 @@ export function generateSnippet(id, visualComponents, xPos, yPos, pipeline_conne
     //go though pipelines, with assigning id
     for (var i = 0; i < pipeline_connectors.length; i++) {
         if (pipeline_connectors[i].input) {
-            leftPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, true, spawnPipeline));
+            leftPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, true, spawnPipeline));
         }
         else {
-            rightPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, false, spawnPipeline));
+            rightPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, false, spawnPipeline));
         }
     }
 
@@ -136,17 +136,18 @@ export function generateSnippet(id, visualComponents, xPos, yPos, pipeline_conne
     //add pipe inserts to stage and visualComponents
     for (var i = 0; i < leftPipeInserts.length; i++) {
         snippet_group.add(leftPipeInserts[i].pipe);
-        visualComponents[leftPipeInserts[i].pipe.id()] = leftPipeInserts[i].pipe;
     }
 
     for (var i = 0; i < rightPipeInserts.length; i++) {
         snippet_group.add(rightPipeInserts[i].pipe);
-        visualComponents[rightPipeInserts[i].pipe.id()] = rightPipeInserts[i].pipe;
     }
     //snippet_group.add(singlePipeInsert.pipe);
 
     //add all visually linked components to visualComponents map
-    visualComponents[id] = snippet_group;
+    visualComponents[id] = {
+        visual: snippet_group,
+        type: "snippet"
+    };
 
     return snippet_group;
 
@@ -167,12 +168,15 @@ export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_s
     line.on('dbclick', () => {deletePipeline(line)});
 
     //add visually linked component to map
-    visualComponents[id] = line;
+    visualComponents[id] = {
+        visual: line,
+        type: "pipe"
+    };
 
     return line;
 }
 
-function createPipeInsert(id, name, xPos, yPos, left = false, spawnPipeline) {
+function createPipeInsert(id,  visualComponents, name, xPos, yPos, left = false, spawnPipeline) {
     //create group for pipe
     var pipeGroup = new Konva.Group({
         id: id
@@ -245,15 +249,25 @@ function createPipeInsert(id, name, xPos, yPos, left = false, spawnPipeline) {
         cornerRadius: backgroundRectCorners,
         draggable: false
     }); 
-
-    //set events such going over pipe insert selects it
-    backgroundRect.on('mouseover', () => {backgroundRect.fill('#fcd777')});
-    backgroundRect.on('mouseout', () => {backgroundRect.fill('#a1a1a1')});
-    backgroundRect.on('click', () => {spawnPipeline(id, pipelineConnectorPositionOffset)});
-
     //add elements to group
     pipeGroup.add(backgroundRect);
     pipeGroup.add(titleText);
+    
+    visualComponents[id] = {
+            visual: pipeGroup,
+            type: "pipe_insert",
+            state: {
+                color: '#a1a1a1',
+                highlight_color: '#fcd777',
+                default_color: '#a1a1a1',
+                connected_color: '#fcd777'
+            }
+        };
+
+    //set events such going over pipe insert selects it
+    backgroundRect.on('mouseover', () => {backgroundRect.fill(visualComponents[id].state.highlight_color)});
+    backgroundRect.on('mouseout', () => {backgroundRect.fill(visualComponents[id].state.color)});
+    backgroundRect.on('click', () => {spawnPipeline(id, pipelineConnectorPositionOffset)});
 
     //calculate dimensions
     let totalWidth = titleTextWidth + 4 + 8;
@@ -265,4 +279,10 @@ function createPipeInsert(id, name, xPos, yPos, left = false, spawnPipeline) {
         width: totalWidth,
         height: totalHeight
     };
+}
+
+export function getChild(node, id) {
+    return node.getChildren(function (node) {
+        return node.getId() === id;
+    })[0];
 }

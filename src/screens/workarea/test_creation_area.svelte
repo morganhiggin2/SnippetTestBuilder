@@ -1,7 +1,7 @@
 <script>
     import {invoke} from '@tauri-apps/api';
     import { onMount } from 'svelte';
-    import { generatePipeConnector, generateSnippet } from './snippet_module.js';
+    import { generatePipeConnector, generateSnippet, getChild } from './snippet_module.js';
     import Konva from 'konva';
 
     //dimensions of the current window
@@ -101,15 +101,14 @@
         //if a pipeline is curerntly not being creatd:ed
         if (!pipelineInCreationEvent) {
             //get the visual component from the map
-            var pipeline_from_connector = visualComponents[visual_id];
+            var pipeline_from_connector = visualComponents[visual_id].visual;
             //check if connector already has pipeline attached (assuming one-to-one policy for now, will be changed in future)
                 //return
 
             //get background rect
-            var background_rect = pipeline_from_connector.getChildren(function(node) {
-                return node.getId() === "background_rect";
-            })[0];
+            var background_rect = getChild(pipeline_from_connector, "background_rect");
 
+            //get background rect position in canvas space
             var background_rect_position = background_rect.getAbsolutePosition(stage);
             
             //get in creation pipeline id from rust
@@ -128,11 +127,14 @@
             //draw pipeline
             pipelineLayer.add(pipelineInCreationEvent.visual_component);
             stage.draw();
+
+            //change pipe insert color
+            visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.highlight_color;
         }
         else {
             //get virtual components from visual mapping
-            var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id];
-            var pipeline_to_connector= visualComponents[visual_id];
+            var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id].visual;
+            var pipeline_to_connector= visualComponents[visual_id].visual;
 
             //if parent pipeline id is the same, cancel
             var pipeline_connector_from_parent = pipeline_from_connector.getParent();
@@ -140,16 +142,18 @@
 
             if (pipeline_connector_from_parent && pipeline_connector_to_parent && pipeline_connector_from_parent.getId() === pipeline_connector_to_parent.getId()) {
                 //delete pipeline
-                pipelineInCreationEvent.visual_component.destroy();
-                pipelineInCreationEvent = null;               
+                deletePipeline();
+                //clear color highlight
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
                 return;
             } 
 
             //if before pipeline the same, then cancel 
             if (pipelineInCreationEvent.visual_component.getId() === pipeline_from_connector.getId()) {
-                //delete pipeline
-                pipelineInCreationEvent.visual_component.destroy();
-                pipelineInCreationEvent = null;         
+                //delete pipeline     
+                deletePipeline();
+                //clear color highlight
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
                 return;
             }
 
@@ -177,19 +181,32 @@
                 ]);
 
                 //add pipeline to visual component mapping
-                visualComponents[pipelineInCreationEvent.visual_component.getId()] = pipelineInCreationEvent.visual_component;
+                visualComponents[pipelineInCreationEvent.visual_component.getId()] = 
+                {
+                    visual: pipelineInCreationEvent.visual_component
+                };
+                
+                //change both ends to connected color
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.connected_color;
+                visualComponents[visual_id].state.color = visualComponents[visual_id].state.connected_color;
+
+                let pipeline_from_connector_background_rect = getChild(pipeline_from_connector, "background_rect");
+                let pipeline_to_connector_background_rect = getChild(pipeline_to_connector, "background_rect");
+
+                //draw color change
+                pipeline_from_connector_background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
+                pipeline_to_connector_background_rect.fill(visualComponents[visual_id].state.color);
 
                 //clear event
                 pipelineInCreationEvent = null;
-
-
             //else, if the same, cancel pipeline connection
         }
     }
 
     //handle delete pipeline event from pipeline double click
-    function deletePipeline(pipeline_visual) {
-        
+    function deletePipeline() {
+        pipelineInCreationEvent.visual_component.destroy();
+        pipelineInCreationEvent = null;    
     }
 
     let snippetDragEvent = null;
@@ -208,14 +225,14 @@
 
     function handleMouseMovement(e) {
         if (pipelineInCreationEvent) {
-            pipelineInCreationEvent.visual_component.points([
+            /*pipelineInCreationEvent.visual_component.points([
                 0, 
                 0, 
                 e.clientX - window_x - pipelineInCreationEvent.start_pos.x - stage.x(), 
                 e.clientY - window_y - pipelineInCreationEvent.start_pos.y - stage.y()
             ]);
 
-            stage.draw();
+            stage.draw();*/
             //redraw pipeline to connect to where mouse is
         }
         else if (snippetDragEvent) {
@@ -233,6 +250,13 @@
             //e.target.attrs.id === "stage"
             if (!(e.target instanceof Konva.Shape)) {
                 //cancel pipeline creation
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
+                //get background rect
+                let background_rect = getChild(visualComponents[pipelineInCreationEvent.pipeline_connector_id].visual, "background_rect");
+
+                //fill with changed color (i.e. default)
+                background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
+
                 pipelineInCreationEvent.visual_component.destroy();
                 pipelineInCreationEvent = null;
             }
@@ -249,8 +273,6 @@
     //only check on mouse release, when placing it, so on dropend
     //in the session manager, have a virtualgridspace manager that checks for colissions
 
-    //migrate to hash map based system
-    
     //funcationlize / split up code
 </script>
 
