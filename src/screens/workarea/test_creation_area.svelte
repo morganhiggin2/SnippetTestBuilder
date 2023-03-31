@@ -24,8 +24,8 @@
     //hash map of all visually connected id'd components
     let visualComponents = {};
 
-    onMount(() => {
-
+    onMount(() =>
+    {
         //create stage
         stage = new Konva.Stage({
             id: "stage",
@@ -71,16 +71,16 @@
 
             //create pipeline connectors
             let pipelineConnectors = [
-                {id: 0, name: "input", input: true},
-                {id: 1, name: "conditioner", input: true},
-                {id: 2, name: "output", input: false}
+                {id: Math.random().toString(), name: "input", input: true},
+                {id: Math.random().toString(), name: "conditioner", input: true},
+                {id: Math.random().toString(), name: "output", input: false}
             ];
 
             //create drawable snippet
-            let snippetDrawable = generateSnippet(-1 * snippetComponents.length, visualComponents, e.clientX - window_x, e.clientY - window_y, pipelineConnectors, spawnPipeline, snippetDragStart, snippetDragEnd);
+            let snippetDrawable = generateSnippet(Math.random().toString(), visualComponents, e.clientX - window_x, e.clientY - window_y, pipelineConnectors, spawnPipeline, snippetDragStart, snippetDragEnd);
 
             //create snippet
-            snippetComponents.push({id: 1, name: "testing snippet", drawable: snippetDrawable});
+            snippetComponents.push({id: Math.random().toString(), name: "testing snippet", drawable: snippetDrawable});
 
             //draw snippet
             drawSnippet(snippetDrawable);
@@ -93,31 +93,32 @@
         //stage.draw();
     }
 
-    //handle pipeline creation event
+    //-------handle pipeline creation event--------
     //if a pipeline is in the process of being created
     var pipelineInCreationEvent = null;
 
-    function spawnPipeline(pipeline_connector_visual, position_offset) {
-        console.log("here");
-        //if a pipeline is curerntly not being created
+    function spawnPipeline(visual_id, position_offset) {
+        //if a pipeline is curerntly not being creatd:ed
         if (!pipelineInCreationEvent) {
+            //get the visual component from the map
+            var pipeline_from_connector = visualComponents[visual_id];
             //check if connector already has pipeline attached (assuming one-to-one policy for now, will be changed in future)
                 //return
 
             //get background rect
-            var background_rect = pipeline_connector_visual.getChildren(function(node) {
+            var background_rect = pipeline_from_connector.getChildren(function(node) {
                 return node.getId() === "background_rect";
             })[0];
 
             var background_rect_position = background_rect.getAbsolutePosition(stage);
             
             //get in creation pipeline id from rust
-            var id = "a" + Math.random().toString();
+            var id = Math.random().toString();
 
             //start pipeline creation
             pipelineInCreationEvent = {
-                visualCompnent: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
-                pipelineConnectorVisual: pipeline_connector_visual,
+                visual_component: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
+                pipeline_connector_id: visual_id,
                 start_pos: {
                     x: background_rect_position.x + position_offset.x,
                     y: background_rect_position.y + position_offset.y
@@ -125,53 +126,62 @@
             };
 
             //draw pipeline
-            pipelineLayer.add(pipelineInCreationEvent.visualCompnent);
+            pipelineLayer.add(pipelineInCreationEvent.visual_component);
             stage.draw();
         }
         else {
-            //if parent pipeline id is the same, cancel
-            var pipelineInCreationVisualComponentParent = pipelineInCreationEvent.pipelineConnectorVisual.getParent();
-            var pipelineVisualComponentCurrentParent = pipeline_connector_visual.getParent();
+            //get virtual components from visual mapping
+            var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id];
+            var pipeline_to_connector= visualComponents[visual_id];
 
-            if (pipelineInCreationVisualComponentParent && pipelineVisualComponentCurrentParent && pipelineInCreationVisualComponentParent.getId() === pipelineVisualComponentCurrentParent.getId()) {
-                pipelineInCreationEvent.visualCompnent.destroy();
+            //if parent pipeline id is the same, cancel
+            var pipeline_connector_from_parent = pipeline_from_connector.getParent();
+            var pipeline_connector_to_parent = pipeline_to_connector.getParent();
+
+            if (pipeline_connector_from_parent && pipeline_connector_to_parent && pipeline_connector_from_parent.getId() === pipeline_connector_to_parent.getId()) {
+                //delete pipeline
+                pipelineInCreationEvent.visual_component.destroy();
                 pipelineInCreationEvent = null;               
                 return;
             } 
 
             //if before pipeline the same, then cancel 
-            if (pipelineInCreationEvent.visualCompnent.getId() === pipeline_connector_visual.getId()) {
-                pipelineInCreationEvent.visualCompnent.destroy();
-                pipelineInCreationEvent = null;
+            if (pipelineInCreationEvent.visual_component.getId() === pipeline_from_connector.getId()) {
+                //delete pipeline
+                pipelineInCreationEvent.visual_component.destroy();
+                pipelineInCreationEvent = null;         
                 return;
             }
 
             //else, try to connect
                 //validate connection
                 //change colors of pipelines
-                /*pipeline_connector_visual.getChildren(function(node) {
+                /*pipeline_from_connector.getChildren(function(node) {
                     return node.getId() === "background_rect";
                 })[0].fill('#fcd777');
-                pipelineInCreationEvent.visualCompnent.fill('#fcd777');*/
+                pipelineInCreationEvent.visualcomponent.fill('#fcd777');*/
                
                 //get current pipeline connector position
-                var background_rect = pipeline_connector_visual.getChildren(function(node) {
+                var background_rect = pipeline_to_connector.getChildren(function(node) {
                     return node.getId() === "background_rect";
                 })[0];
 
                 var background_rect_position = background_rect.getAbsolutePosition(stage);
 
                 //correct final position of pipeline
-                pipelineInCreationEvent.visualCompnent.points([
+                pipelineInCreationEvent.visual_component.points([
                     0, 
                     0, 
                     background_rect_position.x + position_offset.x - pipelineInCreationEvent.start_pos.x, 
                     background_rect_position.y + position_offset.y - pipelineInCreationEvent.start_pos.y
                 ]);
 
+                //add pipeline to visual component mapping
+                visualComponents[pipelineInCreationEvent.visual_component.getId()] = pipelineInCreationEvent.visual_component;
 
                 //clear event
                 pipelineInCreationEvent = null;
+
 
             //else, if the same, cancel pipeline connection
         }
@@ -198,11 +208,11 @@
 
     function handleMouseMovement(e) {
         if (pipelineInCreationEvent) {
-            pipelineInCreationEvent.visualCompnent.points([
+            pipelineInCreationEvent.visual_component.points([
                 0, 
                 0, 
-                e.clientX - window_x - pipelineInCreationEvent.start_pos.x, 
-                e.clientY - window_y - pipelineInCreationEvent.start_pos.y
+                e.clientX - window_x - pipelineInCreationEvent.start_pos.x - stage.x(), 
+                e.clientY - window_y - pipelineInCreationEvent.start_pos.y - stage.y()
             ]);
 
             stage.draw();
@@ -217,17 +227,17 @@
     }
 
     function handleCanvasClick(e) {
-        console.log(e.target.attrs.id);
         if (pipelineInCreationEvent) {
             //if the stage is clicked
             //change to not in hashmap
-            if (e.target.attrs.id === "stage") {
+            //e.target.attrs.id === "stage"
+            if (!(e.target instanceof Konva.Shape)) {
                 //cancel pipeline creation
-                pipelineInCreationEvent.visualCompnent.destroy();
+                pipelineInCreationEvent.visual_component.destroy();
                 pipelineInCreationEvent = null;
             }
         }
-        //pipeline is in creation and stage is clicked
+        //pipeline is in creation and stage is clickenent
     }
 
     //change to when click on, its orange, and then other color changes to orange too when pipe made

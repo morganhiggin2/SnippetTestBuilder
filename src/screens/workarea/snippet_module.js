@@ -249,7 +249,7 @@ function createPipeInsert(id, name, xPos, yPos, left = false, spawnPipeline) {
     //set events such going over pipe insert selects it
     backgroundRect.on('mouseover', () => {backgroundRect.fill('#fcd777')});
     backgroundRect.on('mouseout', () => {backgroundRect.fill('#a1a1a1')});
-    backgroundRect.on('click', () => {spawnPipeline(pipeGroup, pipelineConnectorPositionOffset)});
+    backgroundRect.on('click', () => {spawnPipeline(id, pipelineConnectorPositionOffset)});
 
     //add elements to group
     pipeGroup.add(backgroundRect);
