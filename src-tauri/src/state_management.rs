@@ -1,14 +1,17 @@
 use std::sync::Mutex;
 use crate::state_management::window_manager::WindowManager;
-use crate::utils::sequential_id_generator::{SequentialIdGenerator, self};
+use crate::utils::sequential_id_generator::{SequentialIdGenerator};
+use crate::state_management::external_snippet_manager::{ExternalSnippetManager};
 
 pub mod window_manager;
+pub mod external_snippet_manager;
 
 pub struct MutexApplicationState(pub Mutex<ApplicationState>);
 pub struct ApplicationState {
     //sequential id generator
-    seq_id_generator: SequentialIdGenerator,
-    window_manager: WindowManager
+    pub seq_id_generator: SequentialIdGenerator,
+    pub window_manager: WindowManager,
+    pub external_snippet_manager: ExternalSnippetManager
 }
 
 impl Default for ApplicationState {
@@ -16,8 +19,12 @@ impl Default for ApplicationState {
     fn default() -> ApplicationState {
         return ApplicationState {
             seq_id_generator: SequentialIdGenerator::default(),
-            window_manager: WindowManager::default()
+            window_manager: WindowManager::default(),
+            external_snippet_manager: ExternalSnippetManager::default()
         };
+
+        //TODO delete
+         
     }    
 }
 

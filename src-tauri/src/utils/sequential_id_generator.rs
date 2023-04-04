@@ -1,3 +1,5 @@
+pub type Uuid = u32;
+
 pub struct SequentialIdGenerator {
     counter: u32
 }
