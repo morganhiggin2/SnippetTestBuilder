@@ -48,6 +48,4 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
             return Err(err);
         }
     };
-
-
 }

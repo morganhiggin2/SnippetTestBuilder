@@ -67,7 +67,7 @@ impl SnippetManager {
     /// * 'uuid' - uuid of the pipeline 
     fn find_pipeline(&mut self, uuid: Uuid) -> Option<&mut PipelineComponent>{
         //find pipeline in vector
-        return self.pipelines.iter_mut().find(|pipe: &&mut PipelineComponent| pipe.uuid == uuid);
+        return self.pipelines.iter_mut().find(|pipe: &&mut PipelineComponent | pipe.uuid == uuid);
     }
     
     /// find snippet from uuid
@@ -99,6 +99,7 @@ impl SnippetManager {
         //create new pipeline
 
         //return uuid of new pipeline
+        return Ok();
     }
 }
 
