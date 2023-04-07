@@ -1,21 +1,22 @@
-use std::{sync::{MutexGuard, Mutex}, collections::HashMap};
+use std::{collections::{HashMap, hash_map::Values}};
 
-use crate::utils::sequential_id_generator::Uuid;
-use super::ApplicationState;
+use serde::Serialize;
+
+use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent};
 
 
 pub struct ExternalSnippetManager {
     external_snippets: Vec<ExternalSnippet>
 }
 
-struct ExternalSnippet {
+pub struct ExternalSnippet {
     uuid: Uuid,
     sub_directory: String,
     name: String ,
     io_points: HashMap<Uuid, SnippetIOPoint>
 }
 
-struct SnippetIOPoint {
+pub struct SnippetIOPoint {
     uuid: Uuid,
     name: String,
     //the type of content this point serves or receives
@@ -25,7 +26,8 @@ struct SnippetIOPoint {
 }
 
 /// enum for type of content an io point can serve
-enum IOContentType {
+#[derive(Clone, Serialize)]
+pub enum IOContentType {
     //none type for endpoints that send no data, these should have name '_'
     None,
     XML,
@@ -41,9 +43,10 @@ impl Default for ExternalSnippetManager {
 }
 
 impl ExternalSnippetManager {
-    pub fn create_enpty_snippet(application_state: &mut MutexGuard<ApplicationState>, name: &str) -> Uuid {
+    /// create snippet that does not input or output
+    pub fn create_non_actin_snippet(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, name: &str) -> Uuid {
         //create external snippet
-        let mut external_snippet = ExternalSnippet::empty(application_state, name);
+        let mut external_snippet = ExternalSnippet::empty(seq_id_generator, name);
 
         //get uuid of external snippet
         let uuid = external_snippet.uuid;
@@ -53,35 +56,35 @@ impl ExternalSnippetManager {
         for input_value in [true, false].iter() 
         {
             //create new snippet io points
-            let snippet_io_point = SnippetIOPoint::new_non_acting_input(application_state, input_value.to_owned());
+            let snippet_io_point = SnippetIOPoint::new_non_acting_input(seq_id_generator, input_value.to_owned());
 
             //add existing io point
             external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point);
         }
 
         //add it to manager
-        application_state.external_snippet_manager.external_snippets.push(external_snippet);
+        external_snippet_manager.external_snippets.push(external_snippet);
 
         return uuid;
     }
 
-    pub fn create_empty_snippet(application_state: &mut MutexGuard<ApplicationState>, name: &str) -> Uuid {
+    pub fn create_empty_snippet(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, name: &str) -> Uuid {
         //create external snippet
-        let mut external_snippet = ExternalSnippet::empty(application_state, name);
+        let external_snippet = ExternalSnippet::empty(seq_id_generator, name);
 
         //get uuid of external snippet
         let uuid = external_snippet.uuid;
 
         //add it to manager
-        application_state.external_snippet_manager.external_snippets.push(external_snippet);
+        external_snippet_manager.external_snippets.push(external_snippet);
 
         return uuid;
     }
 
     /// add point to snippet with uuid snippet_uuid
-    pub fn add_io_point(application_state: &mut MutexGuard<ApplicationState>, snippet_uuid: Uuid, name: &str, content_type: IOContentType, input: bool) -> Result<(), &'static str> {
+    pub fn add_io_point(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, snippet_uuid: Uuid, name: &str, content_type: IOContentType, input: bool) -> Result<Uuid, &'static str> {
         //find external snippet
-        let external_snippet = match application_state.external_snippet_manager.find_external_snippet(snippet_uuid) {
+        let external_snippet = match external_snippet_manager.find_external_snippet(snippet_uuid) {
             Ok(result) => result,
             Err(e) => {
                 return Err(e);
@@ -89,13 +92,46 @@ impl ExternalSnippetManager {
         };
 
         //create new point
-        let snippet_io_point: SnippetIOPoint = SnippetIOPoint::new(application_state, name, content_type, input);
+        let snippet_io_point: SnippetIOPoint = SnippetIOPoint::new(seq_id_generator, name, content_type, input);
 
         //add point
-        external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point);
+        let uuid = snippet_io_point.uuid;
+        
+        match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
+            Some(_) => (),
+            None => {
+                return Err("duplicate snippet io point inserted into external snippet");
+            }
+        };
 
         //return good result
-        return Ok(());
+        return Ok(uuid);
+    }
+
+    pub fn add_non_acting_point(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, snippet_uuid: Uuid, input: bool) -> Result<Uuid, &'static str>{
+        //find external snippet
+        let external_snippet = match external_snippet_manager.find_external_snippet(snippet_uuid) {
+            Ok(result) => result,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        //create new point
+        let snippet_io_point: SnippetIOPoint = SnippetIOPoint::new(seq_id_generator,"_", IOContentType::None, input);
+
+        //add point
+        let uuid = snippet_io_point.uuid;
+        
+        match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
+            Some(_) => (),
+            None => {
+                return Err("duplicate snippet io point inserted into external snippet");
+            }
+        };
+
+        //return good result
+        return Ok(uuid);
     }
 
     /// find external snippet from within the external snippet manager
@@ -103,8 +139,8 @@ impl ExternalSnippetManager {
     /// # Arguments
     /// 
     /// * 'uuid' - uuid of the external snippet to find
-    fn find_external_snippet(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippet, &str> {
-        let result = match self.external_snippets.iter_mut().find(|pipe: &&mut ExternalSnippet | pipe.uuid == uuid) {
+    pub fn find_external_snippet(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippet, &'static str> {
+        match self.external_snippets.iter_mut().find(|pipe: &&mut ExternalSnippet | pipe.uuid == uuid) {
             Some(result) => return Ok(result),
             None => return Err("external snippet could not be found with uuid {uuid}")
         };
@@ -113,9 +149,9 @@ impl ExternalSnippetManager {
 }
 
 impl ExternalSnippet {
-    fn empty(application_state: &mut MutexGuard<ApplicationState>, name: &str) -> Self {
+    fn empty(seq_id_generator: &mut SequentialIdGenerator, name: &str) -> Self {
         //create uuid for external snippet
-        let uuid = application_state.seq_id_generator.get_id();
+        let uuid = seq_id_generator.get_id();
 
         //external snippet creation
         let external_snippet = ExternalSnippet {
@@ -138,14 +174,35 @@ impl ExternalSnippet {
             None => return Err("snippet io point could not be found with uuid {uuid}")
         };
     }
+
+    //getter and setter methods
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+    
+    pub fn get_io_points_as_pipeline_connectors(&self, seq_id_generator: &mut SequentialIdGenerator) -> Vec<PipelineConnectorComponent> {
+        let mut pipeline_connectors = Vec::with_capacity(self.io_points.len());
+
+        for io_point_pair in &self.io_points {
+            pipeline_connectors.push(
+                PipelineConnectorComponent::new(seq_id_generator, io_point_pair.0.clone(), &io_point_pair.1.name, &io_point_pair.1.content_type, io_point_pair.1.input.clone())
+            )
+        }
+
+        return pipeline_connectors;
+    }
 }
 
 impl SnippetIOPoint {
     /// create non action io endpoint
     /// useful for connecting snippets together that share no data
-    pub fn new_non_acting_input(application_state: &mut MutexGuard<ApplicationState>, input: bool) -> Self {
+    pub fn new_non_acting_input(seq_id_generator: &mut SequentialIdGenerator, input: bool) -> Self {
         let snippet_io_point = SnippetIOPoint {
-            uuid: application_state.seq_id_generator.get_id(),
+            uuid: seq_id_generator.get_id(),
             name: String::from('_'),
             content_type: IOContentType::None,
             input: input
@@ -154,9 +211,9 @@ impl SnippetIOPoint {
         return snippet_io_point;
     }
 
-    pub fn new(application_state: &mut MutexGuard<ApplicationState>, name: &str, content_type: IOContentType, input: bool) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator, name: &str, content_type: IOContentType, input: bool) -> Self {
         let snippet_io_point = SnippetIOPoint {
-            uuid: application_state.seq_id_generator.get_id(),
+            uuid: seq_id_generator.get_id(),
             name: String::from(name),
             content_type: content_type,
             input: input

@@ -1,6 +1,6 @@
 use std::sync::MutexGuard;
 
-use crate::utils::sequential_id_generator::SequentialIdGenerator;
+use crate::utils::sequential_id_generator::{SequentialIdGenerator, self};
 use crate::core_components::snippet::SnippetManager;
 use crate::state_management::window_manager::visual_component_manager::VisualComponentManager;
 use crate::utils::sequential_id_generator::Uuid;
@@ -22,15 +22,15 @@ pub struct WindowSession {
 impl WindowManager {
     /// create a new window session for the window sessions manager
     /// returns uuid of session
-    pub fn new_window_session(application_state: &mut MutexGuard<ApplicationState>) -> Uuid {
+    pub fn new_window_session(&mut self, seq_id_generator: &mut SequentialIdGenerator) -> Uuid {
         //create new window session
-        let window_session = WindowSession::new(application_state);
+        let window_session = WindowSession::new(seq_id_generator);
 
         //copy window session uuid
         let window_session_uuid = window_session.uuid;
 
         //add window session to window sessions list
-        application_state.window_manager.window_sessions.push(window_session);
+        self.window_sessions.push(window_session);
 
         //return uuid of window session
         return window_session_uuid;
@@ -49,7 +49,7 @@ impl WindowManager {
         };
 
         //get mutable reference to window session
-        let window: &mut WindowSession = &mut self.window_sessions[window_index]; //self.window_sessions.iter().find(|&w| w.uuid == uuid).as_mut();
+        let window: &mut WindowSession = self.window_sessions.get_mut(window_index).unwrap(); //self.window_sessions.iter().find(|&w| w.uuid == uuid).as_mut();
 
         //return result
         return Some(window);
@@ -66,9 +66,9 @@ impl Default for WindowManager {
 
 impl WindowSession {
     /// create a new window session
-    pub fn new(application_state: &mut MutexGuard<ApplicationState>) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
         return WindowSession {
-            uuid: application_state.seq_id_generator.get_id(),
+            uuid: seq_id_generator.get_id(),
             snippet_manager: SnippetManager::default(),
             visual_component_manager: VisualComponentManager::default()
         }

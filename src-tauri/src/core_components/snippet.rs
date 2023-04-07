@@ -1,4 +1,4 @@
-use crate::state_management::{ApplicationState, window_manager::WindowSession};
+use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet, IOContentType}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
 use std::{sync::MutexGuard, collections::HashMap};
 use bimap::BiHashMap;
 use crate::utils::sequential_id_generator::Uuid;
@@ -23,11 +23,16 @@ pub struct SnippetManager {
 /// the actual snippet itself
 struct SnippetComponent {
     uuid: Uuid,
+    external_snippet_uuid: Uuid,
     pipeline_connectors: Vec<PipelineConnectorComponent> 
 }
 
-struct PipelineConnectorComponent {
-    uuid: Uuid
+pub struct PipelineConnectorComponent {
+    uuid: Uuid,
+    external_io_point_uuid: Uuid,
+    name: String,
+    content_type: IOContentType,
+    input: bool
 }
 
 struct PipelineComponent {
@@ -47,15 +52,22 @@ impl Default for SnippetManager {
 
 impl SnippetManager {
     /// create a new snippet
-    pub fn new_snippet(application_state: &mut MutexGuard<ApplicationState>, window_session: &mut WindowSession) -> Uuid {
+    pub fn new_snippet(seq_id_generator: &mut SequentialIdGenerator, window_session: &mut WindowSession, external_snippet: &mut ExternalSnippet) -> Uuid {
         //create snippet component
-        let snipppet_component : SnippetComponent = SnippetComponent::new(application_state);
+        let mut snippet_component : SnippetComponent = SnippetComponent::new(seq_id_generator);
 
         //get snippet uuid before borrowed mut
-        let snippet_uuid : Uuid = snipppet_component.uuid;
+        let snippet_uuid : Uuid = snippet_component.uuid;
+
+        //add components from external snippet to snippet
+        snippet_component.external_snippet_uuid = external_snippet.get_uuid();
+
+        //add io points to snippet component as pipeline connectors
+        let pipeline_connectors = external_snippet.get_io_points_as_pipeline_connectors(seq_id_generator);
+        snippet_component.pipeline_connectors = pipeline_connectors;
 
         //add to snippets list in snippet manager
-        window_session.snippet_manager.snippets.push(snipppet_component);
+        window_session.snippet_manager.snippets.push(snippet_component);
 
         //return uuid of snippet
         return snippet_uuid;
@@ -93,22 +105,22 @@ impl SnippetManager {
     /// # Arguments
     /// * 'from_uuid' from pipeline connector's uuid
     /// * 'to uuid' to pipeline connector's uuid
-    pub fn create_pipeline(application_state: &mut MutexGuard<ApplicationState>, window_session: &mut WindowSession, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &str> {
+    pub fn create_pipeline(seq_id_generator: &mut SequentialIdGenerator, window_session: &mut WindowSession, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &'static str> {
         //find pipeline connectors
 
         //create new pipeline
 
         //return uuid of new pipeline
-        return Ok();
+        return Ok(0);
     }
 }
 
 impl SnippetComponent {
-    pub fn new(application_state: &mut MutexGuard<ApplicationState>) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetComponent {
-            uuid: application_state.seq_id_generator.get_id(),
-            //TODO when creating pipeline connectors, in this method, replace capacity with length
-            pipeline_connectors: Vec::with_capacity(2)
+            uuid: seq_id_generator.get_id(),
+            external_snippet_uuid: 0,
+            pipeline_connectors: Vec::new()
         }
     }
 
@@ -122,10 +134,22 @@ impl SnippetComponent {
     }
 }
 
+impl PipelineConnectorComponent {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator, external_io_point_uuid: Uuid, name: &str, content_type: &IOContentType, input: bool) -> Self {
+        return PipelineConnectorComponent {
+            uuid: seq_id_generator.get_id(),
+            external_io_point_uuid: external_io_point_uuid,
+            name: name.clone().to_string(),
+            content_type: content_type.clone(),
+            input: input
+        }
+    }
+}
+
 impl PipelineComponent {
-    pub fn new(application_state: &mut MutexGuard<ApplicationState>) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
         return PipelineComponent {
-            uuid: application_state.seq_id_generator.get_id() 
+            uuid: seq_id_generator.get_id() 
         }
     }
 }
