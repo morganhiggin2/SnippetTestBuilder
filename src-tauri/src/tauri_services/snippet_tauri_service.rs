@@ -27,7 +27,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     };
 
     //find window session
-    let window_session: &mut WindowSession = match WindowManager::find_window_session(window_manager, window_session_uuid) {
+    let window_session: &mut WindowSession = match window_manager.find_window_session(window_session_uuid) {
         Some(result) => result,
         None => {
             return Err("window session could not be found"); 
@@ -48,7 +48,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
 /// * 'to_uuid' - to pipeline connector uuid
 #[tauri::command] 
 pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &str> {
-     // get the state
+    // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
     

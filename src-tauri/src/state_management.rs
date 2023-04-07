@@ -66,7 +66,7 @@ impl ApplicationState {
             let external_snippet_manager = &mut application_state.external_snippet_manager;   
             let directory_manager = &mut application_state.directory_manager;
 
-            let mut category = ExternalSnippetCategory::new_parent(sequential_id_generator, 2, 0);
+            let mut category = ExternalSnippetCategory::new_parent(sequential_id_generator, "utils".to_string(), 2, 0);
             let category_uuid = category.get_uuid();
 
             let mut snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "rest_api call");
@@ -74,9 +74,10 @@ impl ApplicationState {
             ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "body", IOContentType::JSON, false);
 
             let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
-            category.child_snippets.push(external_snippet_file_container.get_uuid());
-            directory_manager.snippet_structure.external_snippet_containers.push(external_snippet_file_container);
-            directory_manager.snippet_structure.categories.push(category);
+            category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());
+            directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
+            directory_manager.snippet_structure.root_categories.push(category.get_uuid());
+            directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
 
            
             snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "middle_body_validator");
