@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::Values}};
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent};
 
@@ -26,7 +26,7 @@ pub struct SnippetIOPoint {
 }
 
 /// enum for type of content an io point can serve
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum IOContentType {
     //none type for endpoints that send no data, these should have name '_'
     None,
@@ -142,7 +142,7 @@ impl ExternalSnippetManager {
     pub fn find_external_snippet(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippet, &'static str> {
         match self.external_snippets.iter_mut().find(|pipe: &&mut ExternalSnippet | pipe.uuid == uuid) {
             Some(result) => return Ok(result),
-            None => return Err("external snippet could not be found with uuid {uuid}")
+            None => return Err("external snippet could not be found with uuid")
         };
     }
 

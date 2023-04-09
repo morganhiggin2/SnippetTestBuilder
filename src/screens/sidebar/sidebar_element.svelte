@@ -6,9 +6,10 @@
     //for dispatching events
     const dispatch = createEventDispatcher();
 
+    export let id = -1;
     export let name = "";
     export let level = 0;
-    export let file = true;
+    export let is_directory = true;
 
     let expanded = false;
 
@@ -39,8 +40,8 @@
     on:dragstart={onDragStart}
     on:dragend={onDragEnd}
 >
-    <!--if it is not a file (i.e, is a directory)-->
-    {#if !file}
+    <!--if it is not a directory-->
+    {#if is_directory}
         <!--if the directory is expanded-->
         {#if expanded}
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-down" viewBox="0 0 16 16">

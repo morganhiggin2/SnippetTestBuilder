@@ -9,13 +9,19 @@
     let files = [];
 
     onMount(() => {
-        files = invoke('get_snippet_directory', {}).then();
-        //set parent files to be showing
-        for (const [i, file] of files.entries()) {
-            if (file.level == 0) {
-                files[i].showing = true;
+        //invoke('get_snippet_directory', {}).then((result) => {files = result;});
+        //console.log(files);
+        invoke('get_snippet_directory', {}).then((result) => {
+            //set files to be the list of snippet files and directories
+            files = result;
+
+            //set parent files to be showing
+            for (const [i, file] of files.entries()) {
+                if (file.level == 0) {
+                    files[i].showing = true;
+                }
             }
-        }
+        });
     });
 
     function fileExpand(id) {

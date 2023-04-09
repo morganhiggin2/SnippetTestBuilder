@@ -2,6 +2,7 @@
     import NavigationBar from './navigation_bar.svelte';
     import FileDisplay from './sidebar/file_display.svelte';
     import SectionSidebar from './sidebar/section_sidebar.svelte';
+    import SnippetDisplay from './sidebar/snippet_display.svelte';
     import Workarea from './workarea/work_area.svelte';
 
     //for border resizing
@@ -44,7 +45,7 @@
         <SectionSidebar/>
     </div>
     <div class="body sidebar" id="secondary">
-        <FileDisplay/>
+        <SnippetDisplay/>
     </div>
     <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
     <div class="body work-area">

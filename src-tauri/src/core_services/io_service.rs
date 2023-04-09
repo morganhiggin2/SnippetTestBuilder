@@ -1,5 +1,5 @@
 use std::{fs, collections::HashMap};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::external_snippet_manager::{self, ExternalSnippetManager}};
 
@@ -35,7 +35,7 @@ pub struct ExternalSnippetFileContainer {
 }
 
 //struct for the josn serialization
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct FrontSnippetContent {
     id: Uuid,
     name: String,
@@ -115,11 +115,12 @@ impl SnippetStructure {
             let external_snippet_category = self.find_category(&cat_uuid).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_snippet(seq_id_generator, external_snippet_category.get_name(), 0);
+            let front_snippet_content = FrontSnippetContent::new_category(seq_id_generator, external_snippet_category.get_name(), 0);
+
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content);
 
-            self.file_structure_to_front_snippet_contents_helper(seq_id_generator, external_snippet_manager, &mut front_snippet_contents, external_snippet_category, 0);
+            self.file_structure_to_front_snippet_contents_helper(seq_id_generator, external_snippet_manager, &mut front_snippet_contents, external_snippet_category, 1);
             //SnippetStructure::file_structure_to_front_snippet_contents_helper(seq_id_generator, &mut front_snippet_contents, cat, 0);
         }
 
@@ -135,10 +136,11 @@ impl SnippetStructure {
             let external_snippet_container = self.find_external_snippet_container(ext_snip_uuid).unwrap(); 
 
             //find external snippet
-            let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_uuid()).unwrap();
+            let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_category(seq_id_generator, external_snippet.get_name(), level);
+            let front_snippet_content = FrontSnippetContent::new_snippet(seq_id_generator, external_snippet.get_name(), level);
+
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content)
         }
@@ -223,6 +225,10 @@ impl ExternalSnippetFileContainer {
     //TODO remove pub
     pub fn get_uuid(&self) -> Uuid {
         return self.uuid;
+    }
+
+    fn get_external_snippet_uuid(&self) -> Uuid {
+        return self.external_snippet_uuid;
     }
 }
 

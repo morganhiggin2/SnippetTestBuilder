@@ -12,12 +12,19 @@ pub mod window_manager;
 pub mod external_snippet_manager;
 
 pub struct MutexApplicationState(pub Mutex<ApplicationState>);
+
 pub struct ApplicationState {
     //sequential id generator
     pub seq_id_generator: SequentialIdGenerator,
     pub window_manager: WindowManager,
     pub external_snippet_manager: ExternalSnippetManager,
     pub directory_manager: DirectoryManager 
+}
+
+impl Default for MutexApplicationState {
+    fn default() -> Self {
+        return MutexApplicationState(Mutex::new(ApplicationState::default()));
+    }
 }
 
 impl Default for ApplicationState {
@@ -76,13 +83,16 @@ impl ApplicationState {
             let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
             category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());
             directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
-            directory_manager.snippet_structure.root_categories.push(category.get_uuid());
-            directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
 
            
             snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "middle_body_validator");
             ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "json_input", IOContentType::JSON, true); 
-            ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, false); 
+            ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, false); let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
+            category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());
+            directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
+            directory_manager.snippet_structure.root_categories.push(category.get_uuid());
+            directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
+
         }
     }
 }

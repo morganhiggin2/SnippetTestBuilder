@@ -16,14 +16,14 @@ pub mod core_services;
 
 fn main() {
     //create application state
-    let mut application_state_guard = Mutex::new(ApplicationState::default());
+    let mut application_state_guard = MutexApplicationState::default();
     /*let b = &application_state_guard;
 
     let mut guard = b.lock().unwrap();
     let mut obj = guard.deref_mut();*/
 
     {
-        let mut guard = application_state_guard.lock().unwrap();
+        let mut guard = application_state_guard.0.lock().unwrap();
         let app_ref = guard.deref_mut();
 
         //let mut application_state = (&application_state_guard).lock().unwrap().deref_mut();
