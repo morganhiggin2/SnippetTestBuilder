@@ -24,13 +24,57 @@
         });
     });
 
-    function fileExpand(id) {
-        //expand files for level just under file of id
+    function fileExpand(e) {
+        //get the id
+        let id = e.detail.id;
 
+        //level of found id
+        let level = null;
+
+        //expand files for level just under file of id
+        for (const [i, file] of files.entries()) {
+            if (file.id == id) {
+                level = file.level;
+            }
+            else if (level != null) {
+                if (file.level == level + 1) {
+                    files[i].showing = true;
+                }
+                else if (file.level <= level) {
+                    level = null;
+                    break;
+                }
+            }
+        }
+
+        files = files;
     }
 
-    function fileContract(id) {
+    function fileContract(e) {
+        //get the id
+        let id = e.detail.id;
+
         //contract all files under level of file of id
+        //level of found id
+        let level = null;
+
+        //expand files for level just under file of id
+        for (const [i, file] of files.entries()) {
+            if (file.id == id) {
+                level = file.level;
+            }
+            else if (level != null) {
+                if (file.level >= level + 1) {
+                    file.showing = false;
+                }
+                else if (file.level <= level) {
+                    level = null;
+                    break;
+                }
+            }
+        }
+
+        files = files;
     }
 
     //for context menu
@@ -56,9 +100,9 @@
 <div on:contextmenu|preventDefault={onRightClick} class="body">
     {#each files as file}
         {#if file.showing}
-        <div>
-            <SidebarElement {...file} on:expand={fileExpand} on:contract={fileContract}/>
-        </div>
+            <div>
+                <SidebarElement {...file} on:expand={fileExpand} on:contract={fileContract}/>
+            </div>
         {/if}
     {/each}
 </div>

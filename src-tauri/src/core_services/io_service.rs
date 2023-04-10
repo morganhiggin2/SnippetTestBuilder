@@ -39,9 +39,16 @@ pub struct ExternalSnippetFileContainer {
 pub struct FrontSnippetContent {
     id: Uuid,
     name: String,
+    file_type: FrontSnippetContentType,
     is_directory: bool,
     level: u32,
     showing: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+enum FrontSnippetContentType {
+    Directory,
+    Snippet
 }
 
 impl Default for DirectoryManager {
@@ -238,6 +245,7 @@ impl FrontSnippetContent {
         return FrontSnippetContent {
             id: seq_id_generator.get_id(),
             name: name.clone(),
+            file_type: FrontSnippetContentType::Snippet,
             is_directory: false,
             level: level,
             showing: false
@@ -249,6 +257,7 @@ impl FrontSnippetContent {
         return FrontSnippetContent {
             id: seq_id_generator.get_id(),
             name: name.clone(),
+            file_type: FrontSnippetContentType::Directory,
             is_directory: true,
             level: level,
             showing: false

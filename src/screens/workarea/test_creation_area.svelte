@@ -65,7 +65,9 @@
         //type
         let type = e.dataTransfer.getData('type');
 
-        if (type == 'snippet') {
+        invoke('logln', {text: JSON.stringify(type)})
+
+        if (type == 'Snippet') {
             //id
             let id = e.dataTransfer.getData('id');
 
