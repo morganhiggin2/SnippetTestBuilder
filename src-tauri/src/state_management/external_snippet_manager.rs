@@ -2,7 +2,7 @@ use std::{collections::{HashMap, hash_map::Values}};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent};
+use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent, core_services::io_service::{FrontPipelineConnectorContent, FrontSnippetContent, FrontSnippetContentType}};
 
 
 pub struct ExternalSnippetManager {
@@ -195,6 +195,40 @@ impl ExternalSnippet {
 
         return pipeline_connectors;
     }
+
+    pub fn get_snippet_as_front_content(&self, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> FrontSnippetContent{
+        return FrontSnippetContent::new(
+            seq_id_generator.get_id(),
+            self.get_name(),
+            self.get_uuid(),
+            FrontSnippetContentType::Snippet,
+            false,
+            level,
+            false,
+            Some(self.get_io_points_as_pipeline_connector_content(seq_id_generator))
+        );
+    }
+
+    fn get_io_points_as_pipeline_connector_content(&self, seq_id_generator: &mut SequentialIdGenerator) -> Vec<FrontPipelineConnectorContent> {
+        //generate contents vector
+        let mut contents: Vec<FrontPipelineConnectorContent> = Vec::with_capacity(self.io_points.len());
+
+        //get io points
+        for io_point in self.io_points.iter() {
+            //push to contents
+            contents.push(
+                FrontPipelineConnectorContent::new(
+                    seq_id_generator.get_id(),
+                    io_point.1.uuid.clone(),
+                    io_point.1.name.clone(),
+                    io_point.1.content_type.clone(),
+                    io_point.1.input
+                )
+            )
+        }
+
+        return contents;
+    }
 }
 
 impl SnippetIOPoint {
@@ -205,7 +239,7 @@ impl SnippetIOPoint {
             uuid: seq_id_generator.get_id(),
             name: String::from('_'),
             content_type: IOContentType::None,
-            input: input
+            input: input,
         };
 
         return snippet_io_point;

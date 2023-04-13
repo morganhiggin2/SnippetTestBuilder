@@ -1,7 +1,7 @@
 use std::{fs, collections::HashMap};
 use serde::{Serialize, Deserialize};
 
-use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::external_snippet_manager::{self, ExternalSnippetManager}};
+use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::external_snippet_manager::{self, ExternalSnippetManager, IOContentType, ExternalSnippet}};
 
 pub struct DirectoryManager {
     //TODO remove pub
@@ -39,14 +39,25 @@ pub struct ExternalSnippetFileContainer {
 pub struct FrontSnippetContent {
     id: Uuid,
     name: String,
+    internal_id: Uuid,
     file_type: FrontSnippetContentType,
     is_directory: bool,
     level: u32,
     showing: bool,
+    pipeline_connectors: Option<Vec<FrontPipelineConnectorContent>>
 }
 
 #[derive(Serialize, Deserialize)]
-enum FrontSnippetContentType {
+pub struct FrontPipelineConnectorContent {
+    id: Uuid,
+    pipeline_connector_id: Uuid,
+    name: String,
+    content_type: IOContentType,
+    input: bool 
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FrontSnippetContentType {
     Directory,
     Snippet
 }
@@ -146,7 +157,7 @@ impl SnippetStructure {
             let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_snippet(seq_id_generator, external_snippet.get_name(), level);
+            let front_snippet_content = FrontSnippetContent::new_snippet(seq_id_generator, &external_snippet, level);
 
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content)
@@ -240,27 +251,46 @@ impl ExternalSnippetFileContainer {
 }
 
 impl FrontSnippetContent {
-    /// create new front snippet content of type snippet 
-    fn new_snippet(seq_id_generator: &mut SequentialIdGenerator, name: String, level: u32) -> Self {
+    pub fn new(id: Uuid, name: String, internal_id: Uuid, file_type: FrontSnippetContentType, is_directory: bool, level: u32, showing: bool, pipeline_connectors: Option<Vec<FrontPipelineConnectorContent>>) -> Self {
         return FrontSnippetContent {
-            id: seq_id_generator.get_id(),
-            name: name.clone(),
-            file_type: FrontSnippetContentType::Snippet,
-            is_directory: false,
+            id: id,
+            name: name,
+            internal_id: internal_id,
+            file_type: file_type,
+            is_directory: is_directory,
             level: level,
-            showing: false
-        };
+            showing: showing,
+            pipeline_connectors: pipeline_connectors
+        }
+    }
+    /// create new front snippet content of type snippet 
+    fn new_snippet(seq_id_generator: &mut SequentialIdGenerator, external_snippet: & ExternalSnippet, level: u32) -> Self {
+        return external_snippet.get_snippet_as_front_content(seq_id_generator, level);        
     }
 
     /// create new front snippet content of type category 
-    fn new_category(seq_id_generator: &mut SequentialIdGenerator, name: String, level: u32) -> Self {
-        return FrontSnippetContent {
-            id: seq_id_generator.get_id(),
-            name: name.clone(),
-            file_type: FrontSnippetContentType::Directory,
-            is_directory: true,
-            level: level,
-            showing: false
-        };
+    fn new_category(seq_id_generator: &mut SequentialIdGenerator, name: String,  level: u32) -> Self {
+        return FrontSnippetContent::new(
+            seq_id_generator.get_id(),
+            name.clone(),
+            0,
+            FrontSnippetContentType::Directory,
+            true,
+            level,
+            false,
+            None
+        );
+    }
+}
+
+impl FrontPipelineConnectorContent {
+    pub fn new(id: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
+        return FrontPipelineConnectorContent {
+            id: id,
+            pipeline_connector_id: pipeline_connector_id,
+            name: name,
+            content_type: content_type,
+            input: input
+        }
     }
 }

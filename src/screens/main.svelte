@@ -1,6 +1,5 @@
 <script>
     import NavigationBar from './navigation_bar.svelte';
-    import FileDisplay from './sidebar/file_display.svelte';
     import SectionSidebar from './sidebar/section_sidebar.svelte';
     import SnippetDisplay from './sidebar/snippet_display.svelte';
     import Workarea from './workarea/work_area.svelte';

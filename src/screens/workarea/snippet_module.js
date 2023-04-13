@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import { invoke } from '@tauri-apps/api';
 
-export function generateSnippet(id, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
+export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
     // make the snippet 
     var snippet_group = new Konva.Group({
         id: id,
@@ -13,7 +13,7 @@ export function generateSnippet(id, visualComponents, xPos, yPos, pipeline_conne
         id: "title_text",
         x: xPos,
         y: yPos + 2,
-        text: 'hello',
+        text: name,
         fontSize: 16,
         fontFamily: 'Inter',
         fill: 'white'

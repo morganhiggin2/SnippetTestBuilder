@@ -4,6 +4,8 @@
     import ContextMenuOption from './context_menus/context_menu_option.svelte';
     import { invoke } from "@tauri-apps/api";
     import { onMount } from "svelte";
+    import DirectorySidebarElement from "./snippet_sidebar_elements/directory_sidebar_element.svelte";
+    import SnippetSidebarElement from "./snippet_sidebar_elements/snippet_sidebar_element.svelte";
 
     //files to sidebar
     let files = [];
@@ -100,9 +102,15 @@
 <div on:contextmenu|preventDefault={onRightClick} class="body">
     {#each files as file}
         {#if file.showing}
-            <div>
-                <SidebarElement {...file} on:expand={fileExpand} on:contract={fileContract}/>
-            </div>
+            {#if file.file_type == "Snippet"}
+                <div>
+                    <SnippetSidebarElement {...file} on:expand={fileExpand} on:contract={fileContract}/>
+                </div>
+            {:else if file.file_type == "Directory"}
+                <div>
+                    <DirectorySidebarElement {...file} on:expand={fileExpand} on:contract={fileContract}/>
+                </div>
+            {/if}
         {/if}
     {/each}
 </div>

@@ -16,8 +16,11 @@
 
     function onDragStart(e) {
         e.dataTransfer.setData('id', e.target.getAttribute('id'));
-        invoke('logln', {text: JSON.stringify(file_type)});
+        e.dataTransfer.setData('snippet_id', id);
         e.dataTransfer.setData('type', file_type);
+        e.dataTransfer.setData('name', name);
+        //e.dataTransfer.setData('pipeline_connectors', pipeline_connectors);
+
     }
 
     function onDragEnd(e) {

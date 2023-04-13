@@ -3,6 +3,9 @@
     import { onMount } from 'svelte';
     import { generatePipeConnector, generateSnippet, getChild } from './snippet_module.js';
     import Konva from 'konva';
+    import { pipeline } from 'stream';
+
+    export let window_session_id;
 
     //dimensions of the current window
     let window_width = 0;
@@ -52,8 +55,6 @@
 
     function handleDrop(e) {
         e.preventDefault();
-        //var element_text = e.dataTransfer.getData("text");
-        //invoke('logln', {text: 'drag drop confirmed of any type'});
 
         //get the bounding rectagle for canvas
         let boundingRect = selfObj.getBoundingClientRect();
@@ -65,27 +66,31 @@
         //type
         let type = e.dataTransfer.getData('type');
 
-        invoke('logln', {text: JSON.stringify(type)})
-
         if (type == 'Snippet') {
-            //id
-            let id = e.dataTransfer.getData('id');
+            //get snippet information
+            //parsing certain values as everything is passed as string
+            let id = JSON.parse(e.dataTransfer.getData('id'));
+            let name = e.dataTransfer.getData('name');
+            let type = e.dataTransfer.getData('type');
+            let internal_id = JSON.parse(e.dataTransfer.getData('internal_id'));
+            let pipeline_connectors = JSON.parse(e.dataTransfer.getData('pipeline_connectors')); 
 
-            //create pipeline connectors
-            let pipelineConnectors = [
-                {id: Math.random().toString(), name: "input", input: true},
-                {id: Math.random().toString(), name: "conditioner", input: true},
-                {id: Math.random().toString(), name: "output", input: false}
-            ];
+            //generate snippet in backend, getting new snippet uuid
+            invoke('new_snippet', {
+                windowSessionUuid: window_session_id,
+                externalSnippetUuid: internal_id
+            }).then((result) => {
+                let snippet_id = result;
 
-            //create drawable snippet
-            let snippetDrawable = generateSnippet(Math.random().toString(), visualComponents, e.clientX - window_x, e.clientY - window_y, pipelineConnectors, spawnPipeline, snippetDragStart, snippetDragEnd);
+                //create drawable snippet
+                let snippetDrawable = generateSnippet(snippet_id, name, visualComponents, e.clientX - window_x, e.clientY - window_y, pipeline_connectors, spawnPipeline, snippetDragStart, snippetDragEnd);
 
-            //create snippet
-            snippetComponents.push({id: Math.random().toString(), name: "testing snippet", drawable: snippetDrawable});
+                //create snippet
+                snippetComponents.push({id: id, name: "testing snippet", type: type, internal_id: internal_id, pipeline_connectors: pipeline_connectors, drawable: snippetDrawable});
 
-            //draw snippet
-            drawSnippet(snippetDrawable);
+                //draw snippet
+                drawSnippet(snippetDrawable);
+            });
         }
     }
 
@@ -113,26 +118,29 @@
             //get background rect position in canvas space
             var background_rect_position = background_rect.getAbsolutePosition(stage);
             
-            //get in creation pipeline id from rust
-            var id = Math.random().toString();
+            //get temp id
+            invoke('get_id')
+                .then((result) => {
+                    let id = result;
 
-            //start pipeline creation
-            pipelineInCreationEvent = {
-                visual_component: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
-                pipeline_connector_id: visual_id,
-                start_pos: {
-                    x: background_rect_position.x + position_offset.x,
-                    y: background_rect_position.y + position_offset.y
-                } 
-            };
+                    //start pipeline creation
+                    pipelineInCreationEvent = {
+                        visual_component: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
+                        pipeline_connector_id: visual_id,
+                        start_pos: {
+                            x: background_rect_position.x + position_offset.x,
+                            y: background_rect_position.y + position_offset.y
+                        } 
+                    };
 
-            //draw pipeline
-            pipelineLayer.add(pipelineInCreationEvent.visual_component);
-            stage.draw();
+                    //draw pipeline
+                    pipelineLayer.add(pipelineInCreationEvent.visual_component);
+                    stage.draw();
 
-            //change pipe insert color
-            visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.highlight_color;
-        }
+                    //change pipe insert color
+                    visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.highlight_color;
+                });
+       }
         else {
             //get virtual components from visual mapping
             var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id].visual;
@@ -166,7 +174,13 @@
                     return node.getId() === "background_rect";
                 })[0].fill('#fcd777');
                 pipelineInCreationEvent.visualcomponent.fill('#fcd777');*/
-               
+ 
+                //create pipeline from backend, get new pipeline id
+                let pipeline_id = 0;
+
+                //change id of virtual pipeline              
+                pipelineInCreationEvent.visual_component.setId(pipeline_id);
+
                 //get current pipeline connector position
                 var background_rect = pipeline_to_connector.getChildren(function(node) {
                     return node.getId() === "background_rect";

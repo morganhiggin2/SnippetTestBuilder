@@ -18,19 +18,19 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     let window_manager = &mut state.window_manager;
     let ext_snippet_manager = &mut state.external_snippet_manager;
 
-    //get the external snippet
-    let external_snippet = match ext_snippet_manager.find_external_snippet(external_snippet_uuid) {
-        Ok(result) => result,
-        Err(e) => {
-            return Err(e);
-        }
-    };
-
     //find window session
     let window_session: &mut WindowSession = match window_manager.find_window_session(window_session_uuid) {
         Some(result) => result,
         None => {
             return Err("window session could not be found"); 
+        }
+    };
+    
+    //get the external snippet
+    let external_snippet = match ext_snippet_manager.find_external_snippet(external_snippet_uuid) {
+        Ok(result) => result,
+        Err(e) => {
+            return Err(e);
         }
     };
 
@@ -72,4 +72,20 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
     };
 
     return Ok(pipeline_uuid);
+}
+
+/// to get a new unique id
+#[tauri::command]
+pub fn get_id(application_state: tauri::State<MutexApplicationState>) -> Uuid {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    //borrow split
+    let seq_id_generator = &mut state.seq_id_generator;
+
+    //get new id
+    let id = seq_id_generator.get_id();
+    
+    return id;
 }

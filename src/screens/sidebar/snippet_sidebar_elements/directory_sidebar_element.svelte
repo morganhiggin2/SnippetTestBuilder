@@ -6,19 +6,39 @@
     //for dispatching events
     const dispatch = createEventDispatcher();
 
+    export let id = -1;
     export let name = "";
     export let level = 0;
-    export let file = true;
+    export let file_type = "";
 
     let expanded = false;
 
     function onDragStart(e) {
-        e.dataTransfer.setData('id', e.target.getAttribute('id'));
-        e.dataTransfer.setData('type', 'snippet');
+        e.dataTransfer.setData('id', id);
+        e.dataTransfer.setData('type', file_type);
+        e.dataTransfer.setData('name', name);
     }
 
     function onDragEnd(e) {
 
+    }
+
+    function handleClick(e) {
+        if (expanded) {
+            expanded = false;
+
+            dispatch('contract', {
+                id: id
+            });
+        }
+        else {
+            //update state to reflect expansion
+            expanded = true;
+
+            dispatch('expand', {
+                id: id
+            });
+        }
     }
 
     /*
@@ -34,13 +54,12 @@
 <div 
     id={name}
     class="body" 
-    style="--indent: {level * 5}px"
+    style="--indent: {level * 17}px"
     draggable=true
     on:dragstart={onDragStart}
     on:dragend={onDragEnd}
 >
-    <!--if it is not a file (i.e, is a directory)-->
-    {#if !file}
+    <div class="expandable_arrow" on:click={handleClick} on:keypress={() => {}}>
         <!--if the directory is expanded-->
         {#if expanded}
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-down" viewBox="0 0 16 16">
@@ -51,7 +70,8 @@
                 <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
         {/if}
-    {/if}
+    </div>
+
     <div class="name">
         {name}
     </div>
@@ -68,6 +88,11 @@
     }
 
     .name {
-        margin-left: 17px;
+        padding-left: 4px;
     }
+
+    .expandable_arrow {
+        float: left;
+    }
+
 </style>

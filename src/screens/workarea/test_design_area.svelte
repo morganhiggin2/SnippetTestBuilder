@@ -1,18 +1,32 @@
 <script>
+    import { onMount } from "svelte";
     import PropertiesArea from "./properties_area.svelte";
     import TestCreationArea from "./test_creation_area.svelte";
+    import { invoke } from "@tauri-apps/api";
 
     let window_height = 0;
+    let window_session_id = 0;
+
+    let src = "";
+
+    onMount(() => {
+        //create new window sesison
+        //set id on completion
+        invoke('new_window_session')
+            .then((result) => {
+            window_session_id = result;
+        });
+    });
 
 </script>
 
 <div class="body">
     <div class="container" style="grid-template-rows: {window_height - 150}px 150px;">
         <div class="test-creation-area">
-            <TestCreationArea/>
+            <TestCreationArea {window_session_id}/>
         </div>
         <div class="properties-view">
-            <PropertiesArea/>
+            <PropertiesArea {window_session_id}/>
         </div>
     </div>
 </div>

@@ -1,5 +1,5 @@
 <script>
-
+    export let window_session_id;
 </script>
 
 <div class="body">
