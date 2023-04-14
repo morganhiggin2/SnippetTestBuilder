@@ -6,19 +6,17 @@
     //for dispatching events
     const dispatch = createEventDispatcher();
 
+    //TODO have less information
     export let id = -1;
     export let name = "";
     export let internal_id = -1;
     export let level = 0;
     export let file_type = "";
-    export let pipeline_connectors = [];
 
     function onDragStart(e) {
+        //TODO send less information
         e.dataTransfer.setData('id', id);
         e.dataTransfer.setData('internal_id', internal_id);
-        e.dataTransfer.setData('type', file_type);
-        e.dataTransfer.setData('name', name);
-        e.dataTransfer.setData('pipeline_connectors', JSON.stringify(pipeline_connectors));
     }
 
     function onDragEnd(e) {

@@ -36,8 +36,27 @@ impl WindowManager {
         return window_session_uuid;
     }
 
-    /// find a window session in the window manager
-    pub fn find_window_session(&mut self, uuid: u32) -> Option<&mut WindowSession> {
+    /// find a reference to a window session in the window manager
+    pub fn find_window_session(&self, uuid: u32) -> Option<&WindowSession> {
+        let window_index_result: Option<usize> = self.window_sessions.iter().position(|w| w.uuid == uuid);
+
+        // handle result cases
+        // if found, get index
+        // else, return with none
+        let window_index: usize = match window_index_result {
+            Some(i) => i,
+            None => return None 
+        };
+
+        //get mutable reference to window session
+        let window: &WindowSession = self.window_sessions.get(window_index).unwrap(); //self.window_sessions.iter().find(|&w| w.uuid == uuid).as_mut();
+
+        //return result
+        return Some(window);
+    }
+
+    /// find a mutable reference window session in the window manager
+    pub fn find_window_session_mut(&mut self, uuid: u32) -> Option<&mut WindowSession> {
         let window_index_result: Option<usize> = self.window_sessions.iter().position(|w| w.uuid == uuid);
 
         // handle result cases

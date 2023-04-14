@@ -1,6 +1,7 @@
 use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet, IOContentType}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
 use std::{sync::MutexGuard, collections::HashMap};
 use bimap::BiHashMap;
+use serde::{Serialize, Deserialize};
 use tauri::window;
 use crate::utils::sequential_id_generator::Uuid;
 
@@ -15,7 +16,7 @@ pub struct SnippetManager {
     //mapping for pipeline connects to pipeline components
     to_pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
     from_pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
-    snippet_to_pipeline_components: HashMap<Uuid, Uuid>
+    pipeline_components_to_snippet: HashMap<Uuid, Uuid>
 
     //mapping for snippets and pipelines
     //list of uuid of snippets to index in edge adj list
@@ -24,15 +25,16 @@ pub struct SnippetManager {
 }
 
 /// the actual snippet itself
-struct SnippetComponent {
+pub struct SnippetComponent {
     uuid: Uuid,
+    name: String,
     external_snippet_uuid: Uuid,
     pipeline_connectors: Vec<PipelineConnectorComponent> 
 }
 
 pub struct PipelineConnectorComponent {
     uuid: Uuid,
-    external_io_point_uuid: Uuid,
+    external_pipeline_connector_uuid: Uuid,
     name: String,
     content_type: IOContentType,
     input: bool
@@ -44,6 +46,24 @@ struct PipelineComponent {
     to_pipeline_connector_uuid: Uuid
 }
 
+//struct for the josn serialization
+#[derive(Serialize, Deserialize)]
+pub struct FrontSnippetContent {
+    id: Uuid,
+    name: String,
+    internal_id: Uuid,
+    pipeline_connectors: Vec<FrontPipelineConnectorContent>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FrontPipelineConnectorContent {
+    id: Uuid,
+    pipeline_connector_id: Uuid,
+    name: String,
+    content_type: IOContentType,
+    input: bool 
+}
+
 impl Default for SnippetManager {
     fn default() -> Self {
         return SnippetManager {
@@ -51,11 +71,12 @@ impl Default for SnippetManager {
             pipelines: HashMap::with_capacity(12),
             from_pipeline_connector_to_pipeline: HashMap::with_capacity(24),
             to_pipeline_connector_to_pipeline: HashMap::with_capacity(24),
-            snippet_to_pipeline_components: HashMap::with_capacity(24)
+            pipeline_components_to_snippet: HashMap::with_capacity(24)
             //uuid_to_edge_adj_index: HashMap::with_capacity(24),
         };
     }
 }
+//TODO create front components and their methods
 
 impl SnippetManager {
     /// create a new snippet
@@ -66,15 +87,20 @@ impl SnippetManager {
         //get snippet uuid before borrowed mut
         let snippet_uuid : Uuid = snippet_component.uuid;
 
+        //get snippet name
+        let snippet_name : String = snippet_component.name;
+
         //add components from external snippet to snippet
         snippet_component.external_snippet_uuid = external_snippet.get_uuid();
+        snippet_component.name = snippet_name;
 
         //add io points to snippet component as pipeline connectors
         let pipeline_connectors = external_snippet.get_io_points_as_pipeline_connectors(seq_id_generator);
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
-            window_session.snippet_manager.snippet_to_pipeline_components.insert(pipeline_connector.uuid, snippet_uuid);
+            println!("{}", pipeline_connector.get_uuid());
+            window_session.snippet_manager.pipeline_components_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
         }
 
         //move pipeline connectors to snippet component
@@ -100,7 +126,16 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the snippet 
-    fn find_snippet(&mut self, uuid: &Uuid) -> Option<&mut SnippetComponent>{
+    pub fn find_snippet(&self, uuid: &Uuid) -> Option<&SnippetComponent>{
+        //find pipeline in vector
+        return self.snippets.get(uuid);
+    }
+
+    /// find mutable reference to snippet from uuid
+    /// 
+    /// # Arguments
+    /// * 'uuid' - uuid of the snippet 
+    pub fn find_snippet_mut(&mut self, uuid: &Uuid) -> Option<&mut SnippetComponent>{
         //find pipeline in vector
         return self.snippets.get_mut(uuid);
     }
@@ -109,7 +144,7 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector going into pipeline
-    pub fn find_pipeline_uuid_from_from_pipeline_connector(&mut self, uuid: &Uuid) -> Option<Uuid> {
+    pub fn find_pipeline_uuid_from_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
         //find uuid of pipeline connector
         return self.from_pipeline_connector_to_pipeline.get(uuid).cloned(); 
     }
@@ -118,7 +153,7 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector coming out of pipeline
-    pub fn find_pipeline_uuid_from_to_pipeline_connector(&mut self, uuid: &Uuid) -> Option<Uuid> {
+    pub fn find_pipeline_uuid_from_to_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
         //find uuid of pipeline connector
         return self.to_pipeline_connector_to_pipeline.get(uuid).cloned(); 
     }
@@ -126,8 +161,8 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector 
-    pub fn find_snippet_uuid_from_pipeline_connector(&mut self, uuid: &Uuid) -> Option<Uuid> {
-        return self.snippet_to_pipeline_components.get(uuid).cloned();
+    pub fn find_snippet_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
+        return self.pipeline_components_to_snippet.get(uuid).cloned();
     }
 
     /// create pipeline
@@ -199,36 +234,186 @@ impl SnippetManager {
         //return uuid of new pipeline
         return Ok(pipeline_uuid);
     }
+
+    /// validate pipeline
+    /// returning weither or not this is a valid pipeline creation
+    /// assumed by error that the pipeline connectors their
+    /// underying snippets exist
+    /// 
+    /// # Arguments
+    /// * 'from_uuid' from pipeline connector's uuid
+    /// * 'to uuid' to pipeline connector's uuid
+    pub fn validate_pipeline(&self, from_uuid: Uuid, to_uuid: Uuid) -> Result<bool, &'static str> {
+        //find pipeline connectors
+        //find pipeline connector uuid
+        let from_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("from snippet uuid from pipeline connector not found");
+            }
+        };
+
+        let from_snippet = match self.find_snippet(&from_snippet_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("from snippet from pipeline connector not found")
+            }
+        };
+
+        //verify pipeline connector exists in pipeline
+        let from_pipeline_connector = match from_snippet.find_pipeline_connector(from_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("from pipeline connector does not exist in snippet");
+            }
+        };
+
+        //find pipeline connector uuid
+        let to_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&to_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("to snippet uuid from pipeline connector not found");
+            }
+        };
+
+        let to_snippet = match self.find_snippet(&to_snippet_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("to snippet from pipeline connector not found")
+            }
+        };
+
+        //verify pipeline connector exists in pipeline
+        let to_pipeline_connector = match to_snippet.find_pipeline_connector(from_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("to pipeline connector does not exist in snippet");
+            }
+        };
+
+        {
+            //verify that a connection between the two same does not already exist
+            let from_result = match self.find_pipeline_uuid_from_from_pipeline_connector(&from_uuid) {
+                Some(_) => true,
+                None => false
+            };
+
+            let to_result = match self.find_pipeline_uuid_from_to_pipeline_connector(&to_uuid) {
+                Some(_) => true,
+                None => false
+            };
+
+            if !from_result && !to_result {
+                return Ok(false);
+            }
+        }
+
+        //verify that the connection is between different snippets
+        if from_snippet.get_uuid() == to_snippet.get_uuid() {
+            return Ok(false);
+        }
+
+        //verify types match
+        if from_pipeline_connector.get_type() != to_pipeline_connector.get_type() {
+            return Ok(false); 
+        }
+
+        return Ok(true);
+    }
 }
 
 impl SnippetComponent {
     pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetComponent {
             uuid: seq_id_generator.get_id(),
+            name: String::new(),
             external_snippet_uuid: 0,
             pipeline_connectors: Vec::new()
         }
     }
 
-    /// find pipeline connector from uuid
+    /// find mutable refernece to pipeline connector from uuid
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector
-    fn find_pipeline_connector(&mut self, uuid: Uuid) -> Option<&mut PipelineConnectorComponent>{
+    fn find_pipeline_connector(&self, uuid: Uuid) -> Option<&PipelineConnectorComponent>{
+        //find pipeline in vector
+        return self.pipeline_connectors.iter().find(|pipe: &&PipelineConnectorComponent| pipe.uuid == uuid);
+    }
+
+    /// find mutable refernece to pipeline connector from uuid
+    /// 
+    /// # Arguments
+    /// * 'uuid' - uuid of the pipeline connector
+    fn find_pipeline_connector_mut(&mut self, uuid: Uuid) -> Option<&mut PipelineConnectorComponent>{
         //find pipeline in vector
         return self.pipeline_connectors.iter_mut().find(|pipe: &&mut PipelineConnectorComponent| pipe.uuid == uuid);
     }
+
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+
+    /// get snippets as front snippet content
+    pub fn get_snippet_to_front_snippet(&self, seq_id_generator: &mut SequentialIdGenerator, snippet_manager: &SnippetManager) -> FrontSnippetContent {
+        //get pipeline connectors as front pipeline connectors
+        let front_pipeline_connectors = self.get_pipeline_connectors_as_pipeline_connector_content(seq_id_generator);
+
+        //create front snippet
+        let front_snippet = FrontSnippetContent::new(
+            seq_id_generator.get_id(),
+            self.get_name(),
+            self.get_uuid(),
+            front_pipeline_connectors
+        );
+
+        return front_snippet;
+    }
+
+    fn get_pipeline_connectors_as_pipeline_connector_content(&self, seq_id_generator: &mut SequentialIdGenerator) -> Vec<FrontPipelineConnectorContent> {
+        //generate contents vector
+        let mut contents: Vec<FrontPipelineConnectorContent> = Vec::with_capacity(self.pipeline_connectors.len());
+
+        //get io points
+        for pipeline_connector in self.pipeline_connectors.iter() {
+            //push to contents
+            contents.push(
+                FrontPipelineConnectorContent::new(
+                    seq_id_generator.get_id(),
+                    pipeline_connector.uuid.clone(),
+                    pipeline_connector.name.clone(),
+                    pipeline_connector.content_type.clone(),
+                    pipeline_connector.input
+                )
+            )
+        }
+
+        return contents;
+    }
+
 }
 
 impl PipelineConnectorComponent {
-    pub fn new(seq_id_generator: &mut SequentialIdGenerator, external_io_point_uuid: Uuid, name: &str, content_type: &IOContentType, input: bool) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator, external_pipeline_connector_uuid: Uuid, name: &str, content_type: &IOContentType, input: bool) -> Self {
         return PipelineConnectorComponent {
             uuid: seq_id_generator.get_id(),
-            external_io_point_uuid: external_io_point_uuid,
+            external_pipeline_connector_uuid: external_pipeline_connector_uuid,
             name: name.clone().to_string(),
             content_type: content_type.clone(),
             input: input
         }
+    }
+
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+
+    pub fn get_type(&self) -> IOContentType {
+        return self.content_type.clone();
     }
 }
 
@@ -244,8 +429,34 @@ impl PipelineComponent {
     pub fn get_uuid(&self) -> Uuid {
         return self.uuid;
     }
+
 }
 
+
+impl FrontSnippetContent {
+    pub fn new(id: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>) -> Self {
+        return FrontSnippetContent {
+            id: id,
+            name: name,
+            internal_id: internal_id,
+            pipeline_connectors: pipeline_connectors 
+        }
+    }
+}
+
+impl FrontPipelineConnectorContent {
+    pub fn new(id: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
+        return FrontPipelineConnectorContent {
+            id: id,
+            pipeline_connector_id: pipeline_connector_id,
+            name: name,
+            content_type: content_type,
+            input: input
+        }
+    }
+    
+}
 //map: pipeline_connectors->parent
 
 //could store parent uuid for connector inside connector or mapping
+//TODO change alot of impl from getting self seperatrly to directory getting &self or &mut self

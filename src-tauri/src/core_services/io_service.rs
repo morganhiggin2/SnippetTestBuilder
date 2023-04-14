@@ -34,30 +34,27 @@ pub struct ExternalSnippetFileContainer {
     parent_category_uuid: Uuid
 }
 
+
+//TODO basically copy logic here to snippet.rs, and reduce this to contain only 
+//necessary information for the directory manager,
+//only front snippet information got from new_snippet needs to 
+//include this level of snippet information
+//this should only include id, external_id, and name
+
 //struct for the josn serialization
 #[derive(Serialize, Deserialize)]
-pub struct FrontSnippetContent {
+pub struct FrontExternalSnippetContent {
     id: Uuid,
     name: String,
     internal_id: Uuid,
-    file_type: FrontSnippetContentType,
+    file_type: FrontExternalSnippetContentType,
     is_directory: bool,
     level: u32,
     showing: bool,
-    pipeline_connectors: Option<Vec<FrontPipelineConnectorContent>>
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct FrontPipelineConnectorContent {
-    id: Uuid,
-    pipeline_connector_id: Uuid,
-    name: String,
-    content_type: IOContentType,
-    input: bool 
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum FrontSnippetContentType {
+pub enum FrontExternalSnippetContentType {
     Directory,
     Snippet
 }
@@ -124,8 +121,8 @@ impl SnippetStructure {
 
     }
 
-    pub fn file_structure_to_front_snippet_contents(&self, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontSnippetContent> {
-        let mut front_snippet_contents: Vec<FrontSnippetContent> = Vec::with_capacity(self.external_snippet_containers.len());
+    pub fn file_structure_to_front_snippet_contents(&self, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontExternalSnippetContent> {
+        let mut front_snippet_contents: Vec<FrontExternalSnippetContent> = Vec::with_capacity(self.external_snippet_containers.len());
 
         //recursivly iterate though structure with helper function, reference to vec to add front file contents to
         for cat_uuid in self.root_categories.iter() {
@@ -133,7 +130,7 @@ impl SnippetStructure {
             let external_snippet_category = self.find_category(&cat_uuid).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_category(seq_id_generator, external_snippet_category.get_name(), 0);
+            let front_snippet_content = FrontExternalSnippetContent::new_category(seq_id_generator, external_snippet_category.get_name(), 0);
 
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content);
@@ -147,7 +144,7 @@ impl SnippetStructure {
 
     /// helper function to snippet_structure_to_front_snippet_contents
     /// recursivly goes though snippet structure
-    fn file_structure_to_front_snippet_contents_helper(&self, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, front_snippet_contents: &mut Vec<FrontSnippetContent>, external_snippet_category: &ExternalSnippetCategory, level: u32) {
+    fn file_structure_to_front_snippet_contents_helper(&self, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, front_snippet_contents: &mut Vec<FrontExternalSnippetContent>, external_snippet_category: &ExternalSnippetCategory, level: u32) {
         //add external snippets
         for ext_snip_uuid in external_snippet_category.child_snippet_uuids.iter() {
             //find external snippet file container
@@ -157,7 +154,7 @@ impl SnippetStructure {
             let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_snippet(seq_id_generator, &external_snippet, level);
+            let front_snippet_content = FrontExternalSnippetContent::new_snippet(seq_id_generator, &external_snippet, level);
 
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content)
@@ -169,7 +166,7 @@ impl SnippetStructure {
             let external_snippet_category = self.find_category(&cat_uuid).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontSnippetContent::new_category(seq_id_generator, external_snippet_category.get_name(), 0);
+            let front_snippet_content = FrontExternalSnippetContent::new_category(seq_id_generator, external_snippet_category.get_name(), 0);
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content);
 
@@ -250,9 +247,9 @@ impl ExternalSnippetFileContainer {
     }
 }
 
-impl FrontSnippetContent {
-    pub fn new(id: Uuid, name: String, internal_id: Uuid, file_type: FrontSnippetContentType, is_directory: bool, level: u32, showing: bool, pipeline_connectors: Option<Vec<FrontPipelineConnectorContent>>) -> Self {
-        return FrontSnippetContent {
+impl FrontExternalSnippetContent {
+    pub fn new(id: Uuid, name: String, internal_id: Uuid, file_type: FrontExternalSnippetContentType, is_directory: bool, level: u32, showing: bool) -> Self {
+        return FrontExternalSnippetContent {
             id: id,
             name: name,
             internal_id: internal_id,
@@ -260,7 +257,6 @@ impl FrontSnippetContent {
             is_directory: is_directory,
             level: level,
             showing: showing,
-            pipeline_connectors: pipeline_connectors
         }
     }
     /// create new front snippet content of type snippet 
@@ -270,27 +266,14 @@ impl FrontSnippetContent {
 
     /// create new front snippet content of type category 
     fn new_category(seq_id_generator: &mut SequentialIdGenerator, name: String,  level: u32) -> Self {
-        return FrontSnippetContent::new(
+        return FrontExternalSnippetContent::new(
             seq_id_generator.get_id(),
             name.clone(),
             0,
-            FrontSnippetContentType::Directory,
+            FrontExternalSnippetContentType::Directory,
             true,
             level,
             false,
-            None
         );
-    }
-}
-
-impl FrontPipelineConnectorContent {
-    pub fn new(id: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
-        return FrontPipelineConnectorContent {
-            id: id,
-            pipeline_connector_id: pipeline_connector_id,
-            name: name,
-            content_type: content_type,
-            input: input
-        }
     }
 }

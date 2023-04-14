@@ -155,12 +155,12 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
     //on top and moves the + down, this will be its own type, multiplePipeInsert
 }
 
-export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_start, deletePipeline) {
+export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_start, x_end_offset, y_end_offset, deletePipeline) {
     var line = new Konva.Line({
         id: id,
         x: x_pos_start,
         y: y_pos_start,
-        points: [0, 0, 0, 0],
+        points: [0, 0, x_end_offset, y_end_offset],
         stroke: '#fcd777',
         strokeWidth: 6
     });
