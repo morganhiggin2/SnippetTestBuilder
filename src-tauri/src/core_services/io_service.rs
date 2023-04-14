@@ -34,13 +34,6 @@ pub struct ExternalSnippetFileContainer {
     parent_category_uuid: Uuid
 }
 
-
-//TODO basically copy logic here to snippet.rs, and reduce this to contain only 
-//necessary information for the directory manager,
-//only front snippet information got from new_snippet needs to 
-//include this level of snippet information
-//this should only include id, external_id, and name
-
 //struct for the josn serialization
 #[derive(Serialize, Deserialize)]
 pub struct FrontExternalSnippetContent {

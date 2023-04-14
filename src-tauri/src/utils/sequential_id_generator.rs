@@ -23,7 +23,3 @@ impl Default for SequentialIdGenerator {
         };
     }
 }
-
-//TODO create type seqid and implement equals trait
-//reserve id 0 as undefined and hvae enum containing value, Unassigned, Id(u32)
-//the type will of the type enum

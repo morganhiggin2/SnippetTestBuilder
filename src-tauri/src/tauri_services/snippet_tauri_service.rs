@@ -2,7 +2,8 @@ use crate::{state_management::{MutexApplicationState, ApplicationState, window_m
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
-/// create new window session
+/// create a new snippet
+/// get new snippet uuid
 /// 
 /// # Arguments
 /// * 'window_session_uuid' - uuid of the window session
@@ -41,6 +42,12 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     return Ok(snippet_uuid.clone());
 }
 
+/// get snippet information 
+/// 
+/// # Arguments
+/// * 'window_session_uuid' - uuid of the window session
+/// * 'external_snippet_uuid' - uuid of the external snippet it is going to blueprint
+#[tauri::command] 
 pub fn get_snippet_information(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, snippet_uuid: Uuid) -> Result<FrontSnippetContent, &str> {
      // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();

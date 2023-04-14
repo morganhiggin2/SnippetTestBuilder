@@ -76,7 +76,6 @@ impl Default for SnippetManager {
         };
     }
 }
-//TODO create front components and their methods
 
 impl SnippetManager {
     /// create a new snippet
@@ -88,7 +87,7 @@ impl SnippetManager {
         let snippet_uuid : Uuid = snippet_component.uuid;
 
         //get snippet name
-        let snippet_name : String = snippet_component.name;
+        let snippet_name : String = external_snippet.get_name();
 
         //add components from external snippet to snippet
         snippet_component.external_snippet_uuid = external_snippet.get_uuid();
@@ -460,3 +459,5 @@ impl FrontPipelineConnectorContent {
 
 //could store parent uuid for connector inside connector or mapping
 //TODO change alot of impl from getting self seperatrly to directory getting &self or &mut self
+//TODO implement automatically the order of pipeline so that input: false always goes to input:true, also add validation for this to make sure
+//that they appose

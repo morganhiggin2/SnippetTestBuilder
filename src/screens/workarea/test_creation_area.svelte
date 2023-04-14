@@ -67,7 +67,6 @@
 
         if (type == 'Snippet') {
             //get snippet information
-            //TODO get less information
             //parsing certain values as everything is passed as string
             let internal_id = JSON.parse(e.dataTransfer.getData('internal_id'));
 
@@ -96,6 +95,9 @@
 
                     //draw snippet
                     drawSnippet(snippetDrawable);
+                })
+                .catch((e) => {
+                    invoke('logln', {text: JSON.stringify(e)});
                 });
            });
         }
