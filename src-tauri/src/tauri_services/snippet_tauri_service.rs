@@ -164,7 +164,7 @@ pub fn check_pipeline_connector_capacity_full(application_state: tauri::State<Mu
     let snippet_manager = &mut window_session.snippet_manager;
 
     let result = snippet_manager.check_pipeline_connector_capacity_full(&pipeline_connector_uuid); 
-    
+
     return Ok(result);
 }
 /// to get a new unique id
