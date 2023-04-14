@@ -14,8 +14,7 @@ pub struct SnippetManager {
     pipelines: HashMap<Uuid, PipelineComponent>,
 
     //mapping for pipeline connects to pipeline components
-    to_pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
-    from_pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
+    pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
     pipeline_components_to_snippet: HashMap<Uuid, Uuid>
 
     //mapping for snippets and pipelines
@@ -23,6 +22,10 @@ pub struct SnippetManager {
     //uuid_to_edge_adj_index: HashMap<u32, usize>
     //edge adj list
 }
+
+//TODO to adapt for multi input and outputs
+//have hashmap of <(from_uuid, to_uuid), pipeline_uuid>
+//and bihashmap of <from_uuid, to_uuid> which only includes pipeline connectors involed in pipelines
 
 /// the actual snippet itself
 pub struct SnippetComponent {
@@ -58,7 +61,7 @@ pub struct FrontSnippetContent {
 #[derive(Serialize, Deserialize)]
 pub struct FrontPipelineConnectorContent {
     id: Uuid,
-    pipeline_connector_id: Uuid,
+    internal_id: Uuid,
     name: String,
     content_type: IOContentType,
     input: bool 
@@ -69,8 +72,7 @@ impl Default for SnippetManager {
         return SnippetManager {
             snippets: HashMap::with_capacity(12),
             pipelines: HashMap::with_capacity(12),
-            from_pipeline_connector_to_pipeline: HashMap::with_capacity(24),
-            to_pipeline_connector_to_pipeline: HashMap::with_capacity(24),
+            pipeline_connector_to_pipeline: HashMap::with_capacity(24),
             pipeline_components_to_snippet: HashMap::with_capacity(24)
             //uuid_to_edge_adj_index: HashMap::with_capacity(24),
         };
@@ -98,7 +100,6 @@ impl SnippetManager {
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
-            println!("{}", pipeline_connector.get_uuid());
             window_session.snippet_manager.pipeline_components_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
         }
 
@@ -138,23 +139,14 @@ impl SnippetManager {
         //find pipeline in vector
         return self.snippets.get_mut(uuid);
     }
-
-    /// find pipeline connector uuid from pipeipe uuid
-    /// 
-    /// # Arguments
-    /// * 'uuid' - uuid of the pipeline connector going into pipeline
-    pub fn find_pipeline_uuid_from_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
-        //find uuid of pipeline connector
-        return self.from_pipeline_connector_to_pipeline.get(uuid).cloned(); 
-    }
     
     /// find pipeline connector uuid from pipeipe uuid
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector coming out of pipeline
-    pub fn find_pipeline_uuid_from_to_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
+    pub fn find_pipeline_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
         //find uuid of pipeline connector
-        return self.to_pipeline_connector_to_pipeline.get(uuid).cloned(); 
+        return self.pipeline_connector_to_pipeline.get(uuid).cloned(); 
     }
     /// find snippet uuid from pipeline uuid
     /// 
@@ -169,53 +161,65 @@ impl SnippetManager {
     /// # Arguments
     /// * 'from_uuid' from pipeline connector's uuid
     /// * 'to uuid' to pipeline connector's uuid
-    pub fn create_pipeline(seq_id_generator: &mut SequentialIdGenerator, window_session: &mut WindowSession, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &'static str> {
-        //find pipeline connectors
-        //find pipeline connector uuid
-        let from_snippet_uuid = match window_session.snippet_manager.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
-            Some(result) => result,
-            None => {
-                return Err("from snippet uuid from pipeline connector not found");
-            }
-        };
+    pub fn create_pipeline(&mut self, seq_id_generator: &mut SequentialIdGenerator, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &'static str> {
+        //get valid direction of pipeline, as from_uuid and to_uuid are not guarnteed to be input:false -> input:true
+        let mut from_uuid = from_uuid;
+        let mut to_uuid = to_uuid;
 
-        let from_snippet = match window_session.snippet_manager.find_snippet(&from_snippet_uuid) {
-            Some(result) => result,
-            None => {
-                return Err("from snippet from pipeline connector not found")
-            }
-        };
+        {
+            let from_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("from snippet uuid from pipeline connector not found");
+                }
+            };
 
-        //verify pipeline connector exists in pipeline
-        match from_snippet.find_pipeline_connector(from_uuid) {
-            Some(_) => (),
-            None => {
-                return Err("from pipeline connector does not exist in snippet");
-            }
-        } 
+            let from_snippet = match self.find_snippet(&from_snippet_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("from snippet from pipeline connector not found")
+                }
+            };
 
-        //find pipeline connector uuid
-        let to_snippet_uuid = match window_session.snippet_manager.find_snippet_uuid_from_pipeline_connector(&to_uuid) {
-            Some(result) => result,
-            None => {
-                return Err("to snippet uuid from pipeline connector not found");
-            }
-        };
+            //verify pipeline connector exists in pipeline
+            let from_pipeline_connector = match from_snippet.find_pipeline_connector(from_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("from pipeline connector does not exist in snippet");
+                }
+            };
 
-        let to_snippet = match window_session.snippet_manager.find_snippet(&to_snippet_uuid) {
-            Some(result) => result,
-            None => {
-                return Err("to snippet from pipeline connector not found")
-            }
-        };
+            //find pipeline connector uuid
+            let to_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&to_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("to snippet uuid from pipeline connector not found");
+                }
+            };
 
-        //verify pipeline connector exists in pipeline
-        match to_snippet.find_pipeline_connector(from_uuid) {
-            Some(_) => (),
-            None => {
-                return Err("to pipeline connector does not exist in snippet");
+            let to_snippet = match self.find_snippet(&to_snippet_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("to snippet from pipeline connector not found")
+                }
+            };
+
+            //verify pipeline connector exists in pipeline
+            let to_pipeline_connector = match to_snippet.find_pipeline_connector(to_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("to pipeline connector does not exist in snippet");
+                }
+            };
+
+            //if it is flowing input -> output
+            if (from_pipeline_connector.get_input() && !to_pipeline_connector.get_input()) {
+                //revert order
+                let temp = to_uuid;
+                to_uuid = from_uuid;
+                from_uuid = temp;
             }
-        } 
+        }
 
         //create new pipeline
         let pipeline_component = PipelineComponent::new(seq_id_generator, &from_uuid, &to_uuid);
@@ -224,11 +228,11 @@ impl SnippetManager {
         let pipeline_uuid = pipeline_component.get_uuid();
 
         //add pipeline connecting values to snippet manager
-        window_session.snippet_manager.from_pipeline_connector_to_pipeline.insert(from_uuid, pipeline_uuid);
-        window_session.snippet_manager.to_pipeline_connector_to_pipeline.insert(to_uuid, pipeline_uuid);
+        self.pipeline_connector_to_pipeline.insert(from_uuid, pipeline_uuid);
+        self.pipeline_connector_to_pipeline.insert(to_uuid, pipeline_uuid);
 
         //add to snippet manager
-        window_session.snippet_manager.pipelines.insert(pipeline_uuid, pipeline_component);
+        self.pipelines.insert(pipeline_uuid, pipeline_component);
 
         //return uuid of new pipeline
         return Ok(pipeline_uuid);
@@ -283,7 +287,7 @@ impl SnippetManager {
         };
 
         //verify pipeline connector exists in pipeline
-        let to_pipeline_connector = match to_snippet.find_pipeline_connector(from_uuid) {
+        let to_pipeline_connector = match to_snippet.find_pipeline_connector(to_uuid) {
             Some(result) => result,
             None => {
                 return Err("to pipeline connector does not exist in snippet");
@@ -292,17 +296,24 @@ impl SnippetManager {
 
         {
             //verify that a connection between the two same does not already exist
-            let from_result = match self.find_pipeline_uuid_from_from_pipeline_connector(&from_uuid) {
+            let from_result = match self.find_pipeline_uuid_from_pipeline_connector(&from_uuid) {
                 Some(_) => true,
                 None => false
             };
 
-            let to_result = match self.find_pipeline_uuid_from_to_pipeline_connector(&to_uuid) {
+            let to_result = match self.find_pipeline_uuid_from_pipeline_connector(&to_uuid) {
                 Some(_) => true,
                 None => false
             };
 
-            if !from_result && !to_result {
+            if from_result || to_result {
+                return Ok(false);
+            }
+        }
+
+        //verify that one is an output and one is an input
+        {
+            if from_pipeline_connector.get_input() == to_pipeline_connector.get_input() {
                 return Ok(false);
             }
         }
@@ -318,6 +329,15 @@ impl SnippetManager {
         }
 
         return Ok(true);
+    }
+
+
+    pub fn check_pipeline_connector_capacity_full(&self, pipeline_connector_uuid: &Uuid) -> bool {
+        //check if in pipeline connector map
+        return match self.find_pipeline_uuid_from_pipeline_connector(pipeline_connector_uuid) {
+            Some(_) => true,
+            None => false 
+        };
     }
 }
 
@@ -414,6 +434,10 @@ impl PipelineConnectorComponent {
     pub fn get_type(&self) -> IOContentType {
         return self.content_type.clone();
     }
+
+    pub fn get_input(&self) -> bool {
+        return self.input;
+    }
 }
 
 impl PipelineComponent {
@@ -447,7 +471,7 @@ impl FrontPipelineConnectorContent {
     pub fn new(id: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
         return FrontPipelineConnectorContent {
             id: id,
-            pipeline_connector_id: pipeline_connector_id,
+            internal_id: pipeline_connector_id,
             name: name,
             content_type: content_type,
             input: input
@@ -460,4 +484,7 @@ impl FrontPipelineConnectorContent {
 //could store parent uuid for connector inside connector or mapping
 //TODO change alot of impl from getting self seperatrly to directory getting &self or &mut self
 //TODO implement automatically the order of pipeline so that input: false always goes to input:true, also add validation for this to make sure
-//that they appose
+//  that they appose
+//TODO visual grid, and gridlocking
+//TODO be able to move visual snippet components on screen, have pipelines either (a disapear temproarly, so visiabiliy off, then redraw), or if working
+//  b) be able to have dotted lines that move with the snippet as the pipelines when it moves (can implement a first, then b)

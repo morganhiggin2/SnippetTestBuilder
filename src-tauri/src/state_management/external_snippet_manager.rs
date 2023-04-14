@@ -169,7 +169,7 @@ impl ExternalSnippet {
     /// # Arguments
     /// * 'uuid' - uuid of the io point in question
     fn find_io_point(&mut self, external_snippet: &mut ExternalSnippet, uuid: Uuid) -> Result<&mut SnippetIOPoint, &str>{
-        let result = match self.io_points.get_mut(&uuid) {
+        match self.io_points.get_mut(&uuid) {
             Some(result) => return Ok(result),
             None => return Err("snippet io point could not be found with uuid {uuid}")
         };

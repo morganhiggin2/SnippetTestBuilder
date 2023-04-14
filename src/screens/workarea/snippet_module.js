@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import { invoke } from '@tauri-apps/api';
 
-export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
+export function generateSnippet(id, internal_id, name, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
     // make the snippet 
     var snippet_group = new Konva.Group({
         id: id,
@@ -30,10 +30,10 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
     //go though pipelines, with assigning id
     for (var i = 0; i < pipeline_connectors.length; i++) {
         if (pipeline_connectors[i].input) {
-            leftPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, true, spawnPipeline));
+            leftPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].internal_id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, true, spawnPipeline));
         }
         else {
-            rightPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, false, spawnPipeline));
+            rightPipeInserts.push(createPipeInsert(pipeline_connectors[i].id, pipeline_connectors[i].internal_id, visualComponents, pipeline_connectors[i].name, xPos, yPos + textHeight + 8, false, spawnPipeline));
         }
     }
 
@@ -146,7 +146,8 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
     //add all visually linked components to visualComponents map
     visualComponents[id] = {
         visual: snippet_group,
-        type: "snippet"
+        type: "snippet",
+        internal_id: internal_id
     };
 
     return snippet_group;
@@ -170,13 +171,15 @@ export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_s
     //add visually linked component to map
     visualComponents[id] = {
         visual: line,
+        //TODO
+        //internal_id: internal_id
         type: "pipe"
     };
 
     return line;
 }
 
-function createPipeInsert(id,  visualComponents, name, xPos, yPos, left = false, spawnPipeline) {
+function createPipeInsert(id, internal_id, visualComponents, name, xPos, yPos, left = false, spawnPipeline) {
     //create group for pipe
     var pipeGroup = new Konva.Group({
         id: id
@@ -256,6 +259,7 @@ function createPipeInsert(id,  visualComponents, name, xPos, yPos, left = false,
     visualComponents[id] = {
             visual: pipeGroup,
             type: "pipe_insert",
+            internal_id: internal_id,
             state: {
                 color: '#a1a1a1',
                 highlight_color: '#fcd777',

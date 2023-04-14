@@ -83,6 +83,7 @@ pub fn get_snippet_information(application_state: tauri::State<MutexApplicationS
 }
 
 /// create new pipeline
+/// assumes validate_pipeline has been called, and returned Ok(true)
 /// 
 /// # Arguments
 /// * 'from_uuid' - from pipeline connector uuid
@@ -103,9 +104,10 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
 
     let mut seq_id_generator = &mut state.seq_id_generator;
 
+    let snippet_manger = &mut window_session.snippet_manager;
     //attempt to create pipeline
     //if could not be created, return none
-    let pipeline_uuid: Uuid = match SnippetManager::create_pipeline(&mut seq_id_generator, window_session, from_uuid, to_uuid) {
+    let pipeline_uuid: Uuid = match snippet_manger.create_pipeline(&mut seq_id_generator, from_uuid, to_uuid) {
         Ok(result) => result,
         Err(err) => {
             return Err(err);
@@ -116,6 +118,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
 }
 
 /// validate a possible pipeline connection
+/// from_uuid and to_uuid order/direction not considered
 ///
 /// # Arguments
 /// * 'from_uuid' - from pipeline connector uuid
@@ -142,6 +145,28 @@ pub fn validate_pipeline_connection(application_state: tauri::State<MutexApplica
     return result;
 }
 
+/// check if pipeline connector is already involved in pipeline
+/// TODO when connectors can take more than one, this will evolve to handle that
+#[tauri::command] 
+pub fn check_pipeline_connector_capacity_full(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, pipeline_connector_uuid: Uuid) -> Result<bool, &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+
+    let snippet_manager = &mut window_session.snippet_manager;
+
+    let result = snippet_manager.check_pipeline_connector_capacity_full(&pipeline_connector_uuid); 
+    
+    return Ok(result);
+}
 /// to get a new unique id
 #[tauri::command]
 pub fn get_id(application_state: tauri::State<MutexApplicationState>) -> Uuid {
