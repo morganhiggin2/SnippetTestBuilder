@@ -1,4 +1,4 @@
-use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet, IOContentType}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
+use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet, IOContentType}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
 use std::{sync::MutexGuard, collections::HashMap};
 use bimap::BiHashMap;
 use serde::{Serialize, Deserialize};
@@ -43,28 +43,32 @@ pub struct PipelineConnectorComponent {
     input: bool
 }
 
-struct PipelineComponent {
+pub struct PipelineComponent {
     uuid: Uuid, 
     from_pipeline_connector_uuid: Uuid,
     to_pipeline_connector_uuid: Uuid
 }
 
-//struct for the josn serialization
+//struct for the json serialization for snippet
 #[derive(Serialize, Deserialize)]
 pub struct FrontSnippetContent {
     id: Uuid,
     name: String,
-    internal_id: Uuid,
     pipeline_connectors: Vec<FrontPipelineConnectorContent>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct FrontPipelineConnectorContent {
     id: Uuid,
-    internal_id: Uuid,
     name: String,
     content_type: IOContentType,
     input: bool 
+}
+
+//struct for the json serialization for pipieline
+#[derive(Serialize, Deserialize)]
+pub struct FrontPipelineContent {
+    id: Uuid,
 }
 
 impl Default for SnippetManager {
@@ -81,7 +85,7 @@ impl Default for SnippetManager {
 
 impl SnippetManager {
     /// create a new snippet
-    pub fn new_snippet(seq_id_generator: &mut SequentialIdGenerator, window_session: &mut WindowSession, external_snippet: &mut ExternalSnippet) -> Uuid {
+    pub fn new_snippet(&mut self, seq_id_generator: &mut SequentialIdGenerator, external_snippet: &mut ExternalSnippet) -> Uuid {
         //create snippet component
         let mut snippet_component : SnippetComponent = SnippetComponent::new(seq_id_generator);
 
@@ -100,26 +104,17 @@ impl SnippetManager {
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
-            window_session.snippet_manager.pipeline_components_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
+            self.pipeline_components_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
         }
 
         //move pipeline connectors to snippet component
         snippet_component.pipeline_connectors = pipeline_connectors;
 
         //add to snippets list in snippet manager
-        window_session.snippet_manager.snippets.insert(snippet_uuid, snippet_component);
+        self.snippets.insert(snippet_uuid, snippet_component);
 
         //return uuid of snippet
         return snippet_uuid;
-    }
-
-    /// find pipeline from uuid
-    /// 
-    /// # Arguments
-    /// * 'uuid' - uuid of the pipeline 
-    fn find_pipeline(&mut self, uuid: &Uuid) -> Option<&mut PipelineComponent>{
-        //find pipeline in vector
-        return self.pipelines.get_mut(uuid);
     }
     
     /// find snippet from uuid
@@ -138,6 +133,24 @@ impl SnippetManager {
     pub fn find_snippet_mut(&mut self, uuid: &Uuid) -> Option<&mut SnippetComponent>{
         //find pipeline in vector
         return self.snippets.get_mut(uuid);
+    }
+
+    /// find snippet from uuid
+    /// 
+    /// # Arguments
+    /// * 'uuid' - uuid of the snippet 
+    pub fn find_pipeline(&self, uuid: &Uuid) -> Option<&PipelineComponent>{
+        //find pipeline in vector
+        return self.pipelines.get(uuid);
+    }
+
+    /// find mutable reference to snippet from uuid
+    /// 
+    /// # Arguments
+    /// * 'uuid' - uuid of the snippet 
+    pub fn find_pipeline_mut(&mut self, uuid: &Uuid) -> Option<&mut PipelineComponent>{
+        //find pipeline in vector
+        return self.pipelines.get_mut(uuid);
     }
     
     /// find pipeline connector uuid from pipeipe uuid
@@ -378,12 +391,13 @@ impl SnippetComponent {
     }
 
     /// get snippets as front snippet content
-    pub fn get_snippet_to_front_snippet(&self, seq_id_generator: &mut SequentialIdGenerator, snippet_manager: &SnippetManager) -> FrontSnippetContent {
+    pub fn get_snippet_to_front_snippet(&self, visual_snippet_component_manager: &mut VisualSnippetComponentManager, seq_id_generator: &mut SequentialIdGenerator, snippet_manager: &SnippetManager) -> FrontSnippetContent {
         //get pipeline connectors as front pipeline connectors
-        let front_pipeline_connectors = self.get_pipeline_connectors_as_pipeline_connector_content(seq_id_generator);
+        let front_pipeline_connectors = self.get_pipeline_connectors_as_pipeline_connector_content(visual_snippet_component_manager, seq_id_generator);
 
         //create front snippet
         let front_snippet = FrontSnippetContent::new(
+            visual_snippet_component_manager,
             seq_id_generator.get_id(),
             self.get_name(),
             self.get_uuid(),
@@ -393,7 +407,7 @@ impl SnippetComponent {
         return front_snippet;
     }
 
-    fn get_pipeline_connectors_as_pipeline_connector_content(&self, seq_id_generator: &mut SequentialIdGenerator) -> Vec<FrontPipelineConnectorContent> {
+    fn get_pipeline_connectors_as_pipeline_connector_content(&self, visual_snippet_component_manager: &mut VisualSnippetComponentManager, seq_id_generator: &mut SequentialIdGenerator) -> Vec<FrontPipelineConnectorContent> {
         //generate contents vector
         let mut contents: Vec<FrontPipelineConnectorContent> = Vec::with_capacity(self.pipeline_connectors.len());
 
@@ -402,6 +416,7 @@ impl SnippetComponent {
             //push to contents
             contents.push(
                 FrontPipelineConnectorContent::new(
+                    visual_snippet_component_manager,
                     seq_id_generator.get_id(),
                     pipeline_connector.uuid.clone(),
                     pipeline_connector.name.clone(),
@@ -453,31 +468,57 @@ impl PipelineComponent {
         return self.uuid;
     }
 
+    pub fn get_pipeline_as_front_content(&self, seq_id_generator: &mut SequentialIdGenerator) -> FrontPipelineContent {
+        return FrontPipelineContent {
+            id: seq_id_generator.get_id()
+        }
+    }
 }
 
 
 impl FrontSnippetContent {
-    pub fn new(id: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>) -> Self {
-        return FrontSnippetContent {
-            id: id,
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>) -> Self {
+        let front_content = FrontSnippetContent {
+            id: uuid,
             name: name,
-            internal_id: internal_id,
             pipeline_connectors: pipeline_connectors 
-        }
+        };
+
+        //add front content to visual component manager
+        visual_snippet_component_manager.put_snippet(uuid, internal_id);
+
+        return front_content;
     }
 }
 
 impl FrontPipelineConnectorContent {
-    pub fn new(id: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
-        return FrontPipelineConnectorContent {
-            id: id,
-            internal_id: pipeline_connector_id,
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, pipeline_connector_id: Uuid, name: String, content_type: IOContentType, input: bool) -> Self {
+        let front_content = FrontPipelineConnectorContent {
+            id: uuid,
             name: name,
             content_type: content_type,
             input: input
-        }
+        };
+
+        //add front content to visual component manager
+        visual_snippet_component_manager.put_pipeline_connector(uuid, pipeline_connector_id);
+
+        return front_content;
     }
     
+}
+
+impl FrontPipelineContent {
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, pipeline_uuid: Uuid) -> Self {
+        let front_content = FrontPipelineContent {
+            id: uuid,
+        };
+
+        //add front content to visual compoennt manager
+        visual_snippet_component_manager.put_pipeline(uuid, pipeline_uuid);
+
+        return front_content;
+    }
 }
 //map: pipeline_connectors->parent
 
@@ -486,5 +527,11 @@ impl FrontPipelineConnectorContent {
 //TODO implement automatically the order of pipeline so that input: false always goes to input:true, also add validation for this to make sure
 //  that they appose
 //TODO visual grid, and gridlocking
+
+
+
+//TODO rust backend visual to id mapper 
+//TODO convert all then()'s to .await
+//TODO hide all new shippet stuff with internal id's behind abstraction layer of virtual component manager
 //TODO be able to move visual snippet components on screen, have pipelines either (a disapear temproarly, so visiabiliy off, then redraw), or if working
 //  b) be able to have dotted lines that move with the snippet as the pipelines when it moves (can implement a first, then b)

@@ -8,12 +8,11 @@
 
     export let id = -1;
     export let name = "";
-    export let internal_id = -1;
     export let level = 0;
     export let file_type = "";
 
     function onDragStart(e) {
-        e.dataTransfer.setData('internal_id', internal_id);
+        e.dataTransfer.setData('_id', id);
         e.dataTransfer.setData('type', file_type);
     }
 

@@ -26,7 +26,7 @@
     //hash map of all visually connected id'd components
     let visualComponents = {};
 
-    onMount(() =>
+    onMount(async () =>
     {
         //create stage
         stage = new Konva.Stage({
@@ -52,7 +52,7 @@
         stage.draw();
     });
 
-    function handleDrop(e) {
+    async function handleDrop(e) {
         e.preventDefault();
 
         //get the bounding rectagle for canvas
@@ -68,38 +68,29 @@
         if (type == 'Snippet') {
             //get snippet information
             //parsing certain values as everything is passed as string
-            let internal_id = JSON.parse(e.dataTransfer.getData('internal_id'));
+            let directory_id = JSON.parse(e.dataTransfer.getData('id'));
 
-            //TODO handle new snippet front information
-            //generate snippet in backend, getting new snippet uuid
-            invoke('new_snippet', {
-                windowSessionUuid: window_session_id,
-                externalSnippetUuid: internal_id
-            }).then((result) => {
-                let snippet_id = result;
+            //generate snippet in backend, getting new snippet information 
+            let snippet_information = null;
 
-                //get snippet information
-                invoke('get_snippet_information', {
+            try {
+                snippet_information = await invoke('new_snippet', {
                     windowSessionUuid: window_session_id,
-                    snippetUuid: snippet_id
-                })
-                .then((result) => {
-                    //snippet information
-                    let snippet_information = result;
-
-                    //create drawable snippet
-                    let snippetDrawable = generateSnippet(snippet_id, snippet_information.internal_id, snippet_information.name, visualComponents, e.clientX - window_x, e.clientY - window_y, snippet_information.pipeline_connectors, spawnPipeline, snippetDragStart, snippetDragEnd);
-
-                    //create snippet
-                    //snippetComponents.push({id: snippet_information.id, name: snippet_information.name, internal_id: snippet_id, pipeline_connectors: snippet_information.pipeline_connectors, drawable: snippetDrawable});
-
-                    //draw snippet
-                    drawSnippet(snippetDrawable);
-                })
-                .catch((e) => {
-                    invoke('logln', {text: JSON.stringify(e)});
+                    directoryFrontUuid: directory_id
                 });
-           });
+            } catch (e) {
+                invoke('logln', {text: JSON.stringify(e)});
+                return;
+            }
+
+            //create drawable snippet
+            let snippetDrawable = generateSnippet(snippet_information.id, snippet_information.name, visualComponents, e.clientX - window_x, e.clientY - window_y, snippet_information.pipeline_connectors, spawnPipeline, snippetDragStart, snippetDragEnd);
+
+            //create snippet
+            //snippetComponents.push({id: snippet_information.id, name: snippet_information.name, internal_id: snippet_id, pipeline_connectors: snippet_information.pipeline_connectors, drawable: snippetDrawable});
+
+            //draw snippet
+            drawSnippet(snippetDrawable);
         }
     }
 
@@ -109,153 +100,154 @@
         //stage.draw();
     }
 
+    /*
+    TODO delete
+    try {
+
+    } catch(e) {
+        invoke('logln', {text: JSON.stringify(e)})
+    }
+    */
+
     //-------handle pipeline creation event--------
     //if a pipeline is in the process of being created
     var pipelineInCreationEvent = null;
 
-    function spawnPipeline(other_pipeline_connector_id, position_offset) {
+    async function spawnPipeline(other_pipeline_connector_id, position_offset) {
         //get the visual component from the map
         var pipeline_from_connector = visualComponents[other_pipeline_connector_id];
 
+        let capacity_full = true;
+
         //check to see if pipeline connector capacity is already full
-        invoke('check_pipeline_connector_capacity_full', {
-            windowSessionUuid: window_session_id,
-            pipelineConnectorUuid: pipeline_from_connector.internal_id
-        })
-        .then((result) => {
-            let capacity_full = result;
-            
-            //if a pipeline is curerntly not being created
-            //and capacity is not full
-            if (!capacity_full) {
-                if (!pipelineInCreationEvent) {
-                    //get the visual component from the map
-                    var pipeline_from_connector = visualComponents[other_pipeline_connector_id];
-                    //check if connector already has pipeline attached (assuming one-to-one policy for now, will be changed in future)
-                        //return
+        try {
+            capacity_full = await invoke('check_pipeline_connector_capacity_full', {
+                windowSessionUuid: window_session_id,
+                pipelineConnectorFrontUuid: pipeline_from_connector.id
+            });
+        } catch(e) {
+            invoke('logln', {text: JSON.stringify(e)})
+        }
 
-                    //get background rect
-                    var background_rect = getChild(pipeline_from_connector.visual, "background_rect");
+        //if a pipeline is curerntly not being created
+        //and capacity is not full
+        if (!capacity_full) {
+            if (!pipelineInCreationEvent) {
+                //get the visual component from the map
+                var pipeline_from_connector = visualComponents[other_pipeline_connector_id];
+                //check if connector already has pipeline attached (assuming one-to-one policy for now, will be changed in future)
+                    //return
 
-                    //get background rect position in canvas space
-                    var background_rect_position = background_rect.getAbsolutePosition(stage);
+                //get background rect
+                var background_rect = getChild(pipeline_from_connector.visual, "background_rect");
 
-                    //start pipeline creation
-                    pipelineInCreationEvent = {
-                        //DELvisual_component: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
-                        pipeline_connector_id: other_pipeline_connector_id,
-                        start_pos: {
-                            x: background_rect_position.x + position_offset.x,
-                            y: background_rect_position.y + position_offset.y
-                        }
-                    };
+                //get background rect position in canvas space
+                var background_rect_position = background_rect.getAbsolutePosition(stage);
 
-                    //draw pipeline
-                    //DEL
-                    //change pipe insert color
-                    visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.highlight_color;
-                }
-                else {
-                    //get virtual components from visual mapping
-                    var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id];
-                    var pipeline_to_connector= visualComponents[other_pipeline_connector_id];
+                //start pipeline creation
+                pipelineInCreationEvent = {
+                    //DELvisual_component: generatePipeConnector(id, visualComponents, background_rect_position.x + position_offset.x, background_rect_position.y + position_offset.y, deletePipeline),
+                    pipeline_connector_id: other_pipeline_connector_id,
+                    start_pos: {
+                        x: background_rect_position.x + position_offset.x,
+                        y: background_rect_position.y + position_offset.y
+                    }
+                };
 
-                    //validate pipeline connection
-                    invoke('validate_pipeline_connection', {windowSessionUuid: window_session_id, fromUuid: pipeline_from_connector.internal_id, toUuid: pipeline_to_connector.internal_id})
-                    .then((result) => {
-                        let validated = result;
-                        
-                        //if it fails validation
-                        if (!validated) {
-                            //change from and to colors back
-                            visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
-                            visualComponents[other_pipeline_connector_id].state.color = visualComponents[other_pipeline_connector_id].state.default_color;
+                //change pipe insert color
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.highlight_color;
+            }
+            else {
+                //get virtual components from visual mapping
+                var pipeline_from_connector = visualComponents[pipelineInCreationEvent.pipeline_connector_id];
+                var pipeline_to_connector= visualComponents[other_pipeline_connector_id];
 
-                            let pipeline_from_connector_background_rect = getChild(pipeline_from_connector.visual, "background_rect");
-                            let pipeline_to_connector_background_rect = getChild(pipeline_to_connector.visual, "background_rect");
+                let validated = false;
 
-                            //draw color change
-                            pipeline_from_connector_background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
-                            pipeline_to_connector_background_rect.fill(visualComponents[other_pipeline_connector_id].state.color);
-
-                            //delete pipeline event
-                            pipelineInCreationEvent = null;
-
-                            return;
-                        }
-
-                        //create pipeline in backend
-                        invoke('new_pipeline', {
-                            windowSessionUuid: window_session_id,
-                            fromUuid: pipeline_from_connector.internal_id,
-                            toUuid: pipeline_to_connector.internal_id,
-                        })
-                        .then((result) => {
-                            //TODO have new_pipieline return front result with id and internal_id
-                            //get pipeline uuid in backend
-                            let pipeline_uuid = result;
-                            
-                            //generate uuid for pipeline visual id
-                            invoke('get_id', {})
-                            .then((result) => {
-                                let pipeline_id = result;
-
-                                //set pipeline uuid for visual component
-                                var to_background_rect = pipeline_to_connector.visual.getChildren(function(node) {
-                                    return node.getId() === "background_rect";
-                                })[0];
-
-                                var to_background_rect_position = to_background_rect.getAbsolutePosition(stage);
-
-                                //create visual pipeline
-                                var visual_component = generatePipeConnector(pipeline_id, visualComponents, pipelineInCreationEvent.start_pos.x, pipelineInCreationEvent.start_pos.y, to_background_rect_position.x + position_offset.x - pipelineInCreationEvent.start_pos.x, to_background_rect_position.y + position_offset.y - pipelineInCreationEvent.start_pos.y, deletePipeline);
-                                
-                                //add to pipeline layers
-                                pipelineLayer.add(visual_component);
-
-                                //add pipeline to visual component mapping
-                                visualComponents[pipeline_id] = 
-                                {
-                                    visual: visual_component,
-                                    type: "pipeline",
-                                    internal_id: pipeline_uuid
-                                };
-                                
-                                //change both ends to connected color
-                                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.connected_color;
-                                visualComponents[other_pipeline_connector_id].state.color = visualComponents[other_pipeline_connector_id].state.connected_color;
-
-                                let pipeline_from_connector_background_rect = getChild(pipeline_from_connector.visual, "background_rect");
-                                let pipeline_to_connector_background_rect = getChild(pipeline_to_connector.visual, "background_rect");
-
-                                //draw color change
-                                pipeline_from_connector_background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
-                                pipeline_to_connector_background_rect.fill(visualComponents[other_pipeline_connector_id].state.color);
-
-                                //clear event
-                                pipelineInCreationEvent = null;
-    
-                            })
-                            .catch((e) => {
-                                invoke('logln', {text: JSON.stringify(e)});
-                            });
-                        })
-                        .catch((e) => {
-                            invoke('logln', {text: JSON.stringify(e)})
-                        })
-                        //invoke 
-                        
-                    })
-                    .catch((e) => {
-                        invoke('logln', {text: JSON.stringify(e)});
+                //validate pipeline connection
+                try {
+                    validated = await invoke('validate_pipeline_connection', {
+                        windowSessionUuid: window_session_id, 
+                        fromFrontUuid: pipeline_from_connector._id, 
+                        toFrontUuid: pipeline_to_connector.id
                     });
+                } catch(e) {
+                    invoke('logln', {text: JSON.stringify(e)})
                 }
-            }           
-            //else, do nothing (don't allow it)
-        })
-        .catch((e) => {
-            invoke('logln', {text: JSON.stringify(e)});
-        });
+            
+                //if it fails validation
+                if (!validated) {
+                    //change from and to colors back
+                    visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
+                    visualComponents[other_pipeline_connector_id].state.color = visualComponents[other_pipeline_connector_id].state.default_color;
+
+                    let pipeline_from_connector_background_rect = getChild(pipeline_from_connector.visual, "background_rect");
+                    let pipeline_to_connector_background_rect = getChild(pipeline_to_connector.visual, "background_rect");
+
+                    //draw color change
+                    pipeline_from_connector_background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
+                    pipeline_to_connector_background_rect.fill(visualComponents[other_pipeline_connector_id].state.color);
+
+                    //delete pipeline event
+                    pipelineInCreationEvent = null;
+
+                    return;
+                }
+                
+                let pipeline_uuid = 0;
+                let pipeline_id = 0; 
+
+                //create pipeline in backend
+                try {
+                    let result = await invoke('new_pipeline', {
+                        windowSessionUuid: window_session_id,
+                        fromUuid: pipeline_from_connector.id,
+                        toUuid: pipeline_to_connector.id,
+                    });
+
+                    pipeline_uuid = result.iid;
+                    pipeline_id = result.id;
+ 
+                } catch (e) {
+                    invoke('logln', {text: JSON.stringify(e)});
+                }
+            
+                //get pipeline uuid in backend
+                //set pipeline uuid for visual component
+                var to_background_rect = pipeline_to_connector.visual.getChildren(function(node) {
+                    return node.getId() === "background_rect";
+                })[0];
+
+                var to_background_rect_position = to_background_rect.getAbsolutePosition(stage);
+
+                //create visual pipeline
+                var visual_component = generatePipeConnector(pipeline_id, visualComponents, pipelineInCreationEvent.start_pos.x, pipelineInCreationEvent.start_pos.y, to_background_rect_position.x + position_offset.x - pipelineInCreationEvent.start_pos.x, to_background_rect_position.y + position_offset.y - pipelineInCreationEvent.start_pos.y, deletePipeline);
+                
+                //add to pipeline layers
+                pipelineLayer.add(visual_component);
+
+                //add pipeline to visual component mapping
+                visualComponents[pipeline_id] = 
+                {
+                    visual: visual_component,
+                    type: "pipeline",
+                };
+                
+                //change both ends to connected color
+                visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.connected_color;
+                visualComponents[other_pipeline_connector_id].state.color = visualComponents[other_pipeline_connector_id].state.connected_color;
+
+                let pipeline_from_connector_background_rect = getChild(pipeline_from_connector.visual, "background_rect");
+                let pipeline_to_connector_background_rect = getChild(pipeline_to_connector.visual, "background_rect");
+
+                //draw color change
+                pipeline_from_connector_background_rect.fill(visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color);
+                pipeline_to_connector_background_rect.fill(visualComponents[other_pipeline_connector_id].state.color);
+
+                //clear event
+                pipelineInCreationEvent = null;
+        }
+        } 
     }
 
     //handle delete pipeline event from pipeline double click
@@ -281,13 +273,22 @@
     //for snippet drag event
     function snippetDragStart(id) {
         //create snippet drag start event
-        //start position
+        //get all from_uuids and to_uuids of snippet
+        //get all pipeline uuids associated with these (call to backend)
 
-        //get all pipelines associated with it
+        //make pipelines disapear (set visible to false)
+
+        //store these uuids in snippetDragEvent 
     }
 
     function snippetDragEnd(id) {
-        //remove snippet drag event
+        //get pipelines uuids from snippet drag event
+
+        //reposition all pipelines (both start and end)
+
+        //make pipelines visible
+
+        //remove snippet drag event by setting to null
     }
 
     function handleMouseMovement(e) {

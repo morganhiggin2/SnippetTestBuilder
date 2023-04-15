@@ -10,6 +10,7 @@ use self::external_snippet_manager::IOContentType;
 
 pub mod window_manager;
 pub mod external_snippet_manager;
+pub mod visual_snippet_component_manager;
 
 pub struct MutexApplicationState(pub Mutex<ApplicationState>);
 

@@ -1,13 +1,11 @@
 use std::sync::MutexGuard;
 
-use crate::utils::sequential_id_generator::{SequentialIdGenerator, self};
+use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::core_components::snippet::SnippetManager;
-use crate::state_management::window_manager::visual_component_manager::VisualComponentManager;
 use crate::utils::sequential_id_generator::Uuid;
 
 use super::ApplicationState;
-
-pub mod visual_component_manager;
+use super::visual_snippet_component_manager::VisualSnippetComponentManager;
 
 pub struct WindowManager {
     window_sessions: Vec<WindowSession> 
@@ -16,7 +14,7 @@ pub struct WindowManager {
 pub struct WindowSession {
     pub uuid: Uuid,
     pub snippet_manager: SnippetManager,
-    pub visual_component_manager: VisualComponentManager
+    pub visual_component_manager: VisualSnippetComponentManager
 }
 
 impl WindowManager {
@@ -89,7 +87,7 @@ impl WindowSession {
         return WindowSession {
             uuid: seq_id_generator.get_id(),
             snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualComponentManager::default()
+            visual_component_manager: VisualSnippetComponentManager::default()
         }
     }
 }
@@ -99,7 +97,7 @@ impl Default for WindowSession {
         return WindowSession {
             uuid: 0,
             snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualComponentManager::default()
+            visual_component_manager: VisualSnippetComponentManager::default()
         }
     }
 }

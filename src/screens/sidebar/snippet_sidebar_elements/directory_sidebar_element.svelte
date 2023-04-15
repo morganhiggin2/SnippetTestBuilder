@@ -16,7 +16,6 @@
     function onDragStart(e) {
         e.dataTransfer.setData('id', id);
         e.dataTransfer.setData('type', file_type);
-        e.dataTransfer.setData('name', name);
     }
 
     function onDragEnd(e) {

@@ -1,5 +1,4 @@
 <script>
-    import SidebarElement from "./sidebar_element.svelte";
     import ContextMenu from './context_menus/context_menu.svelte';
     import ContextMenuOption from './context_menus/context_menu_option.svelte';
     import { invoke } from "@tauri-apps/api";

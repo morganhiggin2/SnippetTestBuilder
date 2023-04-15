@@ -2,7 +2,7 @@ use std::{collections::{HashMap, hash_map::Values}};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent, core_services::io_service::{FrontExternalSnippetContent, FrontExternalSnippetContentType}};
+use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_components::snippet::PipelineConnectorComponent, core_services::{io_service::{FrontExternalSnippetContent, FrontExternalSnippetContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}}};
 
 
 pub struct ExternalSnippetManager {
@@ -44,7 +44,7 @@ impl Default for ExternalSnippetManager {
 
 impl ExternalSnippetManager {
     /// create snippet that does not input or output
-    pub fn create_non_actin_snippet(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, name: &str) -> Uuid {
+    pub fn create_non_acting_snippet(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, name: &str) -> Uuid {
         //create external snippet
         let mut external_snippet = ExternalSnippet::empty(seq_id_generator, name);
 
@@ -196,8 +196,9 @@ impl ExternalSnippet {
         return pipeline_connectors;
     }
 
-    pub fn get_snippet_as_front_content(&self, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> FrontExternalSnippetContent{
+    pub fn get_snippet_as_front_content(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> FrontExternalSnippetContent{
         return FrontExternalSnippetContent::new(
+            visual_directory_component_manager,
             seq_id_generator.get_id(),
             self.get_name(),
             self.get_uuid(),
