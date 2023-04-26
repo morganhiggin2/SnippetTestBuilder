@@ -84,7 +84,7 @@ impl ExternalSnippetManager {
     /// add point to snippet with uuid snippet_uuid
     pub fn add_io_point(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, snippet_uuid: Uuid, name: &str, content_type: IOContentType, input: bool) -> Result<Uuid, &'static str> {
         //find external snippet
-        let external_snippet = match external_snippet_manager.find_external_snippet(snippet_uuid) {
+        let external_snippet = match external_snippet_manager.find_external_snippet_mut(snippet_uuid) {
             Ok(result) => result,
             Err(e) => {
                 return Err(e);
@@ -110,7 +110,7 @@ impl ExternalSnippetManager {
 
     pub fn add_non_acting_point(seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, snippet_uuid: Uuid, input: bool) -> Result<Uuid, &'static str>{
         //find external snippet
-        let external_snippet = match external_snippet_manager.find_external_snippet(snippet_uuid) {
+        let external_snippet = match external_snippet_manager.find_external_snippet_mut(snippet_uuid) {
             Ok(result) => result,
             Err(e) => {
                 return Err(e);
@@ -134,13 +134,25 @@ impl ExternalSnippetManager {
         return Ok(uuid);
     }
 
-    /// find external snippet from within the external snippet manager
+    /// find mutable reference external snippet from within the external snippet manager
     /// 
     /// # Arguments
     /// 
     /// * 'uuid' - uuid of the external snippet to find
-    pub fn find_external_snippet(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippet, &'static str> {
+    pub fn find_external_snippet_mut(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippet, &'static str> {
         match self.external_snippets.iter_mut().find(|pipe: &&mut ExternalSnippet | pipe.uuid == uuid) {
+            Some(result) => return Ok(result),
+            None => return Err("external snippet could not be found with uuid")
+        };
+    }
+    
+    /// find refernece to external snippet from within the external snippet manager
+    /// 
+    /// # Arguments
+    /// 
+    /// * 'uuid' - uuid of the external snippet to find
+    pub fn find_external_snippet(&self, uuid: Uuid) -> Result<&ExternalSnippet, &'static str> {
+        match self.external_snippets.iter().find(|pipe: && ExternalSnippet | pipe.uuid == uuid) {
             Some(result) => return Ok(result),
             None => return Err("external snippet could not be found with uuid")
         };
@@ -194,19 +206,6 @@ impl ExternalSnippet {
         }
 
         return pipeline_connectors;
-    }
-
-    pub fn get_snippet_as_front_content(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> FrontExternalSnippetContent{
-        return FrontExternalSnippetContent::new(
-            visual_directory_component_manager,
-            seq_id_generator.get_id(),
-            self.get_name(),
-            self.get_uuid(),
-            FrontExternalSnippetContentType::Snippet,
-            false,
-            level,
-            false,
-        );
     }
 }
 

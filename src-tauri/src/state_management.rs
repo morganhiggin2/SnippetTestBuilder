@@ -78,6 +78,8 @@ impl ApplicationState {
             let category_uuid = category.get_uuid();
 
             let mut snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "rest_api call");
+            //TODO delete
+            println!("{}", snippet_uuid);
             ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, true); 
             ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "body", IOContentType::JSON, false);
 
@@ -87,6 +89,8 @@ impl ApplicationState {
 
            
             snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "middle_body_validator");
+            //TODO delete
+            println!("{}", snippet_uuid);
             ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "json_input", IOContentType::JSON, true); 
             ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, false); let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
             category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());

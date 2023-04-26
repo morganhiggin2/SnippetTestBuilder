@@ -35,13 +35,17 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
     let visual_directory_component_manager = &mut directory_manager.visual_component_manager;
     
-    //get external snippet uuid from directory front uuid
-    let directory_uuid = match visual_directory_component_manager.find_directory_uuid(&directory_front_uuid) {
+    //get file container external snippet uuid from directory front uuid
+    let directory_uuid = match visual_directory_component_manager.find_directory_front_uuid(&directory_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find directory content uuid with directory front uuid");
         }
     };
+
+    println!("{}", directory_uuid);
+
+    //currently: in creating front extern snippet containers, it is using extern snippet manager, but instead should be using directory uuid
 
     //get external snippet uuid from directory manager
     let external_snippet_uuid = match directory_manager.snippet_structure.find_external_snippet_container(&directory_uuid) {

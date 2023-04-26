@@ -85,7 +85,7 @@ impl Default for SnippetManager {
 
 impl SnippetManager {
     /// create a new snippet
-    pub fn new_snippet(&mut self, seq_id_generator: &mut SequentialIdGenerator, external_snippet: &mut ExternalSnippet) -> Uuid {
+    pub fn new_snippet(&mut self, seq_id_generator: &mut SequentialIdGenerator, external_snippet: &ExternalSnippet) -> Uuid {
         //create snippet component
         let mut snippet_component : SnippetComponent = SnippetComponent::new(seq_id_generator);
 

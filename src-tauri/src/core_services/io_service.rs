@@ -147,11 +147,10 @@ impl SnippetStructure {
             //find external snippet file container
             let external_snippet_container = self.find_external_snippet_container(ext_snip_uuid).unwrap(); 
 
-            //find external snippet
-            let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
-
             //create front snippet content
-            let front_snippet_content = FrontExternalSnippetContent::new_snippet(visual_directory_component_manager, seq_id_generator, &external_snippet, level);
+            //can safely unwrap since we created the external snippet before this method call
+            //nothing else could change the existance or properties of it before
+            let front_snippet_content = FrontExternalSnippetContent::new_snippet(visual_directory_component_manager, external_snippet_manager, &self, seq_id_generator, &external_snippet_container, level).unwrap();
 
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content)
@@ -241,6 +240,29 @@ impl ExternalSnippetFileContainer {
     pub fn get_external_snippet_uuid(&self) -> Uuid {
         return self.external_snippet_uuid;
     }
+
+    pub fn get_as_front_content(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> Result<FrontExternalSnippetContent, &str>{
+        //get external snippet 
+        let external_snippet = match external_snippet_manager.find_external_snippet(self.get_external_snippet_uuid()) {
+            Ok(result) => result,
+            Err(e) => {
+                return Err("could not find external snippet for uuid in external snippet file container");
+            }
+        };
+
+        let content = FrontExternalSnippetContent::new(
+            visual_directory_component_manager,
+            seq_id_generator.get_id(),
+            external_snippet.get_name(),
+            self.get_uuid(),
+            FrontExternalSnippetContentType::Snippet,
+            false,
+            level,
+            false,
+        );
+        
+        return Ok(content);
+    }
 }
 
 impl FrontExternalSnippetContent {
@@ -254,14 +276,33 @@ impl FrontExternalSnippetContent {
             showing: showing,
         };
 
+        //TODO delete
+        println!("internal {}", internal_id);
+
         //add front content to visual component manager
-        visual_directory_component_manager.put_directory_uuid(uuid, internal_id); 
+        visual_directory_component_manager.put_snippet_file_container_uuid(uuid, internal_id); 
 
         return front_content;
     }
-    /// create new front snippet content of type snippet 
-    fn new_snippet(visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet: & ExternalSnippet, level: u32) -> Self {
-        return external_snippet.get_snippet_as_front_content(visual_directory_component_manager, seq_id_generator, level);        
+
+    /// create new front snippet content of type external snippet file container 
+    fn new_snippet(visual_directory_component_manager: &mut VisualDirectoryComponentManager, external_snippet_manager: &ExternalSnippetManager, snippet_structure: &SnippetStructure, seq_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
+        //TODO: ask why &str instead of String is not working
+        //call front method on file container
+        let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(visual_directory_component_manager, external_snippet_manager, seq_id_generator, level) {
+            Ok(result) => result,
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        };
+
+        return Ok(front_external_snippet_content);
+
+        //TODO delete these comments
+        //find external snippet
+        //let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
+
+        //return external_snippet.get_as_front_content(visual_directory_component_manager, external_snippet_manager, seq_id_generator, level);        
     }
 
     /// create new front snippet content of type category 

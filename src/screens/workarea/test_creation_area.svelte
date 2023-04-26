@@ -68,7 +68,9 @@
         if (type == 'Snippet') {
             //get snippet information
             //parsing certain values as everything is passed as string
-            let directory_id = JSON.parse(e.dataTransfer.getData('id'));
+            let directory_id = JSON.parse(e.dataTransfer.getData('_id'));
+
+            invoke("logln", {text: JSON.stringify(directory_id)});
 
             //generate snippet in backend, getting new snippet information 
             let snippet_information = null;
@@ -78,6 +80,7 @@
                     windowSessionUuid: window_session_id,
                     directoryFrontUuid: directory_id
                 });
+                invoke("logln", {text: "made it here"});
             } catch (e) {
                 invoke('logln', {text: JSON.stringify(e)});
                 return;
