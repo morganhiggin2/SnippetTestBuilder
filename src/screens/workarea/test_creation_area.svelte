@@ -242,23 +242,53 @@
     }
 
     //handle delete pipeline event from pipeline double click
-    function deletePipeline(id) {
+    async function deletePipeline(id) {
         pipelineInCreationEvent = null;    
         
         //get pipeline
         let pipeline = visualComponents[id];
 
+        //result from invoke
+        let result = null;
+
         //get pipeline connectors
+        try {
+            result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
+                windowSessionUuid: window_session_id,
+                fromPipelineUuid: id
+            });
 
-        //pipelineInCreationEvent.visual_component.destroy();                    
+        } catch (e) {
+            invoke('logln', {text: JSON.stringify(e)});
+        } 
 
+        //extract pipeline connector ids
+        let from_pipeline_connector_id = result.fromFrontPipelineConnectorUuid;
+        let to_pipeline_connector_id = result.toFrontPipelineConnectorUuid;
+
+        //delete pipeline in backend
+        try {
+            result = await invoke('delete_pipeline', {
+                windowSessionUuid: window_session_id,
+                fromPipelineUuid: id
+            });
+
+        } catch (e) {
+            invoke('logln', {text: JSON.stringify(e)});
+        } 
+
+        //destroy pipeline visual component
+        pipeline.visual_component.destroy();                    
+
+        //remove from visual components
+        visualComponents.remove(pipeline);
+        
         //change from and to colors back
-        //visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.color = visualComponents[pipelineInCreationEvent.pipeline_connector_id].state.default_color;
-        //visualComponents[other_pipeline_connector_id].state.color = visualComponents[other_pipeline_connector_id].state.default_color;
-
-
+        visualComponents[from_pipeline_connector_id].state.color = visualComponents[from_pipeline_connector_id].state.default_color;
+        visualComponents[to_pipeline_connector_id].state.color = visualComponents[to_pipeline_connector_id].state.default_color;
     }
 
+    //------snippet drag event---------
     let snippetDragEvent = null;
 
     //for snippet drag event

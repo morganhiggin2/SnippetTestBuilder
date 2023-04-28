@@ -1,3 +1,4 @@
+use serde::Serialize;
 use tauri::window;
 
 use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowManager, WindowSession}, external_snippet_manager::{ExternalSnippetManager, IOContentType, self}, visual_snippet_component_manager}, core_components::snippet::{SnippetManager, FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid, self}, core_services::visual_directory_component_manager};
@@ -244,6 +245,75 @@ pub fn check_pipeline_connector_capacity_full(application_state: tauri::State<Mu
     };
 
     let result = snippet_manager.check_pipeline_connector_capacity_full(&pipeline_connector_uuid); 
+
+    return Ok(result);
+}
+
+#[derive(Serialize)]
+pub struct FrontPipelineConnectorResult {
+    front_from_pipeline_connector_uuid: Uuid,
+    front_to_pipeline_connector_uuid: Uuid
+}
+
+/// get front pipeline connector uuids for front pipeline uuid
+#[tauri::command]
+pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_pipeline_uuid: Uuid) -> Result<FrontPipelineConnectorResult, &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+    
+    //borrow split
+    let snippet_manger = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    //get pipeline uuid from front uuid
+    let pipeline_uuid = match visual_snippet_component_manager.find_pipeline_uuid(&front_pipeline_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find pipeline uuid from front pipeline uuid");
+        }
+    };
+
+
+    //find pipieline
+    let pipeline_component = match snippet_manger.find_pipeline(&pipeline_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find pipeline from pipeline uuid");
+        }
+    };
+    
+    //get uuids
+
+    //get front from pipeline connector uuid
+    let front_from_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_front_from_pipeline_connector_uuid()) {
+        Some(result) => result,
+        None => {
+            return Err("could not find front from pipeline connector uuid from pipeline component");
+        }
+    };
+
+    //get front to pipeline connector uuid
+    let front_to_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_front_to_pipeline_connector_uuid()) {
+        Some(result) => result,
+        None => {
+            return Err("could not find front to pipeline connector uuid from pipeline component");
+        }
+    };
+
+    //create result
+    let result = FrontPipelineConnectorResult {
+        front_from_pipeline_connector_uuid: front_from_pipeline_connector_uuid,
+        front_to_pipeline_connector_uuid: front_to_pipeline_connector_uuid
+    };
 
     return Ok(result);
 }

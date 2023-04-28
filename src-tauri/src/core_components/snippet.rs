@@ -529,6 +529,14 @@ impl PipelineComponent {
 
         return front_pipeline_content;
     }
+
+    pub fn get_front_from_pipeline_connector_uuid(&self) -> Uuid {
+        return self.from_pipeline_connector_uuid;
+    }
+
+    pub fn get_front_to_pipeline_connector_uuid(&self) -> Uuid {
+        return self.to_pipeline_connector_uuid;
+    }
 }
 
 
