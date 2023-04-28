@@ -241,7 +241,7 @@ impl ExternalSnippetFileContainer {
         return self.external_snippet_uuid;
     }
 
-    pub fn get_as_front_content(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> Result<FrontExternalSnippetContent, &str>{
+    pub fn get_as_front_content(&self, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> Result<FrontExternalSnippetContent, &str>{
         //get external snippet 
         let external_snippet = match external_snippet_manager.find_external_snippet(self.get_external_snippet_uuid()) {
             Ok(result) => result,
@@ -251,7 +251,6 @@ impl ExternalSnippetFileContainer {
         };
 
         let content = FrontExternalSnippetContent::new(
-            visual_directory_component_manager,
             seq_id_generator.get_id(),
             external_snippet.get_name(),
             self.get_uuid(),
@@ -266,7 +265,7 @@ impl ExternalSnippetFileContainer {
 }
 
 impl FrontExternalSnippetContent {
-    pub fn new(visual_directory_component_manager: &mut VisualDirectoryComponentManager, uuid: Uuid, name: String, internal_id: Uuid, file_type: FrontExternalSnippetContentType, is_directory: bool, level: u32, showing: bool) -> Self {
+    pub fn new(uuid: Uuid, name: String, internal_id: Uuid, file_type: FrontExternalSnippetContentType, is_directory: bool, level: u32, showing: bool) -> Self {
         let front_content = FrontExternalSnippetContent {
             id: uuid,
             name: name,
@@ -276,12 +275,6 @@ impl FrontExternalSnippetContent {
             showing: showing,
         };
 
-        //TODO delete
-        println!("internal {}", internal_id);
-
-        //add front content to visual component manager
-        visual_directory_component_manager.put_snippet_file_container_uuid(uuid, internal_id); 
-
         return front_content;
     }
 
@@ -289,12 +282,15 @@ impl FrontExternalSnippetContent {
     fn new_snippet(visual_directory_component_manager: &mut VisualDirectoryComponentManager, external_snippet_manager: &ExternalSnippetManager, snippet_structure: &SnippetStructure, seq_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
         //TODO: ask why &str instead of String is not working
         //call front method on file container
-        let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(visual_directory_component_manager, external_snippet_manager, seq_id_generator, level) {
+        let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(external_snippet_manager, seq_id_generator, level) {
             Ok(result) => result,
             Err(e) => {
                 return Err(e.to_string());
             }
         };
+
+        //add front content to visual component manager
+        visual_directory_component_manager.put_snippet_file_container_uuid(front_external_snippet_content.id, external_snippet_file_container.get_uuid()); 
 
         return Ok(front_external_snippet_content);
 
@@ -308,7 +304,6 @@ impl FrontExternalSnippetContent {
     /// create new front snippet content of type category 
     fn new_category(visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, name: String,  level: u32) -> Self {
         return FrontExternalSnippetContent::new(
-            visual_directory_component_manager,
             seq_id_generator.get_id(),
             name.clone(),
             0,

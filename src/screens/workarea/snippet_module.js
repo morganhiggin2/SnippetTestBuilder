@@ -170,8 +170,6 @@ export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_s
     //add visually linked component to map
     visualComponents[id] = {
         visual: line,
-        //TODO
-        //internal_id: internal_id
         type: "pipe"
     };
 

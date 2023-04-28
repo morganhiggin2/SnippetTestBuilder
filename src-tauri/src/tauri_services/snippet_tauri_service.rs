@@ -36,16 +36,12 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     let visual_directory_component_manager = &mut directory_manager.visual_component_manager;
     
     //get file container external snippet uuid from directory front uuid
-    let directory_uuid = match visual_directory_component_manager.find_directory_front_uuid(&directory_front_uuid) {
+    let directory_uuid = match visual_directory_component_manager.find_snippet_file_container_uuid(&directory_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find directory content uuid with directory front uuid");
         }
     };
-
-    println!("{}", directory_uuid);
-
-    //currently: in creating front extern snippet containers, it is using extern snippet manager, but instead should be using directory uuid
 
     //get external snippet uuid from directory manager
     let external_snippet_uuid = match directory_manager.snippet_structure.find_external_snippet_container(&directory_uuid) {
@@ -73,7 +69,8 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
             return Err("snippet could not be found from snippet uuid");
         }
     };
-        //get snippet at front content
+
+    //get snippet at front content and add to virtual manager
     let front_snippet = snippet.get_snippet_to_front_snippet(visual_snippet_component_manager, seq_id_generator, &snippet_manager);
     
     //return uuid
@@ -107,14 +104,14 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get from and to component uuids from front uuids
-    let from_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&from_front_uuid) {
+    let from_uuid = match visual_snippet_component_manager.find_pipeline_connector_uuid(&from_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find from pipeline connector uuids from front pipeline connector uuid");
         }
     };
 
-    let to_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&to_front_uuid) {
+    let to_uuid = match visual_snippet_component_manager.find_pipeline_connector_uuid(&to_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find to pipeline connector uuids to front pipeline connector uuid");
@@ -133,10 +130,45 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
     //get pipelines, can safely unwrap as we just created the pipeline above
     let pipeline = snippet_manger.find_pipeline(&pipeline_uuid).unwrap();
 
-    //get pipeline front content
-    let pipeline_front = pipeline.get_pipeline_as_front_content(seq_id_generator); 
+    //get pipeline front content and add to virtaul manager
+    let pipeline_front = pipeline.get_pipeline_as_front_content(visual_snippet_component_manager, seq_id_generator); 
 
     return Ok(pipeline_front);
+}
+
+#[tauri::command] 
+pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+
+    //borrow split
+    let snippet_manger = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    //get pipeline uuid from front uuid
+    let pipeline_uuid = match visual_snippet_component_manager.find_pipeline_uuid(&front_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find pipeline uuid from front pipeline uuid");
+        }
+    };
+
+    //delete from visual snippet manager
+    visual_snippet_component_manager.delete_pipeline_by_pipeline_front(&front_uuid);
+
+    //delete from snippet manager and it's internal links
+    snippet_manger.delete_pipeline(&pipeline_uuid);
+
+    return Ok(());
 }
 
 /// validate a possible pipeline connection
@@ -163,14 +195,14 @@ pub fn validate_pipeline_connection(application_state: tauri::State<MutexApplica
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get from and to component uuids from front uuids
-    let from_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&from_front_uuid) {
+    let from_uuid = match visual_snippet_component_manager.find_pipeline_connector_uuid(&from_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find from pipeline connector uuids from front pipeline connector uuid");
         }
     };
 
-    let to_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&to_front_uuid) {
+    let to_uuid = match visual_snippet_component_manager.find_pipeline_connector_uuid(&to_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find to pipeline connector uuids to front pipeline connector uuid");

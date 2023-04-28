@@ -53,8 +53,6 @@
     });
 
     async function handleDrop(e) {
-        e.preventDefault();
-
         //get the bounding rectagle for canvas
         let boundingRect = selfObj.getBoundingClientRect();
 
@@ -70,7 +68,7 @@
             //parsing certain values as everything is passed as string
             let directory_id = JSON.parse(e.dataTransfer.getData('_id'));
 
-            invoke("logln", {text: JSON.stringify(directory_id)});
+            invoke("logln", {text: "this is the id from the front directory " + JSON.stringify(directory_id)});
 
             //generate snippet in backend, getting new snippet information 
             let snippet_information = null;
@@ -80,7 +78,6 @@
                     windowSessionUuid: window_session_id,
                     directoryFrontUuid: directory_id
                 });
-                invoke("logln", {text: "made it here"});
             } catch (e) {
                 invoke('logln', {text: JSON.stringify(e)});
                 return;
@@ -103,15 +100,6 @@
         //stage.draw();
     }
 
-    /*
-    TODO delete
-    try {
-
-    } catch(e) {
-        invoke('logln', {text: JSON.stringify(e)})
-    }
-    */
-
     //-------handle pipeline creation event--------
     //if a pipeline is in the process of being created
     var pipelineInCreationEvent = null;
@@ -126,7 +114,7 @@
         try {
             capacity_full = await invoke('check_pipeline_connector_capacity_full', {
                 windowSessionUuid: window_session_id,
-                pipelineConnectorFrontUuid: pipeline_from_connector.id
+                frontPipelineConnectorUuid: other_pipeline_connector_id
             });
         } catch(e) {
             invoke('logln', {text: JSON.stringify(e)})
@@ -171,8 +159,8 @@
                 try {
                     validated = await invoke('validate_pipeline_connection', {
                         windowSessionUuid: window_session_id, 
-                        fromFrontUuid: pipeline_from_connector._id, 
-                        toFrontUuid: pipeline_to_connector.id
+                        fromFrontUuid: pipelineInCreationEvent.pipeline_connector_id, 
+                        toFrontUuid: other_pipeline_connector_id 
                     });
                 } catch(e) {
                     invoke('logln', {text: JSON.stringify(e)})
@@ -204,8 +192,8 @@
                 try {
                     let result = await invoke('new_pipeline', {
                         windowSessionUuid: window_session_id,
-                        fromUuid: pipeline_from_connector.id,
-                        toUuid: pipeline_to_connector.id,
+                        fromFrontUuid: pipelineInCreationEvent.pipeline_connector_id,
+                        toFrontUuid: other_pipeline_connector_id,
                     });
 
                     pipeline_uuid = result.iid;
@@ -292,6 +280,7 @@
         //make pipelines visible
 
         //remove snippet drag event by setting to null
+
     }
 
     function handleMouseMovement(e) {
@@ -341,7 +330,7 @@
     //implement grid lock, and grid background maybe?
 
     //prevent snippet overlap, ihave list of rectangles that are fit for the grid space they are in! then check for overlap
-    //only check on mouse release, when placing it, so on dropend
+    //only check on mouse release, when placing it, so on dropend          on:dragover|preventDefault={() => {return false;}} 
     //in the session manager, have a virtualgridspace manager that checks for colissions
 
     //funcationlize / split up code
@@ -349,7 +338,7 @@
 
 <svelte:window bind:innerWidth={window_width} bind:innerHeight={window_height}/>
 
-<div class="body" on:drop={handleDrop} on:dragover|preventDefault={() => {return false;}} on:mousemove={handleMouseMovement} bind:this={selfObj}>
+<div class="body" on:drop|preventDefault={handleDrop} on:dragover|preventDefault on:mousemove={handleMouseMovement} on:dragenter|preventDefault bind:this={selfObj}>
     <!--{#each snippets as snippet}
         <p>
             this is a snippet

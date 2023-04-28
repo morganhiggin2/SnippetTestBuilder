@@ -174,7 +174,7 @@ impl SnippetManager {
     /// # Arguments
     /// * 'from_uuid' from pipeline connector's uuid
     /// * 'to uuid' to pipeline connector's uuid
-    pub fn create_pipeline(&mut self, seq_id_generator: &mut SequentialIdGenerator, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &'static str> {
+    pub fn create_pipeline(&mut self,  seq_id_generator: &mut SequentialIdGenerator, from_uuid: Uuid, to_uuid: Uuid) -> Result<Uuid, &'static str> {
         //get valid direction of pipeline, as from_uuid and to_uuid are not guarnteed to be input:false -> input:true
         let mut from_uuid = from_uuid;
         let mut to_uuid = to_uuid;
@@ -249,6 +249,57 @@ impl SnippetManager {
 
         //return uuid of new pipeline
         return Ok(pipeline_uuid);
+    }
+
+    /// deletes pipeline and all snippet manager internal links
+    /// upon unsuccessfull deletion, deletes taken before in this method are not reversed
+    /// 
+    /// # Arguments 
+    /// * 'uuid' - uuid of the pipeline component
+    pub fn delete_pipeline(&mut self, uuid: &Uuid) -> Result<(), &str> {
+        let mut from_pipeline_connector_uuid = 0;
+        let mut to_pipeline_connector_uuid = 0;
+
+        //get pipeline uuids without violating borrow rules for self
+        {
+            //get pipeline
+            let pipeline_component = match self.find_pipeline(uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("pipeline does not exist in snippet manager to delete"); 
+                }
+            };
+
+            //grab copies of the pipeline connector uuids
+            from_pipeline_connector_uuid = pipeline_component.from_pipeline_connector_uuid.clone();
+            to_pipeline_connector_uuid = pipeline_component.to_pipeline_connector_uuid.clone();
+        }
+
+        //delete front from pipeline connector to pipeline relationship 
+        match self.pipeline_connector_to_pipeline.remove(&from_pipeline_connector_uuid) {
+            Some(_) => (),
+            None => {
+                return Err("front from pipeline connector does not exist in pipeline connector to pipeline relationship");
+            }
+        };
+ 
+        //delete front to pipeline connector to pipeline relationship 
+        match self.pipeline_connector_to_pipeline.remove(&to_pipeline_connector_uuid) {
+            Some(_) => (),
+            None => {
+                return Err("front to pipeline connector does not exist in pipeline connector to pipeline relationship");
+            }
+        };       
+
+        //delete pipeline in snippet manager
+        match self.pipelines.remove(uuid) {
+            Some(_) => (),
+            None => {
+                return Err("pipeline does not exist in snippet manager");
+            }
+        }
+
+        return Ok(());
     }
 
     /// validate pipeline
@@ -468,10 +519,15 @@ impl PipelineComponent {
         return self.uuid;
     }
 
-    pub fn get_pipeline_as_front_content(&self, seq_id_generator: &mut SequentialIdGenerator) -> FrontPipelineContent {
-        return FrontPipelineContent {
+    pub fn get_pipeline_as_front_content(&self, visual_snippet_component_manager: &mut VisualSnippetComponentManager, seq_id_generator: &mut SequentialIdGenerator) -> FrontPipelineContent {
+
+        let front_pipeline_content = FrontPipelineContent {
             id: seq_id_generator.get_id()
-        }
+        };
+
+        visual_snippet_component_manager.put_pipeline(front_pipeline_content.id, self.uuid);
+
+        return front_pipeline_content;
     }
 }
 
@@ -499,6 +555,8 @@ impl FrontPipelineConnectorContent {
             content_type: content_type,
             input: input
         };
+
+        println!("{}, {}", uuid, pipeline_connector_id);
 
         //add front content to visual component manager
         visual_snippet_component_manager.put_pipeline_connector(uuid, pipeline_connector_id);
