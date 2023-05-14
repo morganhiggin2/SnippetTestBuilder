@@ -138,7 +138,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
 }
 
 #[tauri::command] 
-pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), &str> {
+pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), & str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -164,10 +164,20 @@ pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, w
     };
 
     //delete from visual snippet manager
-    visual_snippet_component_manager.delete_pipeline_by_pipeline_front(&front_uuid);
+    match visual_snippet_component_manager.delete_pipeline_by_pipeline_front(&front_uuid) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e);
+        }
+    };
 
     //delete from snippet manager and it's internal links
-    snippet_manger.delete_pipeline(&pipeline_uuid);
+    match snippet_manger.delete_pipeline(&pipeline_uuid) {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(err);
+        }
+    };
 
     return Ok(());
 }

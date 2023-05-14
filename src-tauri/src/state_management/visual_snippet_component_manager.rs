@@ -77,7 +77,7 @@ impl VisualSnippetComponentManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the front pipeline component
-    pub fn delete_pipeline_by_pipeline_front(&mut self, uuid: &Uuid) -> Result<(), &str> {
+    pub fn delete_pipeline_by_pipeline_front(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         match self.pipeline_front_to_pipeline.remove_by_left(uuid) {
             Some(result) => {
                 return Ok(());
@@ -92,7 +92,7 @@ impl VisualSnippetComponentManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline
-    pub fn delete_pipeline_by_pipeline(&mut self, uuid: &Uuid) -> Result<(), &str> {
+    pub fn delete_pipeline_by_pipeline(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         match self.pipeline_front_to_pipeline.remove_by_left(uuid) {
             Some(result) => {
                 return Ok(());

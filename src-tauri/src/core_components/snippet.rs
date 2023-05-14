@@ -256,7 +256,7 @@ impl SnippetManager {
     /// 
     /// # Arguments 
     /// * 'uuid' - uuid of the pipeline component
-    pub fn delete_pipeline(&mut self, uuid: &Uuid) -> Result<(), &str> {
+    pub fn delete_pipeline(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         let mut from_pipeline_connector_uuid = 0;
         let mut to_pipeline_connector_uuid = 0;
 
@@ -563,8 +563,6 @@ impl FrontPipelineConnectorContent {
             content_type: content_type,
             input: input
         };
-
-        println!("{}, {}", uuid, pipeline_connector_id);
 
         //add front content to visual component manager
         visual_snippet_component_manager.put_pipeline_connector(uuid, pipeline_connector_id);
