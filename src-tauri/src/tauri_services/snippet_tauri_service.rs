@@ -78,6 +78,89 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     return Ok(front_snippet);
 }
 
+/// deletes snippet
+/// including all front and root components 
+#[tauri::command] 
+pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, snippet_front_uuid: Uuid) -> Result<(), &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+
+    //borrow split
+    let snippet_manager = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    //get snippet uuid from front uuid
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&snippet_front_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find snippet uuid from front snippet uuid");
+        }
+    };
+
+    //get snippet component
+    let snippet_component = match snippet_manager.find_snippet(&snippet_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find snippet component from snippet uuid");
+        }
+    };
+
+    //get pipelines associated with snippet
+    let pipeline_connector_uuids = snippet_component.get_pipeline_connector_uuids();
+
+    //get pipelines from pipeline connectors
+    for pipeline_connector_uuid in pipeline_connector_uuids.iter() {
+        //if any pipelines are left connected, return error, cannot delete snippet if connected
+        match snippet_manager.find_pipeline(&pipeline_connector_uuid) {
+            Some(_) => {
+                return Err("cannot delete snippet becuase pipelines are still connected to this snippet");
+            },
+            None => {
+                continue;
+            }
+        };
+    }
+
+    //delete pipeline connectors from fornt service
+    for pipeline_connector_uuid in pipeline_connector_uuids.iter() {
+        match visual_snippet_component_manager.delete_pipeline_connector_by_internal(&pipeline_connector_uuid) {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(err);
+            }
+        }
+    } 
+
+    //delete snippet from front service
+    match visual_snippet_component_manager.delete_snippet_by_internal(&snippet_uuid) {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(err);
+        }
+    };
+
+    //delete snippet from snippet manager
+    match snippet_manager.delete_snippet(&snippet_uuid) {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(err);
+        }
+    };
+
+    return Ok(());
+
+
+}
+
 /// create new pipeline
 /// assumes validate_pipeline has been called, and returned Ok(true)
 /// 

@@ -116,6 +116,23 @@ impl SnippetManager {
         //return uuid of snippet
         return snippet_uuid;
     }
+
+    /// delete snippet component and it's pipeline connector components
+    /// assumes all pipelines associated with this have been disconnected / removed
+    /// 
+    /// # Arguments
+    /// * 'uuid' - uuid of the snippet
+    pub fn delete_snippet(&mut self, uuid: &Uuid) -> Result<(), &'static str>{
+        //TODO finish
+
+        //get pipelines connectors
+
+        //delete pipelines connectors from snippet
+
+        //delete snippet from snippets
+
+        return Ok(());
+    }
     
     /// find snippet from uuid
     /// 
@@ -478,6 +495,14 @@ impl SnippetComponent {
         }
 
         return contents;
+    }
+
+    /// get list of uuids of the pipeline connectors
+    /// associated with this pipeline
+    pub fn get_pipeline_connector_uuids(&self) -> Vec<Uuid> {
+        return &self.pipeline_connectors.into_iter().map(|pcc| -> Uuid {
+            return pcc.uuid;
+        }).collect();
     }
 
 }

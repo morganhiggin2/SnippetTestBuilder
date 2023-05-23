@@ -103,11 +103,34 @@ impl VisualSnippetComponentManager {
         }
     }
 
-
     /// put pipeline connector front and component pair
     /// will overwrite
     pub fn put_pipeline_connector(&mut self, front_uuid: Uuid, component_uuid: Uuid) {
         self.pipeline_connector_front_to_pipeline_connector.insert(front_uuid, component_uuid);
+    }
+
+    /// delete pipeline connector front with front uuid
+    pub fn delete_pipeline_connector_by_front(&mut self, front_uuid: &Uuid) -> Result<(), &'static str> {
+        match self.pipeline_connector_front_to_pipeline_connector.remove_by_left(front_uuid) {
+            Some(_) => {
+                return Ok(());
+            },
+            None => {
+                return Err("cannot delete pipeline connector front from front uuid, as pipeline connector front does not exist");
+            }
+        };
+    }
+
+    /// delete pipeline connector front with internal uuid
+    pub fn delete_pipeline_connector_by_internal(&mut self, internal_uuid: &Uuid) -> Result<(), &'static str>  {
+        match self.pipeline_connector_front_to_pipeline_connector.remove_by_right(internal_uuid) {
+            Some(_) => {
+                return Ok(());
+            },
+            None => {
+                return Err("cannot delete pipeline connector front from internal uuid, as pipeline connector front does not exist");
+            }
+        };
     }
 
     /// put snippet front and component pair
@@ -116,4 +139,27 @@ impl VisualSnippetComponentManager {
         self.snippet_front_to_snippet.insert(front_uuid, component_uuid);
     }
 
+    /// will delete snippet front with fron tuuid
+    pub fn delete_snippet_by_front(&mut self, front_uuid: Uuid) -> Result<(), &'static str>  {
+        match self.snippet_front_to_snippet.remove_by_left(&front_uuid) {
+            Some(_) => {
+                return Ok(());
+            },
+            None => {
+                return Err("cannot delete snippet front from front uuid, as snippet front does not exist");
+            }
+        };
+    }
+
+    /// will delete snippet front with fron tuuid
+    pub fn delete_snippet_by_internal(&mut self, internal_uuid: &Uuid) -> Result<(), &'static str>  {
+        match self.snippet_front_to_snippet.remove_by_right(internal_uuid) {
+            Some(_) => {
+                return Ok(());
+            },
+            None => {
+                return Err("cannot delete snippet front from internal uuid, as snippet front does not exist");
+            }
+        };
+    }
 }
