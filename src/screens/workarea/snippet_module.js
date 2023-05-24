@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import { invoke } from '@tauri-apps/api';
 
-export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, dragStart, dragEnd) {
+export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline_connectors, spawnPipeline, deleteSnippet, dragStart, dragEnd) {
     // make the snippet 
     var snippet_group = new Konva.Group({
         id: id,
@@ -72,15 +72,6 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
             yDisplacement += rightPipeInserts[0].height + 2;
         }
     }
-   
-    //get the width of the left pipe inserts
-
-    //create left pipe inserts
-    //leftPipeInserts.push(createPipeInsert(xPos, yPos + textHeight + 8, true));
-
-    //invoke('logln', {text: leftPipeInserts[0].pipe.width.toString()});
-    //calculate max width of each pipe insert row
-    //rightPipeInserts.push(createPipeInsert(xPos + rectWidth, yPos + textHeight + 8));
 
     //claculate position of title text
 
@@ -123,7 +114,7 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
 
 
     //snippet events
-    backgroundRect.on('dblclick', () => {});
+    titleBackgroundRect.on('dblclick', () => {deleteSnippet(id)});
     backgroundRect.on('dragstart', () => {dragStart(id)});
     backgroundRect.on('dragend', () => {dragEnd(id)});
     //singlePipeInsert.pipe.on('click', () => {});
@@ -162,10 +153,11 @@ export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_s
         y: y_pos_start,
         points: [0, 0, x_end_offset, y_end_offset],
         stroke: '#fcd777',
+        tension: 0,
         strokeWidth: 6
     });
 
-    line.on('dbclick', () => {deletePipeline(line)});
+    line.on('dblclick', () => {deletePipeline(id)}); //deletePipeline(line)
 
     //add visually linked component to map
     visualComponents[id] = {

@@ -68,8 +68,6 @@
             //parsing certain values as everything is passed as string
             let directory_id = JSON.parse(e.dataTransfer.getData('_id'));
 
-            invoke("logln", {text: "this is the id from the front directory " + JSON.stringify(directory_id)});
-
             //generate snippet in backend, getting new snippet information 
             let snippet_information = null;
 
@@ -84,7 +82,7 @@
             }
 
             //create drawable snippet
-            let snippetDrawable = generateSnippet(snippet_information.id, snippet_information.name, visualComponents, e.clientX - window_x, e.clientY - window_y, snippet_information.pipeline_connectors, spawnPipeline, snippetDragStart, snippetDragEnd);
+            let snippetDrawable = generateSnippet(snippet_information.id, snippet_information.name, visualComponents, e.clientX - window_x, e.clientY - window_y, snippet_information.pipeline_connectors, spawnPipeline, deleteSnippet, snippetDragStart, snippetDragEnd);
 
             //create snippet
             //snippetComponents.push({id: snippet_information.id, name: snippet_information.name, internal_id: snippet_id, pipeline_connectors: snippet_information.pipeline_connectors, drawable: snippetDrawable});
@@ -92,6 +90,18 @@
             //draw snippet
             drawSnippet(snippetDrawable);
         }
+    }
+
+    function deleteSnippet(id) {
+        //get visual component
+
+        //call backend, get all pipelines associated with snippet
+            //call deletePipeline, but without drawing and backend calls (as it's already deleted)
+
+        
+        //call rust backend, which destories front end traces, and all other components
+
+        //destory visual snippet group (which destroies sub components, including pipe inserts)
     }
 
     //draws snippet
@@ -255,7 +265,7 @@
         try {
             result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
                 windowSessionUuid: window_session_id,
-                fromPipelineUuid: id
+                frontPipelineUuid: id
             });
 
         } catch (e) {
@@ -263,29 +273,42 @@
         } 
 
         //extract pipeline connector ids
-        let from_pipeline_connector_id = result.fromFrontPipelineConnectorUuid;
-        let to_pipeline_connector_id = result.toFrontPipelineConnectorUuid;
+        let from_pipeline_connector_id = result.front_from_pipeline_connector_uuid;
+        let to_pipeline_connector_id = result.front_to_pipeline_connector_uuid;
 
         //delete pipeline in backend
         try {
             result = await invoke('delete_pipeline', {
                 windowSessionUuid: window_session_id,
-                fromPipelineUuid: id
+                frontUuid: id
             });
 
         } catch (e) {
             invoke('logln', {text: JSON.stringify(e)});
         } 
 
+        var pipeline_from_connector = visualComponents[from_pipeline_connector_id];
+        var pipeline_to_connector = visualComponents[to_pipeline_connector_id];
+
+        //change from and to colors back
+        pipeline_from_connector.state.color = pipeline_from_connector.state.default_color;
+        pipeline_to_connector.state.color = pipeline_to_connector.state.default_color;
+
+
+        let pipeline_from_connector_background_rect = getChild(pipeline_from_connector.visual, "background_rect");
+        let pipeline_to_connector_background_rect = getChild(pipeline_to_connector.visual, "background_rect");
+
+        //draw color change
+        pipeline_from_connector_background_rect.fill(pipeline_from_connector.state.color);
+        pipeline_to_connector_background_rect.fill(pipeline_to_connector.state.color);
+
         //destroy pipeline visual component
-        pipeline.visual_component.destroy();                    
+        pipeline.visual.destroy();                    
 
         //remove from visual components
         visualComponents.remove(pipeline);
-        
-        //change from and to colors back
-        visualComponents[from_pipeline_connector_id].state.color = visualComponents[from_pipeline_connector_id].state.default_color;
-        visualComponents[to_pipeline_connector_id].state.color = visualComponents[to_pipeline_connector_id].state.default_color;
+ 
+        stage.draw();
     }
 
     //------snippet drag event---------

@@ -15,7 +15,7 @@ pub struct SnippetManager {
 
     //mapping for pipeline connects to pipeline components
     pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
-    pipeline_components_to_snippet: HashMap<Uuid, Uuid>
+    pipeline_connectors_to_snippet: HashMap<Uuid, Uuid>
 
     //mapping for snippets and pipelines
     //list of uuid of snippets to index in edge adj list
@@ -77,7 +77,7 @@ impl Default for SnippetManager {
             snippets: HashMap::with_capacity(12),
             pipelines: HashMap::with_capacity(12),
             pipeline_connector_to_pipeline: HashMap::with_capacity(24),
-            pipeline_components_to_snippet: HashMap::with_capacity(24)
+            pipeline_connectors_to_snippet: HashMap::with_capacity(24)
             //uuid_to_edge_adj_index: HashMap::with_capacity(24),
         };
     }
@@ -104,7 +104,7 @@ impl SnippetManager {
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
-            self.pipeline_components_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
+            self.pipeline_connectors_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
         }
 
         //move pipeline connectors to snippet component
@@ -123,13 +123,35 @@ impl SnippetManager {
     /// # Arguments
     /// * 'uuid' - uuid of the snippet
     pub fn delete_snippet(&mut self, uuid: &Uuid) -> Result<(), &'static str>{
-        //TODO finish
+        //find snippet
+        let snippet_component = match self.find_snippet(uuid) {
+            Some(result) => result,
+            None => {
+                return Err("snippet component with snippet uuid does not exist in snippet manager");
+            }
+        };
 
         //get pipelines connectors
+        let pipeline_connectors_uuid : Vec<Uuid> = (&snippet_component.pipeline_connectors)
+            .into_iter()
+            .map(|pc| -> Uuid {
+                pc.uuid
+            }
+        )
+            .collect();
 
-        //delete pipelines connectors from snippet
+        //remove snippet from pipeline connector mapping
+        for pipeline_connector_uuid in pipeline_connectors_uuid.into_iter() {
+            self.pipeline_connectors_to_snippet.remove(&pipeline_connector_uuid);
+        }
 
-        //delete snippet from snippets
+        //delete snippet
+        match self.snippets.remove(uuid) {
+            Some(_) => (),
+            None => {
+                return Err("snippet component with snippet uuid does not exist in snippet manager");
+            }
+        };
 
         return Ok(());
     }
@@ -183,7 +205,7 @@ impl SnippetManager {
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector 
     pub fn find_snippet_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
-        return self.pipeline_components_to_snippet.get(uuid).cloned();
+        return self.pipeline_connectors_to_snippet.get(uuid).cloned();
     }
 
     /// create pipeline
@@ -500,7 +522,7 @@ impl SnippetComponent {
     /// get list of uuids of the pipeline connectors
     /// associated with this pipeline
     pub fn get_pipeline_connector_uuids(&self) -> Vec<Uuid> {
-        return &self.pipeline_connectors.into_iter().map(|pcc| -> Uuid {
+        return (&self.pipeline_connectors).into_iter().map(|pcc| -> Uuid {
             return pcc.uuid;
         }).collect();
     }
