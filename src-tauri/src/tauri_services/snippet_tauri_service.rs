@@ -80,8 +80,11 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
 
 /// deletes snippet
 /// including all front and root components 
+/// 
+/// # Arguments 
+/// * 'front_uuid' - uuid of the snippet
 #[tauri::command] 
-pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, snippet_front_uuid: Uuid) -> Result<(), &str> {
+pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -99,7 +102,7 @@ pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, wi
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get snippet uuid from front uuid
-    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&snippet_front_uuid) {
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find snippet uuid from front snippet uuid");
@@ -114,7 +117,7 @@ pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, wi
         }
     };
 
-    //get pipelines associated with snippet
+    //get pipeline connectors in snippet
     let pipeline_connector_uuids = snippet_component.get_pipeline_connector_uuids();
 
     //get pipelines from pipeline connectors
@@ -309,6 +312,71 @@ pub fn validate_pipeline_connection(application_state: tauri::State<MutexApplica
     return result;
 }
 
+/// get pipelines associated with snippet
+#[tauri::command] 
+pub fn get_snippet_pipelines(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, snippet_front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+
+    let snippet_manager = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    //get snippet uuid from front uuid
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&snippet_front_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find snippet uuid from front snippet uuid");
+        }
+    };
+
+    //get snippet component
+    let snippet_component = match snippet_manager.find_snippet(&snippet_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find snippet component from snippet uuid");
+        }
+    };
+    
+    //get pipeline connectors in snippet
+    let pipeline_connector_uuids = snippet_component.get_pipeline_connector_uuids();
+ 
+    //get pipelines associated with pipeline connectors
+    //list of front pipeline uuids soon to be filled
+    let mut front_pipelines_uuid: Vec<Uuid> = Vec::with_capacity(pipeline_connector_uuids.len());
+
+    for pipeline_connector_uuid in pipeline_connector_uuids {
+        //get pipeline component uuid
+        let pipeline_component_uuid = match snippet_manager.find_pipeline_uuid_from_pipeline_connector(&pipeline_connector_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("cold not find pipeline uuid in snippet manager mapping");
+            }
+        };
+
+        //get pipeline front uuid
+        let pipeline_front_uuid = match visual_snippet_component_manager.find_pipeline_front_uuid(&pipeline_component_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("could not find pipeline connector in visual manager");
+            }
+        };
+
+        //add to list of front uuids
+        front_pipelines_uuid.push(pipeline_front_uuid);
+    }
+
+    //return 
+    return Ok(front_pipelines_uuid);
+}
 /// check if pipeline connector is already involved in pipeline
 /// TODO when connectors can take more than one, this will evolve to handle that
 #[tauri::command] 

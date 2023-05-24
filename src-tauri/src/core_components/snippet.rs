@@ -142,14 +142,19 @@ impl SnippetManager {
 
         //remove snippet from pipeline connector mapping
         for pipeline_connector_uuid in pipeline_connectors_uuid.into_iter() {
-            self.pipeline_connectors_to_snippet.remove(&pipeline_connector_uuid);
+            match self.pipeline_connectors_to_snippet.remove(&pipeline_connector_uuid) {
+                Some(_) => (),
+                None => {
+                    return Err("pipeline connector does not exist in mapping in snippet manager");
+                }
+            };
         }
 
         //delete snippet
         match self.snippets.remove(uuid) {
             Some(_) => (),
             None => {
-                return Err("snippet component with snippet uuid does not exist in snippet manager");
+                return Err("snippet component with snippet uuid does not exist in mapping in snippet manager");
             }
         };
 

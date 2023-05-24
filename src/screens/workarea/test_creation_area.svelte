@@ -92,16 +92,61 @@
         }
     }
 
-    function deleteSnippet(id) {
+    async function deleteSnippet(id) {
         //get visual component
+        let snippet_component = visualComponents[id];
 
         //call backend, get all pipelines associated with snippet
-            //call deletePipeline, but without drawing and backend calls (as it's already deleted)
+        //get_snippet_pipelines
+           
+        var result;
 
-        
-        //call rust backend, which destories front end traces, and all other components
+        try {
+            pipelinesUuid = await invoke('get_snippet_pipelines', {
+                windowSessionUuid: window_session_id,
+                snippetFrontUuid: id 
+            });
+        } catch (e) {
+            invoke('logln', {text: JSON.stringify(e)});
+            return;
+        }
 
-        //destory visual snippet group (which destroies sub components, including pipe inserts)
+        var pipelinesUuid = result;
+
+        //change color of pipelines connectors
+
+        //delete pipelines associated with snippet
+        for (var pipelineUuid in pipelinesUuid) {
+            //get pipeline connectors for each pipeline
+
+            //change color in visual components
+
+            //remove it from visual components
+            visualComponents.remove(pipelineUuid);
+
+            //delete pipeline in backend
+            try {
+                result = await invoke('delete_pipeline', {
+                    windowSessionUuid: window_session_id,
+                    frontUuid: pipelineUuid 
+                });
+
+            } catch (e) {
+                invoke('logln', {text: JSON.stringify(e)});
+            } 
+        }
+
+        visualComponents.remove(id);
+
+        //delete snippet
+        try {
+            result = await invoke('delete_snippet', {
+                windowSessionUuid: window_session_id,
+                frontUuid: id
+            });
+        } catch (e) {
+            invoke('logln', {text: JSON.stringify(e)});
+        } 
     }
 
     //draws snippet
