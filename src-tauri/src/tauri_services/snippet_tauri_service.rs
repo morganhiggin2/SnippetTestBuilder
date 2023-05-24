@@ -78,6 +78,63 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     return Ok(front_snippet);
 }
 
+/// get front pipeline connector uuids for front pipeline uuid
+/// 
+/// # Arguments 
+/// * 'front_uuid' - uuid of snippet 
+#[tauri::command]
+pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+    
+    //borrow split
+    let snippet_manger = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    //get pipeline uuid from front uuid
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&front_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find pipeline uuid from front pipeline uuid");
+        }
+    };
+
+    //find pipieline
+    let snippet_component = match snippet_manger.find_snippet(&snippet_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("could not find pipeline from pipeline uuid");
+        }
+    };
+    
+    //get uuids
+    let pipeline_connector_uuids = snippet_component.get_pipeline_connector_uuids();
+
+    //get front uuids from pipeline connectors
+    let mut front_pipeline_connector_uuids: Vec<Uuid> = Vec::with_capacity(pipeline_connector_uuids.len());
+
+    for pipeline_connector_uuid in pipeline_connector_uuids {
+        let front_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_connector_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("pipeline connector uuid does not exist in visual snippet manager");
+            }
+        };
+
+        front_pipeline_connector_uuids.push(front_pipeline_connector_uuid);
+    }
+
+    return Ok(front_pipeline_connector_uuids);
+}
 /// deletes snippet
 /// including all front and root components 
 /// 

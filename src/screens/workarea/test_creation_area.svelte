@@ -96,9 +96,7 @@
         //get visual component
         let snippet_component = visualComponents[id];
 
-        //call backend, get all pipelines associated with snippet
-        //get_snippet_pipelines
-           
+        //get all pipelines associated with snippet
         var result;
 
         try {
@@ -113,15 +111,38 @@
 
         var pipelinesUuid = result;
 
-        //change color of pipelines connectors
-
         //delete pipelines associated with snippet
         for (var pipelineUuid in pipelinesUuid) {
             //get pipeline connectors for each pipeline
+            try {
+                result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
+                    windowSessionUuid: window_session_id,
+                    frontUuid: pipelineUuid 
+                });
+
+            } catch (e) {
+                invoke('logln', {text: JSON.stringify(e)});
+            } 
 
             //change color in visual components
+            //get pipeline connectors
+            let pipelineConnectorUuids = result;
 
-            //remove it from visual components
+            let from_pipeline_connector = visualComponents[pipelineConnectorUuids.front_from_pipeline_connector_uuid];
+            let to_pipeline_connector = visualComponents[pipelineConnectorUuids.front_to_pipeline_connector_uuid];
+ 
+            //change both ends to connected color
+            from_pipeline_connector.state.color = from_pipeline_connector.state.default_color;
+            visualComponents[to_pipeline_connector].state.color = to_pipeline_connector.state.default_color;
+
+            let pipeline_from_connector_background_rect = getChild(from_pipeline_connector.visual, "background_rect");
+            let pipeline_to_connector_background_rect = getChild(to_pipeline_connector.visual, "background_rect");
+
+            //draw color change
+            pipeline_from_connector_background_rect.fill(from_pipeline_connector.state.color);
+            pipeline_to_connector_background_rect.fill(to_pipeline_connector.state.color);
+
+            //remove pipeline from visual components
             visualComponents.remove(pipelineUuid);
 
             //delete pipeline in backend
@@ -136,9 +157,10 @@
             } 
         }
 
+        //remove snippet from visual components
         visualComponents.remove(id);
 
-        //delete snippet
+        //delete snippet in backend
         try {
             result = await invoke('delete_snippet', {
                 windowSessionUuid: window_session_id,
