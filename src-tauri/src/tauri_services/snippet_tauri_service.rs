@@ -402,7 +402,7 @@ pub fn get_snippet_pipelines(application_state: tauri::State<MutexApplicationSta
             return Err("could not find snippet component from snippet uuid");
         }
     };
-    
+
     //get pipeline connectors in snippet
     let pipeline_connector_uuids = snippet_component.get_pipeline_connector_uuids();
  
@@ -415,7 +415,8 @@ pub fn get_snippet_pipelines(application_state: tauri::State<MutexApplicationSta
         let pipeline_component_uuid = match snippet_manager.find_pipeline_uuid_from_pipeline_connector(&pipeline_connector_uuid) {
             Some(result) => result,
             None => {
-                return Err("cold not find pipeline uuid in snippet manager mapping");
+                //there are no pipelines associated with this pipeline connector
+                continue; 
             }
         };
 

@@ -100,7 +100,7 @@
         var result;
 
         try {
-            pipelinesUuid = await invoke('get_snippet_pipelines', {
+            result = await invoke('get_snippet_pipelines', {
                 windowSessionUuid: window_session_id,
                 snippetFrontUuid: id 
             });
@@ -111,13 +111,19 @@
 
         var pipelinesUuid = result;
 
+        //invoke('logln', {text: "something+" + JSON.stringify(pipelinesUuid)});
+
         //delete pipelines associated with snippet
-        for (var pipelineUuid in pipelinesUuid) {
+        for (var i = 0; i < pipelinesUuid.length; i++) {
+            let pipelineUuid = pipelinesUuid[i];
+
+            //invoke('logln', {text: JSON.stringify(pipelineUuid)});
             //get pipeline connectors for each pipeline
+
             try {
                 result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
                     windowSessionUuid: window_session_id,
-                    frontUuid: pipelineUuid 
+                    frontPipelineUuid: pipelineUuid 
                 });
 
             } catch (e) {
@@ -131,9 +137,10 @@
             let from_pipeline_connector = visualComponents[pipelineConnectorUuids.front_from_pipeline_connector_uuid];
             let to_pipeline_connector = visualComponents[pipelineConnectorUuids.front_to_pipeline_connector_uuid];
  
+
             //change both ends to connected color
             from_pipeline_connector.state.color = from_pipeline_connector.state.default_color;
-            visualComponents[to_pipeline_connector].state.color = to_pipeline_connector.state.default_color;
+            to_pipeline_connector.state.color = to_pipeline_connector.state.default_color;
 
             let pipeline_from_connector_background_rect = getChild(from_pipeline_connector.visual, "background_rect");
             let pipeline_to_connector_background_rect = getChild(to_pipeline_connector.visual, "background_rect");
@@ -142,9 +149,13 @@
             pipeline_from_connector_background_rect.fill(from_pipeline_connector.state.color);
             pipeline_to_connector_background_rect.fill(to_pipeline_connector.state.color);
 
-            //remove pipeline from visual components
-            visualComponents.remove(pipelineUuid);
+            //destory pipeline in stage
+            var pipeline = visualComponents[pipelineUuid];
+            pipeline.visual.destroy();
 
+            //remove pipeline from visual components
+            delete visualComponents[pipelineUuid];
+            
             //delete pipeline in backend
             try {
                 result = await invoke('delete_pipeline', {
@@ -157,8 +168,11 @@
             } 
         }
 
+        //remove visual component from stage
+        snippet_component.visual.destroy();
+
         //remove snippet from visual components
-        visualComponents.remove(id);
+        delete visualComponents[id];
 
         //delete snippet in backend
         try {
@@ -373,7 +387,7 @@
         pipeline.visual.destroy();                    
 
         //remove from visual components
-        visualComponents.remove(pipeline);
+        delete visualComponents[pipeline];
  
         stage.draw();
     }
