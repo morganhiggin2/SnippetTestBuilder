@@ -284,8 +284,6 @@ impl SnippetManager {
         //get pipeline uuid for return
         let pipeline_uuid = pipeline_component.get_uuid();
 
-        println!("{}, {}", from_uuid, to_uuid);
-
         //add pipeline connecting values to snippet manager
         self.pipeline_connector_to_pipeline.insert(from_uuid, pipeline_uuid);
         self.pipeline_connector_to_pipeline.insert(to_uuid, pipeline_uuid);
