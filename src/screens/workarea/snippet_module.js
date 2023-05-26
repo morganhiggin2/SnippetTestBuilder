@@ -115,8 +115,8 @@ export function generateSnippet(id, name, visualComponents, xPos, yPos, pipeline
 
     //snippet events
     titleBackgroundRect.on('dblclick', () => {deleteSnippet(id)});
-    backgroundRect.on('dragstart', () => {dragStart(id)});
-    backgroundRect.on('dragend', () => {dragEnd(id)});
+    snippet_group.on('dragstart', () => {dragStart(id)});
+    snippet_group.on('dragend', () => {dragEnd(id)});
     //singlePipeInsert.pipe.on('click', () => {});
 
     snippet_group.add(backgroundRect);
@@ -168,11 +168,37 @@ export function generatePipeConnector(id, visualComponents, x_pos_start, y_pos_s
     return line;
 }
 
+export function setNewPositionPipeConnector(pipeConnector, x_pos_start, y_pos_start, x_end_offset, y_end_offset) {
+    pipeConnector.absolutePosition({
+        x: x_pos_start, 
+        y: y_pos_start
+    });
+
+    pipeConnector.points([0, 0, x_end_offset, y_end_offset]);
+}
+
+export function getPipelineConnectorPositionOffset(left) {
+    if (left) {
+        return {
+            x: 0,
+            y: 7 //half the height
+        };
+    }
+    else {
+        return {
+            x: 8, //the pipeline starts on the right side
+            y: 7 //half the height
+        }
+    }
+}
 function createPipeInsert(id, visualComponents, name, xPos, yPos, left = false, spawnPipeline) {
     //create group for pipe
     var pipeGroup = new Konva.Group({
         id: id
     });
+
+    //add attr
+    pipeGroup.setAttr('left', left);
 
     //crete text next to pipe insert
     var titleText = new Konva.Text({

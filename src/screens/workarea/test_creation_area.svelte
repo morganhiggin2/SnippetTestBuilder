@@ -1,7 +1,7 @@
 <script>
     import {invoke} from '@tauri-apps/api';
     import { onMount } from 'svelte';
-    import { generatePipeConnector, generateSnippet, getChild } from './snippet_module.js';
+    import { generatePipeConnector, generateSnippet, getChild, setNewPositionPipeConnector, getPipelineConnectorPositionOffset} from './snippet_module.js';
     import Konva from 'konva';
 
     export let window_session_id;
@@ -396,25 +396,119 @@
     let snippetDragEvent = null;
 
     //for snippet drag event
-    function snippetDragStart(id) {
-        //create snippet drag start event
+    async function snippetDragStart(id) {
+        invoke('logln', {text: 'here'});
+
         //get all from_uuids and to_uuids of snippet
         //get all pipeline uuids associated with these (call to backend)
 
-        //make pipelines disapear (set visible to false)
+        //get visual component
+        let snippet_component = visualComponents[id];
 
-        //store these uuids in snippetDragEvent 
+        //get all pipelines associated with snippet
+        var result;
+
+        try {
+            result = await invoke('get_snippet_pipelines', {
+                windowSessionUuid: window_session_id,
+                snippetFrontUuid: id 
+            });
+        } catch (e) {
+            invoke('logln', {text: JSON.stringify(e)});
+            return;
+        }
+
+        var pipelinesUuid = result;
+
+        //invoke('logln', {text: "something+" + JSON.stringify(pipelinesUuid)});
+
+        //delete pipelines associated with snippet
+        for (var i = 0; i < pipelinesUuid.length; i++) {
+            let pipelineUuid = pipelinesUuid[i];
+
+            //get pipeline connectors for each pipeline
+            /*try {
+                result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
+                    windowSessionUuid: window_session_id,
+                    frontPipelineUuid: pipelineUuid 
+                });
+
+            } catch (e) {
+                invoke('logln', {text: JSON.stringify(e)});
+            } 
+
+            //extract pipeline connector ids
+            let from_pipeline_connector_id = result.front_from_pipeline_connector_uuid;
+            let to_pipeline_connector_id = result.front_to_pipeline_connector_uuid;*/
+
+            //make pipelines disapear
+            visualComponents[pipelineUuid].hide();
+        }
+
+        //create snippet drag start event
+        snippetDragEvent = {
+            snippet_id: id,
+            pipelines_uuid: pipelinesUuid
+        };
     }
 
-    function snippetDragEnd(id) {
+    async function snippetDragEnd(id) {
+        if (!snippetDragEvent) {
+            invoke("logln", {text: "snippet drag end event is null, should have some value"});
+        }
+
+        var result;
+
         //get pipelines uuids from snippet drag event
+        let pipelinesUuid = snippetDragEvent.pipelines_uuid;
 
         //reposition all pipelines (both start and end)
+        for (var i = 0; i < pipelinesUuid.length; i++) {
+            let pipelineUuid = pipelinesUuid[i];
 
-        //make pipelines visible
+            //get pipeline connectors for each pipeline
+            try {
+                result = await invoke('get_pipeline_connector_uuids_from_pipeline', {
+                    windowSessionUuid: window_session_id,
+                    frontPipelineUuid: pipelineUuid 
+                });
 
-        //remove snippet drag event by setting to null
+            } catch (e) {
+                invoke('logln', {text: JSON.stringify(e)});
+            } 
 
+            //extract pipeline connector ids
+            let from_pipeline_connector_id = result.front_from_pipeline_connector_uuid;
+            let to_pipeline_connector_id = result.front_to_pipeline_connector_uuid;
+
+            let to_pipeline_connector = visualComponents[to_pipeline_connector_id];
+            let from_pipeline_connector = visualComponents[from_pipeline_connector_id];
+
+            //get positions
+            var to_background_rect = to_pipeline_connector.visual.getChildren(function(node) {
+                return node.getId() === "background_rect";
+            })[0];
+            var from_background_rect = from_pipeline_connector.visual.getChildren(function(node) {
+                return node.getId() === "background_rect";
+            })[0];
+
+            var to_background_rect_position = to_background_rect.getAbsolutePosition(stage);
+            var from_background_rect_position = from_background_rect.getAbsolutePosition(stage);
+        
+            //get weither or not this is a left facing pipeline connector
+            var left = to_pipeline_connector.getAttr('left');
+            
+            var pipelineConnectorPositionOffset = getPipelineConnectorPositionOffset(left);
+      
+            //set pipeline position
+            setNewPositionPipeConnector(visualComponents[pipelineUuid].visual, from_background_rect_position.x, from_background_rect_position.y, to_background_rect_position.x - from_background_rect_position.x + pipelineConnectorPositionOffset.x, to_background_rect_position.y - from_background_rect_position.y + pipelineConnectorPositionOffset.y);
+
+            //make pipelines visible
+            visualComponents[pipelineUuid].show();
+
+            //remove snippet drag event by setting to null
+            snippetDragEvent = null;
+        }
     }
 
     function handleMouseMovement(e) {
