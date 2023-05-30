@@ -21,7 +21,7 @@
 </script>
 
 <div class="body">
-    <div class="container" style="grid-template-rows: {window_height - 150}px 150px;">
+    <div class="container" style="grid-template-rows: {window_height - 250}px 250px;">
         <div class="test-creation-area">
             <TestCreationArea {window_session_id}/>
         </div>

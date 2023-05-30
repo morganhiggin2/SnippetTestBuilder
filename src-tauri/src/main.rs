@@ -4,6 +4,10 @@
 use std::ops::DerefMut;
 use std::sync::Mutex;
 
+//use core_services::
+use snippet_python_module::call_init;
+
+//use snippet_python_module::python_module::call_init_2;
 use crate::state_management::{MutexApplicationState, ApplicationState};
 use crate::tauri_services::directory_tauri_service::get_snippet_directory;
 use crate::tauri_services::snippet_tauri_service::{new_snippet, validate_pipeline_connection, new_pipeline, check_pipeline_connector_capacity_full, get_id, get_pipeline_connector_uuids_from_pipeline, delete_pipeline, get_snippet_pipelines, get_pipeline_connector_uuids_from_snippet, delete_snippet};
@@ -16,18 +20,24 @@ pub mod tauri_services;
 pub mod core_services;
 
 fn main() {
-    //create application state
+    match call_init() {
+        Ok(_) => (),
+        Err(e) => {
+            println!("error {}", e);
+        }
+    }
+    /*match call_init_2() {
+        Ok(_) => (),
+        Err(e) => {
+            println!("error {}", e);
+        }
+    };*/
+    /*//create application state
     let mut application_state_guard = MutexApplicationState::default();
-    /*let b = &application_state_guard;
-
-    let mut guard = b.lock().unwrap();
-    let mut obj = guard.deref_mut();*/
-
+        
     {
         let mut guard = application_state_guard.0.lock().unwrap();
         let app_ref = guard.deref_mut();
-
-        //let mut application_state = (&application_state_guard).lock().unwrap().deref_mut();
 
         //call init for utils and services first
 
@@ -39,7 +49,7 @@ fn main() {
         .manage(application_state_guard)
         .invoke_handler(tauri::generate_handler![logln, new_window_session, get_snippet_directory, new_snippet, validate_pipeline_connection, new_pipeline, check_pipeline_connector_capacity_full, get_id, get_pipeline_connector_uuids_from_pipeline, delete_pipeline, get_snippet_pipelines, get_pipeline_connector_uuids_from_snippet, delete_snippet])
         .run(tauri::generate_context!())
-        .expect("error while starting tauri application");
+        .expect("error while starting tauri application");*/
 }
 
 #[tauri::command]
@@ -48,3 +58,8 @@ fn logln(text: &str) {
 }
 
 //TODO write test cases
+
+//std::process:Command
+
+//IMPORTAINT 
+//installed libpython3.10-dev
