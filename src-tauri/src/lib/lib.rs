@@ -4,21 +4,16 @@ use pyo3::{prelude::*, PyClass, exceptions::PyTypeError};
 use tauri::utils::assets::phf::Set;
 
 #[pyclass]
-//#[derive(FromPyObject)]
-struct PythonSnippetCreation {
+#[derive(FromPyObject)]
+pub struct PythonSnippetCreation {
     #[pyo3(get)]
     name: String,
     #[pyo3(get)]
     relative_file_location: String,
     data_types: HashSet<String>,
     /// name, datatype
-    properties: HashMap<String, String> 
-}
-
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+    inputs: HashMap<String, String>, 
+    outputs: HashMap<String, String>
 }
 
 #[pyfunction]
@@ -41,12 +36,34 @@ impl PythonSnippetCreation {
         return Ok(());
     }
 
-    fn add_property(&mut self, name: String, data_type: String) -> PyResult<()> {
-        let exists = self.properties.contains_key(&name);
+    fn add_input(&mut self, name: String, data_type: String) -> PyResult<()> {
+        //check if data_type is valid
+        if !self.data_types.contains(&data_type) {
+            return Err(PyErr::new::<PyTypeError, _>("Not valid datatype, consider adding with add_type() class method"));
+        }
 
-        if exists {
+        //check if outputs already contains the output
+        if self.inputs.contains_key(&name) {
             return Err(PyErr::new::<PyTypeError, _>("Error message")); 
         }
+
+        self.inputs.insert(name, data_type);
+
+        return Ok(());
+    }
+
+    fn add_output(&mut self, name: String, data_type: String) -> PyResult<()> {
+        //check if data_type is valid
+        if !self.data_types.contains(&data_type) {
+            return Err(PyErr::new::<PyTypeError, _>("Not valid datatype, consider adding with add_type() class method"));
+        }
+
+        //check if outputs already contains the output
+        if self.outputs.contains_key(&name) {
+            return Err(PyErr::new::<PyTypeError, _>("Error message")); 
+        }
+
+        self.outputs.insert(name, data_type);
 
         return Ok(());
     }
@@ -121,20 +138,54 @@ pub fn call_init() -> Result<(), String> {
 }
 
 impl PythonSnippetCreation {
-    fn new(relative_file_location: String) -> Self {
+    pub fn new(relative_file_location: String) -> Self {
         return PythonSnippetCreation {
             name: String::new(),
             relative_file_location: relative_file_location,
             data_types: HashSet::new(),
-            properties: HashMap::new()
+            outputs: HashMap::new(),
+            inputs: HashMap::new()
         };
+    }
+    
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+
+    pub fn get_inputs(&self) -> Vec<(String, String)> {
+        //create empty vector of size inputs.len()
+        let mut inputs: Vec<(String, String)> = Vec::with_capacity(self.inputs.len());
+
+        self.inputs.iter().for_each(|(key, value)| {
+            inputs.push((key.clone(), value.clone()));
+        });
+
+        return inputs;
+    }
+
+    pub fn get_outputs(&self) -> Vec<(String, String)> {
+        //create empty vector of size inputs.len()
+        let mut inputs: Vec<(String, String)> = Vec::with_capacity(self.inputs.len());
+
+        self.inputs.iter().for_each(|(key, value)| {
+            inputs.push((key.clone(), value.clone()));
+        });
+
+        return inputs;
+    }
+
+    pub fn get_num_inputs(&self) -> usize {
+        return self.inputs.len();
+    }
+
+    pub fn get_num_outputs(&self) -> usize {
+        return self.outputs.len();
     }
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
 fn snippet_python_module(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(create_snippet, m)?)?;
     Ok(())
 }

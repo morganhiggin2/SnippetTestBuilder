@@ -1,10 +1,7 @@
-use std::sync::MutexGuard;
-
 use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::core_components::snippet::SnippetManager;
 use crate::utils::sequential_id_generator::Uuid;
 
-use super::ApplicationState;
 use super::visual_snippet_component_manager::VisualSnippetComponentManager;
 
 pub struct WindowManager {

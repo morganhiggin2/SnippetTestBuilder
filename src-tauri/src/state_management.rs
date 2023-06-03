@@ -77,19 +77,19 @@ impl ApplicationState {
             let mut category = ExternalSnippetCategory::new_parent(sequential_id_generator, "utils".to_string(), 2, 0);
             let category_uuid = category.get_uuid();
 
-            let mut snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "rest_api call");
+            let mut snippet_uuid = external_snippet_manager.create_empty_snippet(sequential_id_generator, "rest_api call");
 
-            ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, true); 
-            ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "body", IOContentType::JSON, false);
+            external_snippet_manager.add_non_acting_point(sequential_id_generator, snippet_uuid, true); 
+            external_snippet_manager.add_io_point(sequential_id_generator, snippet_uuid, "body".to_string(), IOContentType::JSON, false);
 
             let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
             category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());
             directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
 
            
-            snippet_uuid = ExternalSnippetManager::create_empty_snippet(sequential_id_generator, external_snippet_manager, "middle_body_validator");
-            ExternalSnippetManager::add_io_point(sequential_id_generator, external_snippet_manager, snippet_uuid, "json_input", IOContentType::JSON, true); 
-            ExternalSnippetManager::add_non_acting_point(sequential_id_generator, external_snippet_manager, snippet_uuid, false); let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
+            snippet_uuid = external_snippet_manager.create_empty_snippet(sequential_id_generator, "middle_body_validator");
+            external_snippet_manager.add_io_point(sequential_id_generator, snippet_uuid, "json_input".to_string(), IOContentType::JSON, true); 
+            external_snippet_manager.add_non_acting_point(sequential_id_generator, snippet_uuid, false); let external_snippet_file_container = ExternalSnippetFileContainer::new(sequential_id_generator, snippet_uuid, category_uuid);
             category.child_snippet_uuids.push(external_snippet_file_container.get_uuid());
             directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
             directory_manager.snippet_structure.root_categories.push(category.get_uuid());

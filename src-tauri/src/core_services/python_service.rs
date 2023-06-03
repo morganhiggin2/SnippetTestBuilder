@@ -1,25 +1,21 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-
 use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
-use pyo3::types::PyTuple;
 
-#[pyclass]
-#[derive(FromPyObject)]
-struct PythonSnippetCreation {
-    name: String,
-    relative_file_location: String,
-    data_types: HashSet<String>,
-    properties: HashMap<String, String> 
-}
+use snippet_python_module::PythonSnippetCreation;
 
+use crate::state_management::external_snippet_manager::ExternalSnippetManager;
+use crate::state_management::external_snippet_manager::IOContentType;
+use crate::utils::sequential_id_generator::SequentialIdGenerator;
 
-pub fn call_init() -> Result<(), String> {
-    /*let _res = match Python::with_gil(|py| -> PyResult<String> {
+/// call init python function from inside the python snippet
+/// get the snippet information
+/// add to external snippet manager
+pub fn call_init(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), &'static str> {
+    let python_snippet_creation = match Python::with_gil(|py| -> Result<PythonSnippetCreation, &'static str> {
         let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
-        let fun: Py<PyAny> = PyModule::from_code(
+
+        let tmp = match PyModule::from_code(
             py,
             "
             import snippet_python_module as spm;
@@ -33,27 +29,59 @@ pub fn call_init() -> Result<(), String> {
             ",
             "",
             "",
-        )?
-        .getattr("init")?
-        .into(); 
+        ) {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("could not convert python code to function object");
+            }
+        };
 
+        let tmp = match tmp.getattr("init") {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("could not get python function 'init', from python code module object")
+            }
+        };
+
+        let fun: Py<PyAny> = tmp.into();
+
+        //Py<PyAny> 
         let kwargs = [("snippet", obj)].into_py_dict(py);
-        let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
-        //let res: PyAny = fun.call1(py, args)?.into_py(py);
+        //let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
+        let tmp: &PyAny = match fun.call(py, (), Some(kwargs)) {
+            Ok(result) => result.into_ref(py),
+            Err(_) => {
+                return Err("could not call function init from python module object");
+            }
+        };
+
+        let tmp: &PyCell<PythonSnippetCreation> = match tmp.downcast() {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("snippet not returned from init function, or did so in inproper form")
+            }
+        };
+
+        let tmp: PyResult<PythonSnippetCreation> = tmp.extract(); 
+        let obj = tmp.unwrap();
+
+        //get the rust struct from python object
+        //let res: PyAny = fun.call(py, (), Some(kwargs))?.into_py(py);
         //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
         //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
         //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
 
-        return Ok(res.name.clone());
+        return Ok(obj);
     }) {
         Ok(result) => result,
         Err(e) => {
-            return Err(e.to_string());
+            return Err(e);
         }
     };
 
-    println!("{}", _res);*/
-    let _res = match Python::with_gil(|py| -> PyResult<()> {
+    //external_snippet_manager.
+
+    /*let _res = match Python::with_gil(|py| -> PyResult<()> {
         let fun: Py<PyAny> = PyModule::from_code(
             py,
             "
@@ -78,24 +106,50 @@ pub fn call_init() -> Result<(), String> {
         Err(e) => {
             return Err(e.to_string());
         }
-    };
+    };*/
 
-    return Ok(());
-
+    return add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator, external_snippet_manager, python_snippet_creation);
 }
 
-//crate-type = ["cdylib", "rlib"]
-//to have it included in here too
-impl PythonSnippetCreation {
-    fn new(relative_file_location: String) -> Self {
-        return PythonSnippetCreation {
-            name: String::new(),
-            relative_file_location: relative_file_location,
-            data_types: HashSet::new(),
-            properties: HashMap::new()
+pub fn add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, python_snippet_creation: PythonSnippetCreation) -> Result<(), &'static str> {
+    //create empty snippet
+    let external_snippet_uuid = external_snippet_manager.create_empty_snippet(sequence_id_generator, &python_snippet_creation.get_name());
+
+    //initialize vector of io points
+    let mut io_points: Vec<(String, IOContentType, bool)> = Vec::with_capacity(python_snippet_creation.get_num_inputs() + python_snippet_creation.get_num_outputs());
+
+    //add inputs and outputs to io points  
+    for (name, datatype) in python_snippet_creation.get_inputs().iter() {
+        //convert data type string to enum
+        let content_type = match datatype.as_str() {
+            "XML" => IOContentType::XML,
+            "JSON" => IOContentType::JSON,
+            "" => IOContentType::None,
+            //can safely create custom type as python module checks if it already exists as a datatype
+            def => IOContentType::Custom(def.to_string()) 
         };
+
+        io_points.push((name.clone(), content_type, true));
     }
+
+    //add inputs and outputs to io points 
+    for (name, datatype) in python_snippet_creation.get_outputs().iter() {
+        //convert data type string to enum
+        let content_type = match datatype.as_str() {
+            "XML" => IOContentType::XML,
+            "JSON" => IOContentType::JSON,
+            "" => IOContentType::None,
+            //can safely create custom type as python module checks if it already exists as a datatype
+            def => IOContentType::Custom(def.to_string()) 
+        };
+
+        io_points.push((name.clone(), content_type, false));
+    }
+
+    //add io points to external snippet
+    return external_snippet_manager.add_io_points(sequence_id_generator, external_snippet_uuid, io_points);
 }
+
 
 /*[lib]
 name = "snippet_python_module"
