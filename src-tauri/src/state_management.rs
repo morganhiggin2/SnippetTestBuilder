@@ -1,9 +1,8 @@
-use std::sync::{Mutex, MutexGuard};
-use tauri::Window;
+use std::sync::{Mutex};
 
 use crate::core_services::io_service::{DirectoryManager, ExternalSnippetCategory, ExternalSnippetFileContainer};
 use crate::state_management::window_manager::WindowManager;
-use crate::utils::sequential_id_generator::{SequentialIdGenerator, self};
+use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::state_management::external_snippet_manager::{ExternalSnippetManager};
 
 use self::external_snippet_manager::IOContentType;
@@ -94,7 +93,6 @@ impl ApplicationState {
             directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
             directory_manager.snippet_structure.root_categories.push(category.get_uuid());
             directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
-
         }
     }
 }

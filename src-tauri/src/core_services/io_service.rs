@@ -1,9 +1,14 @@
 use std::{fs, collections::HashMap};
+use pyo3::callback::IntoPyCallbackOutput;
 use serde::{Serialize, Deserialize};
+use std::env;
+use pathdiff;
 
 use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::{external_snippet_manager::{ExternalSnippetManager, IOContentType, ExternalSnippet}}};
 
 use super::visual_directory_component_manager::{VisualDirectoryComponentManager, self};
+
+static SNIPPET_DIRECTORY: &str = "/modules/snippets";
 
 pub struct DirectoryManager {
     //TODO remove pub
@@ -114,8 +119,64 @@ impl SnippetStructure {
     /// reads snippet directory, reads all snippet files,
     /// and compiles all snippet category, file inforation,
     /// as well as assembles external snippets
-    pub fn map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager) {
+    pub fn map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), String> {
+        //get current working directory
+        let current_working_directory = match env::current_dir() {
+            Ok(result) => result.as_path().to_owned(),
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        };    
 
+        let snippets_directory = current_working_directory.join(SNIPPET_DIRECTORY);
+
+        //list of relative snippet script files
+        let mut relative_snippet_directory_strings: Vec<String> = Vec::new();
+
+        //read directory
+        if snippets_directory.is_dir() {
+            let dir_buf = match fs::read_dir(current_working_directory) {
+                Ok(result) => result,
+                Err(e) => {
+                    return Err(e.to_string());
+                }
+            };
+
+            //read directory contents in iterator
+            for entry_result in dir_buf{
+                let entry = match entry_result {
+                    Ok(result) => result,
+                    Err(e) => {
+                        return Err(e.to_string())
+                    }
+                };
+
+                let cur_path = entry.path();
+
+                //get relative folder path as string
+                let relative_string_path = match pathdiff::diff_paths(&cur_path, &snippets_directory) {
+                    Some(result) => result.to_string_lossy().into_owned(),
+                    None => {
+                        return Err("directory of found snippet is not in snippets path, directory logic malfunction".to_string());
+                    }
+                };
+
+                relative_snippet_directory_strings.push(relative_string_path);
+            }
+        }
+        else {
+            //create directory if it does not exist
+            match fs::create_dir(snippets_directory) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!("could not create snippet directory: {}", e.to_string()));
+                }
+            };
+        }
+
+        //todo in snippet structure, use relative string path to get categories
+
+        return Ok(());
     }
 
     pub fn file_structure_to_front_snippet_contents(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontExternalSnippetContent> {
@@ -189,6 +250,11 @@ impl SnippetStructure {
     /// find external snippet container given uuid
     pub fn find_external_snippet_container_mut(&mut self, uuid: &Uuid) -> Option<&mut ExternalSnippetFileContainer> {
         return self.external_snippet_containers.get_mut(uuid);
+    }
+
+    /// get list of snippets and their respective relative locations 
+    pub fn get_snippets_and_locations(&self) -> Result<Vec<String>, &'static str> {
+        todo!();
     }
 }
 

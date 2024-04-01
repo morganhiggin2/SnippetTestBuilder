@@ -2,10 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::ops::DerefMut;
-use std::sync::Mutex;
 
 //use core_services::
-use snippet_python_module::call_init;
 
 //use snippet_python_module::python_module::call_init_2;
 use crate::state_management::{MutexApplicationState, ApplicationState};
@@ -20,20 +18,14 @@ pub mod tauri_services;
 pub mod core_services;
 
 fn main() {
-    match call_init() {
+    /*match call_init() {
         Ok(_) => (),
         Err(e) => {
             println!("error {}", e);
         }
-    }
-    /*match call_init_2() {
-        Ok(_) => (),
-        Err(e) => {
-            println!("error {}", e);
-        }
-    };*/
-    /*//create application state
-    let mut application_state_guard = MutexApplicationState::default();
+    }*/
+    //create application state
+    let application_state_guard = MutexApplicationState::default();
         
     {
         let mut guard = application_state_guard.0.lock().unwrap();
@@ -43,9 +35,16 @@ fn main() {
 
         //call init for state management system
         ApplicationState::init(app_ref);
+
+        /*match call_init(&mut app_ref.seq_id_generator, &mut app_ref.external_snippet_manager) {
+            Ok(_) => (),
+            Err(e) => {
+                println!("error {}", e);
+            }
+        }*/
     }
 
-    tauri::Builder::default()
+    /*tauri::Builder::default()
         .manage(application_state_guard)
         .invoke_handler(tauri::generate_handler![logln, new_window_session, get_snippet_directory, new_snippet, validate_pipeline_connection, new_pipeline, check_pipeline_connector_capacity_full, get_id, get_pipeline_connector_uuids_from_pipeline, delete_pipeline, get_snippet_pipelines, get_pipeline_connector_uuids_from_snippet, delete_snippet])
         .run(tauri::generate_context!())

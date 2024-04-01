@@ -2284,6 +2284,7 @@ name = "snippet_test_builder_desktop"
 version = "0.0.0"
 dependencies = [
  "bimap",
+ "pathdiff",
  "pyo3",
  "serde",
  "serde_json",

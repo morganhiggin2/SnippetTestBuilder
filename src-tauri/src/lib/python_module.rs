@@ -1,5 +1,5 @@
 //https://pyo3.rs/main/building_and_distribution#dynamically-embedding-the-python-interpreter
-use pyo3::{prelude::*, PyClass};
+/*use pyo3::{prelude::*, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
 use pyo3::types::*;
 use tauri::utils::config::BuildConfig;
@@ -165,7 +165,7 @@ impl Default for PythonSnippetCreation {
 }
 
 #[pymodule]
-fn snippet_module(_py: Python, m:&PyModule) -> PyResult<()> {
+pub fn snippet_module(_py: Python, m:&PyModule) -> PyResult<()> {
     m.add_class::<PythonSnippetCreation>()?;
     return Ok(());
 }
@@ -173,7 +173,6 @@ fn snippet_module(_py: Python, m:&PyModule) -> PyResult<()> {
 fn register() {
 
 }
-
 /*#[pyclass]
 struct MyClass {
     #[pyo3(get)]
@@ -249,4 +248,4 @@ eval "$(pyenv init -)"
 # the following to ~/.bashrc:
 
 eval "$(pyenv virtualenv-init -)"
- */
+ */ */

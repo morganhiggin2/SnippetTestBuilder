@@ -2,36 +2,41 @@ use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
 
-use snippet_python_module::PythonSnippetCreation;
-
 use crate::state_management::external_snippet_manager::ExternalSnippetManager;
 use crate::state_management::external_snippet_manager::IOContentType;
 use crate::utils::sequential_id_generator::SequentialIdGenerator;
+use ::snippet_python_module::{PythonSnippetCreation, snippet_module};
 
 /// call init python function from inside the python snippet
 /// get the snippet information
 /// add to external snippet manager
-pub fn call_init(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), &'static str> {
+pub fn call_init_todo_delete_this_method(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), &'static str> {
+    //initialize python enviorment
+    //TODO keep gil active amoung snippet calls
+    pyo3::append_to_inittab!(snippet_module);
+    pyo3::prepare_freethreaded_python();
+
     let python_snippet_creation = match Python::with_gil(|py| -> Result<PythonSnippetCreation, &'static str> {
         let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
 
+        let res_1 = Python::run(py, "a = 5", None, None);
+        let res_2 = Python::run(py, "a * 2", None, None);
         let tmp = match PyModule::from_code(
             py,
-            "
-            import snippet_python_module as spm;
+            "import snippet_module as spm
 
-            def init(*args, **kargs):
-                snippet = kargs[\"snippet\"]
-                snippet.set_name(\"new-name\")
+def init(*args, **kargs):
+    snippet = kargs[\"snippet\"]
+    snippet.set_name(\"new-name\")
 
-                return snippet;
-            
-            ",
+    return snippet;",
             "",
             "",
         ) {
             Ok(result) => result,
-            Err(_) => {
+            Err(e) => {
+                //TODO pass back to user in front end python error (e.to_string())
+                println!("{}", e.to_string().as_str());
                 return Err("could not convert python code to function object");
             }
         };
@@ -47,6 +52,7 @@ pub fn call_init(sequence_id_generator: &mut SequentialIdGenerator, external_sni
 
         //Py<PyAny> 
         let kwargs = [("snippet", obj)].into_py_dict(py);
+
         //let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
         let tmp: &PyAny = match fun.call(py, (), Some(kwargs)) {
             Ok(result) => result.into_ref(py),
@@ -108,6 +114,8 @@ pub fn call_init(sequence_id_generator: &mut SequentialIdGenerator, external_sni
         }
     };*/
 
+    println!("{}", python_snippet_creation.get_name());
+
     return add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator, external_snippet_manager, python_snippet_creation);
 }
 
@@ -150,6 +158,11 @@ pub fn add_python_snippet_creation_to_external_snippet_manager(sequence_id_gener
     return external_snippet_manager.add_io_points(sequence_id_generator, external_snippet_uuid, io_points);
 }
 
+//calling python function
+//getting pyresult back (which is pydict of return values based on outputs defined for snippet)
+//converting py result
+//check if matches desgniated outputs and types
+//return values as py values (no need to cast to rust (maybe for checking, but try not to, as it is more overhead))
 
 /*[lib]
 name = "snippet_python_module"
@@ -354,3 +367,174 @@ to export this for non techincal users, set LD_LIBRARY_PATH to the root folder o
         windows: C:\Windows\System
 to technical people, simply have then run their python virtual enviorment before starting the program, and this should be able to find it
  */
+
+
+
+//with multiple peices: https://pyo3.rs/main/python_from_rust
+pub fn call_snippets_init(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), &'static str> {
+    //get snippets and locations from snipet directory manager
+
+    //initialize python enviorment
+    //TODO keep gil active amoung snippet calls
+    pyo3::append_to_inittab!(snippet_module);
+    pyo3::prepare_freethreaded_python();
+
+    //start process
+    let python_snippet_creation = match Python::with_gil(|py| -> Result<PythonSnippetCreation, &'static str> {
+        let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
+
+        //use PyModule::import to import package importlib, do once for entire program
+        
+        //loop for each snippet
+            //gather inputs, datatypes, and arguements for program in proper form in pydicts pylists etc
+            //run, getting result
+            //parse py result
+                //pass result back to front end though window handler mutex??
+
+        //for each snippet
+            //import code from location
+            //...
+        
+        
+        let py_snippet_module = match PyModule::from_code(py, "raw_code", "file name (must be unique, enforce this by including relative location)", "")
+         {
+            Ok(result) => result,
+            Err(e) => {
+                //TODO pass back to user in front end python error (e.to_string())
+                println!("{}", e.to_string().as_str());
+                return Err("could not convert python code to function object");
+            }
+        };
+
+        let tmp = match py_snippet_module.getattr("init") {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("could not get python function 'init', from python code module object")
+            }
+        };
+
+        let fun: Py<PyAny> = tmp.into();
+
+        //Py<PyAny> 
+        let kwargs = [("snippet", obj)].into_py_dict(py);
+
+        //let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
+        let tmp: &PyAny = match fun.call(py, (), Some(kwargs)) {
+            Ok(result) => result.into_ref(py),
+            Err(_) => {
+                return Err("could not call function init from python module object");
+            }
+        };
+
+        let tmp: &PyCell<PythonSnippetCreation> = match tmp.downcast() {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("snippet not returned from init function, or did so in inproper form")
+            }
+        };
+
+        let tmp: PyResult<PythonSnippetCreation> = tmp.extract(); 
+        let obj = tmp.unwrap();
+
+        //get the rust struct from python object
+        //let res: PyAny = fun.call(py, (), Some(kwargs))?.into_py(py);
+        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
+        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
+        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
+
+        return Ok(obj);
+    }) {
+        Ok(result) => result,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    //todo parse and return possible erros from python_snippet_creation, not as runtime errors, but as user errors to front end
+
+    return Ok(());
+}
+
+pub fn call_snippets_run(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), &'static str> {
+    //get snippets and locations from snipet directory manager
+
+    //initialize python enviorment
+    //TODO keep gil active amoung snippet calls
+    pyo3::append_to_inittab!(snippet_module);
+    pyo3::prepare_freethreaded_python();
+
+    //start process
+    let python_snippet_creation = match Python::with_gil(|py| -> Result<PythonSnippetCreation, &'static str> {
+        let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
+
+        //use PyModule::import to import package importlib, do once for entire program
+        
+        //loop for each snippet
+            //gather inputs, datatypes, and arguements for program in proper form in pydicts pylists etc
+            //run, getting result
+            //parse py result
+                //pass result back to front end though window handler mutex??
+
+        //for each snippet
+            //import code from location
+            //...
+        
+        
+        let py_snippet_module = match PyModule::from_code(py, "raw_code", "file name (must be unique, enforce this by including relative location)", "")
+         {
+            Ok(result) => result,
+            Err(e) => {
+                //TODO pass back to user in front end python error (e.to_string())
+                println!("{}", e.to_string().as_str());
+                return Err("could not convert python code to function object");
+            }
+        };
+
+        let tmp = match py_snippet_module.getattr("init") {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("could not get python function 'init', from python code module object")
+            }
+        };
+
+        let fun: Py<PyAny> = tmp.into();
+
+        //Py<PyAny> 
+        let kwargs = [("snippet", obj)].into_py_dict(py);
+
+        //let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
+        let tmp: &PyAny = match fun.call(py, (), Some(kwargs)) {
+            Ok(result) => result.into_ref(py),
+            Err(_) => {
+                return Err("could not call function init from python module object");
+            }
+        };
+
+        let tmp: &PyCell<PythonSnippetCreation> = match tmp.downcast() {
+            Ok(result) => result,
+            Err(_) => {
+                return Err("snippet not returned from init function, or did so in inproper form")
+            }
+        };
+
+        let tmp: PyResult<PythonSnippetCreation> = tmp.extract(); 
+        let obj = tmp.unwrap();
+
+        //get the rust struct from python object
+        //let res: PyAny = fun.call(py, (), Some(kwargs))?.into_py(py);
+        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
+        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
+        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
+
+        return Ok(obj);
+    }) {
+        Ok(result) => result,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    //todo parse and return possible erros from python_snippet_creation, not as runtime errors, but as user errors to front end
+
+    return Ok(());
+}

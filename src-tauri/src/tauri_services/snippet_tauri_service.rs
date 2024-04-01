@@ -1,7 +1,6 @@
 use serde::Serialize;
-use tauri::window;
 
-use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowManager, WindowSession}, external_snippet_manager::{ExternalSnippetManager, IOContentType, self}, visual_snippet_component_manager}, core_components::snippet::{SnippetManager, FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid, self}, core_services::visual_directory_component_manager};
+use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, core_components::snippet::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 

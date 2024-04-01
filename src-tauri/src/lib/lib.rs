@@ -1,7 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
-use pyo3::{prelude::*, PyClass, exceptions::PyTypeError};
-use tauri::utils::assets::phf::Set;
+use pyo3::{prelude::*, exceptions::PyTypeError};
 
 #[pyclass]
 #[derive(FromPyObject)]
@@ -10,9 +9,12 @@ pub struct PythonSnippetCreation {
     name: String,
     #[pyo3(get)]
     relative_file_location: String,
-    data_types: HashSet<String>,
+    #[pyo3(get)]
+    data_types: HashMap<String, String>,
     /// name, datatype
+    #[pyo3(get)]
     inputs: HashMap<String, String>, 
+    #[pyo3(get)]
     outputs: HashMap<String, String>
 }
 
@@ -28,17 +30,27 @@ impl PythonSnippetCreation {
         return Ok(());
     }
 
-    //add type
-    //could be json type enforced by schema, not sure yet
-    fn add_type(&mut self, name: String) -> PyResult<()> {
+    /// Add datatype to the python snippet creation
+    /// 
+    /// # Arguments
+    /// 
+    /// * name - name of the data type
+    /// * schema - schema of the data type
+    fn add_type(&mut self, name: String, schema: String) -> PyResult<()> {
         //insert data type into self map, if it already contains it, no error will be thrown
-        self.data_types.insert(name);
+        self.data_types.insert(name, schema);
         return Ok(());
     }
 
+    /// add input to the snippet
+    /// 
+    /// # Arguments
+    /// 
+    /// * name - name of the input
+    /// * data_type - data_type of data going into the input
     fn add_input(&mut self, name: String, data_type: String) -> PyResult<()> {
         //check if data_type is valid
-        if !self.data_types.contains(&data_type) {
+        if !self.data_types.contains_key(&data_type) {
             return Err(PyErr::new::<PyTypeError, _>("Not valid datatype, consider adding with add_type() class method"));
         }
 
@@ -52,9 +64,15 @@ impl PythonSnippetCreation {
         return Ok(());
     }
 
+    /// add an output for the snippet
+    /// 
+    /// # Arguments
+    /// 
+    /// * name - name of the output
+    /// * data_type - data_type of the data going out of the output 
     fn add_output(&mut self, name: String, data_type: String) -> PyResult<()> {
         //check if data_type is valid
-        if !self.data_types.contains(&data_type) {
+        if !self.data_types.contains_key(&data_type) {
             return Err(PyErr::new::<PyTypeError, _>("Not valid datatype, consider adding with add_type() class method"));
         }
 
@@ -69,80 +87,12 @@ impl PythonSnippetCreation {
     }
 }
 
-pub fn call_init() -> Result<(), String> {
-    /*let _res = match Python::with_gil(|py| -> PyResult<String> {
-        let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
-        let fun: Py<PyAny> = PyModule::from_code(
-            py,
-            "
-            import snippet_python_module as spm;
-
-            def init(*args, **kargs):
-                snippet = kargs[\"snippet\"]
-                snippet.set_name(\"new-name\")
-
-                return snippet;
-            
-            ",
-            "",
-            "",
-        )?
-        .getattr("init")?
-        .into(); 
-
-        let kwargs = [("snippet", obj)].into_py_dict(py);
-        let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
-        //let res: PyAny = fun.call1(py, args)?.into_py(py);
-        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
-        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
-        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
-
-        return Ok(res.name.clone());
-    }) {
-        Ok(result) => result,
-        Err(e) => {
-            return Err(e.to_string());
-        }
-    };
-
-    println!("{}", _res);*/
-    let _res = match Python::with_gil(|py| -> PyResult<()> {
-        let fun: Py<PyAny> = PyModule::from_code(
-            py,
-            "
-            def say_hello(*args, **kwargs): 
-                print(\"hello\")
-            ",
-            "",
-            "",
-        )?
-        .getattr("hello")?
-        .into(); 
-
-        fun.call0(py)?;
-        //let res: PyAny = fun.call1(py, args)?.into_py(py);
-        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
-        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
-        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
-
-        return Ok(());
-    }) {
-        Ok(result) => result,
-        Err(e) => {
-            return Err(e.to_string());
-        }
-    };
-
-    return Ok(());
-
-}
-
 impl PythonSnippetCreation {
     pub fn new(relative_file_location: String) -> Self {
         return PythonSnippetCreation {
             name: String::new(),
             relative_file_location: relative_file_location,
-            data_types: HashSet::new(),
+            data_types: HashMap::new(),
             outputs: HashMap::new(),
             inputs: HashMap::new()
         };
@@ -185,7 +135,7 @@ impl PythonSnippetCreation {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn snippet_python_module(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn snippet_module(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(create_snippet, m)?)?;
     Ok(())
 }
