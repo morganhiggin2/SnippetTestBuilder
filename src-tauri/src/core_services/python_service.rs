@@ -27,7 +27,7 @@ pub fn call_init_todo_delete_this_method(sequence_id_generator: &mut SequentialI
 
 def init(*args, **kargs):
     snippet = kargs[\"snippet\"]
-    snippet.set_name(\"new-name\")
+    snippet.set_name(\"very_new_name\")
 
     return snippet;",
             "",
@@ -116,7 +116,8 @@ def init(*args, **kargs):
 
     println!("{}", python_snippet_creation.get_name());
 
-    return add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator, external_snippet_manager, python_snippet_creation);
+    //return add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator, external_snippet_manager, python_snippet_creation);
+    return Ok(());
 }
 
 pub fn add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, python_snippet_creation: PythonSnippetCreation) -> Result<(), &'static str> {

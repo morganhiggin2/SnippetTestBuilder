@@ -4,6 +4,7 @@ use crate::core_services::io_service::{DirectoryManager, ExternalSnippetCategory
 use crate::state_management::window_manager::WindowManager;
 use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::state_management::external_snippet_manager::{ExternalSnippetManager};
+use crate::core_services::python_service::{call_init_todo_delete_this_method};
 
 use self::external_snippet_manager::IOContentType;
 
@@ -38,13 +39,6 @@ impl Default for ApplicationState {
         };
     }    
 }
-
-struct Foo {
-    a: u32, 
-    b: u32,
-    c: u32
-}
-
 
 impl ApplicationState {
     pub fn get_window_manager(&mut self) -> &mut WindowManager {
@@ -93,6 +87,8 @@ impl ApplicationState {
             directory_manager.snippet_structure.external_snippet_containers.insert(external_snippet_file_container.get_uuid(), external_snippet_file_container);
             directory_manager.snippet_structure.root_categories.push(category.get_uuid());
             directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
+
+            call_init_todo_delete_this_method(sequential_id_generator, external_snippet_manager);
         }
     }
 }
