@@ -420,6 +420,7 @@ impl SnippetManager {
         }
 
         //verify that one is an output and one is an input
+        //TODO validate schemas
         {
             if from_pipeline_connector.get_input() == to_pipeline_connector.get_input() {
                 return Ok(false);

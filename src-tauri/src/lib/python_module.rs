@@ -6,7 +6,7 @@ use tauri::utils::config::BuildConfig;
 
 #[pyclass]
 #[derive(FromPyObject)]
-pub struct PythonSnippetCreation {
+pub struct PythonSnippetBuilder {
     name: String,
     relative_file_location: String
 }
@@ -15,7 +15,7 @@ pub struct PythonSnippetCreation {
 //that involves the external snippet
 //or, better, just call the init() function, expecing the return value, and cast it to this class
 fn call_init() {
-    let py_snippet_obj = PythonSnippetCreation {
+    let py_snippet_obj = PythonSnippetBuilder {
         name: String::new(),
         relative_file_location: "".to_string()
     };
@@ -24,7 +24,7 @@ fn call_init() {
 pub fn call_init_2() -> PyResult<()>{
     let mut a: u32 = 4;
     let _res = Python::with_gil(|py| -> PyResult<String> {
-        let obj = PyCell::new(py, PythonSnippetCreation::default()).unwrap();
+        let obj = PyCell::new(py, PythonSnippetBuilder::default()).unwrap();
         let fun: Py<PyAny> = PyModule::from_code(
             py,
             "def example(*args, **kwargs):
@@ -38,11 +38,11 @@ pub fn call_init_2() -> PyResult<()>{
         .into(); 
 
         let args = PyTuple::new(py, &[obj]);
-        let res: PythonSnippetCreation = fun.call1(py, args)?.extract(py)?;
+        let res: PythonSnippetBuilder = fun.call1(py, args)?.extract(py)?;
         //let res: PyAny = fun.call1(py, args)?.into_py(py);
-        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
-        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
-        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
+        //let res_class: PyResult<PythonSnippetBuilder> = any.downcast().unwrap();
+        //let o_res: Py<PythonSnippetBuilder> = res.extract::<PythonSnippetBuilder>(py)?;
+        //let res: &PyCell<PythonSnippetBuilder> = fun.call1(py, args)?.extract()?;
 
         return Ok(res.name.clone());
 
@@ -57,10 +57,10 @@ pub fn call_init_2() -> PyResult<()>{
 }
 
 #[pymethods]
-impl PythonSnippetCreation {
+impl PythonSnippetBuilder {
     #[new]
     fn new(name: String) -> Self {
-        PythonSnippetCreation { name: name, relative_file_location: "".to_string() }
+        PythonSnippetBuilder { name: name, relative_file_location: "".to_string() }
     }
 
     /*#[classmethod]
@@ -89,7 +89,7 @@ impl PythonSnippetCreation {
 
 pub fn call_init() -> Result<(), String> {
     /*let _res = match Python::with_gil(|py| -> PyResult<String> {
-        let obj = PyCell::new(py, PythonSnippetCreation::new("".to_string())).unwrap();
+        let obj = PyCell::new(py, PythonSnippetBuilder::new("".to_string())).unwrap();
         let fun: Py<PyAny> = PyModule::from_code(
             py,
             "
@@ -109,11 +109,11 @@ pub fn call_init() -> Result<(), String> {
         .into(); 
 
         let kwargs = [("snippet", obj)].into_py_dict(py);
-        let res: PythonSnippetCreation = fun.call(py, (), Some(kwargs))?.extract(py)?;
+        let res: PythonSnippetBuilder = fun.call(py, (), Some(kwargs))?.extract(py)?;
         //let res: PyAny = fun.call1(py, args)?.into_py(py);
-        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
-        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
-        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
+        //let res_class: PyResult<PythonSnippetBuilder> = any.downcast().unwrap();
+        //let o_res: Py<PythonSnippetBuilder> = res.extract::<PythonSnippetBuilder>(py)?;
+        //let res: &PyCell<PythonSnippetBuilder> = fun.call1(py, args)?.extract()?;
 
         return Ok(res.name.clone());
     }) {
@@ -139,9 +139,9 @@ pub fn call_init() -> Result<(), String> {
 
         fun.call0(py)?;
         //let res: PyAny = fun.call1(py, args)?.into_py(py);
-        //let res_class: PyResult<PythonSnippetCreation> = any.downcast().unwrap();
-        //let o_res: Py<PythonSnippetCreation> = res.extract::<PythonSnippetCreation>(py)?;
-        //let res: &PyCell<PythonSnippetCreation> = fun.call1(py, args)?.extract()?;
+        //let res_class: PyResult<PythonSnippetBuilder> = any.downcast().unwrap();
+        //let o_res: Py<PythonSnippetBuilder> = res.extract::<PythonSnippetBuilder>(py)?;
+        //let res: &PyCell<PythonSnippetBuilder> = fun.call1(py, args)?.extract()?;
 
         return Ok(());
     }) {
@@ -155,9 +155,9 @@ pub fn call_init() -> Result<(), String> {
 
 }
 
-impl Default for PythonSnippetCreation {
+impl Default for PythonSnippetBuilder {
     fn default() -> Self {
-        return PythonSnippetCreation { 
+        return PythonSnippetBuilder { 
             name: String::new(), 
             relative_file_location: String::new() 
         }
@@ -166,7 +166,7 @@ impl Default for PythonSnippetCreation {
 
 #[pymodule]
 pub fn snippet_module(_py: Python, m:&PyModule) -> PyResult<()> {
-    m.add_class::<PythonSnippetCreation>()?;
+    m.add_class::<PythonSnippetBuilder>()?;
     return Ok(());
 }
 
