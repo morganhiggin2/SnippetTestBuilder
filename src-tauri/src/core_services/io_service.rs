@@ -3,6 +3,7 @@ use pyo3::callback::IntoPyCallbackOutput;
 use serde::{Serialize, Deserialize};
 use std::env;
 use pathdiff;
+use std::path::Path;
 
 use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::{external_snippet_manager::{ExternalSnippetManager, IOContentType, ExternalSnippet}}};
 
@@ -379,4 +380,13 @@ impl FrontExternalSnippetContent {
             false,
         );
     }
+}
+
+/// Check if a given file path exists
+pub fn validate_file_location(relative_file_path: String) -> bool {
+    // create file path
+    let file_path = Path::new(&relative_file_path);
+
+    // check if exists
+    return file_path.exists();
 }

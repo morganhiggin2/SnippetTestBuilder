@@ -29,6 +29,8 @@ def init(*args, **kargs):
     snippet = kargs[\"snippet\"]
     snippet.set_name(\"very_new_name\")
 
+    schema = spm.create_base_schema()
+
     return snippet;",
             "",
             "",

@@ -1,7 +1,10 @@
 use std::collections::{HashMap};
 use serde_json;
 
-use pyo3::{prelude::*, exceptions::PyTypeError};
+use pyo3::{exceptions::{PyIOError, PyTypeError}, prelude::*};
+use crate::core_services::io_service::validate_file_location;
+
+
 
 #[pyclass]
 #[derive(FromPyObject)]
@@ -10,10 +13,10 @@ pub struct PythonSnippetBuilder {
     name: String,
     #[pyo3(get)]
     relative_file_location: String,
-    //#[pyo3(get)]
-    //inputs: HashMap<String, PythonSchemaBuilder>, 
-    //#[pyo3(get)]
-    //outputs: HashMap<String, PythonSchemaBuilder>
+    #[pyo3(get)]
+    inputs: HashMap<String, String>, 
+    #[pyo3(get)]
+    outputs: HashMap<String, String>
 }
 
 /*
@@ -28,7 +31,106 @@ impl PythonSnippetBuilder {
         self.name = name; 
         return Ok(());
     }
+    
+    /// add input to the snippet
+    /// 
+    /// # Arguments
+    /// 
+    /// * name - name of the input
+    /// * data_type - json string which is the schema of the output being returned
+    /// 
+    /// # Schema Schema
+    /// types are denoted with a name a value, as an example:
+    /// {
+    ///     "input_one": "int" 
+    /// }
+    /// 
+    /// values can themselfs be a nesting of other sub schemas, and follow any format:
+    /// {
+    ///     "input_one": {
+    ///         "sub_input_one": "int" 
+    ///     } 
+    ///     "input_two": "str"
+    /// }
+    /// 
+    /// the string json values are themselfs the name of the primitive type, which includes
+    /// * str
+    /// * bytes
+    /// * bool
+    /// * int 
+    /// * float
+    /// 
+    /// additional types supported:
+    /// * tuple[T: other primitive types, U: other primitive types]
+    /// * set[T: other primitive types]
+    /// * list[T: other primitive types] 
+    /// 
+    fn add_input(&mut self, name: String, schema_file: String) -> PyResult<()> {
+        //check if outputs already contains the output
+        if self.inputs.contains_key(&name) {
+            return Err(PyErr::new::<PyTypeError, _>(format!("Input {} already exists", &name))); 
+        }
 
+        //check if file exists
+        if !validate_file_location(schema_file) {
+            return Err(PyErr::new::<PyIOError, _>(format!("File {} not found in adding input schema", &schema_file)));
+        } 
+       
+        self.inputs.insert(name, schema_file);
+
+        return Ok(());
+    }
+
+    
+    /// add an output for the snippet
+    /// 
+    /// # Arguments
+    /// 
+    /// * name - name of the output
+    /// * schema - json string which is the schema of the output being returned 
+    /// 
+    /// # Schema Schema
+    /// types are denoted with a name a value, as an example:
+    /// {
+    ///     "input_one": "int" 
+    /// }
+    /// 
+    /// values can themselfs be a nesting of other sub schemas, and follow any format:
+    /// {
+    ///     "input_one": {
+    ///         "sub_input_one": "int" 
+    ///     } 
+    ///     "input_two": "str"
+    /// }
+    /// 
+    /// the string json values are themselfs the name of the primitive type, which includes
+    /// * str
+    /// * bytes
+    /// * bool
+    /// * int 
+    /// * float
+    /// 
+    /// additional types supported:
+    /// * tuple[T: other primitive types, U: other primitive types]
+    /// * set[T: other primitive types]
+    /// * list[T: other primitive types] 
+    /// 
+    fn add_output(&mut self, name: String, schema_file: String) -> PyResult<()> {
+        //check if outputs already contains the output
+        if self.outputs.contains_key(&name) {
+            return Err(PyErr::new::<PyTypeError, _>(format!("Input {} already exists", &name))); 
+        }
+
+        //check if file exists
+        if !validate_file_location(schema_file) {
+            return Err(PyErr::new::<PyIOError, _>(format!("File {} not found in adding input schema", &schema_file)));
+        } 
+       
+        self.outputs.insert(name, schema);
+
+        return Ok(());
+
+    }
     //TODO change schema params from string to schema type (or the id returned)
 
     //TODO input will be the name of the input, and the schema
@@ -150,9 +252,9 @@ impl PythonSnippetBuilder {
     pub fn new(relative_file_location: String) -> Self {
         return PythonSnippetBuilder {
             name: String::new(),
-            relative_file_location: relative_file_location
-            //outputs: HashMap::new(),
-            //inputs: HashMap::new()
+            relative_file_location: relative_file_location,
+            outputs: HashMap::new(),
+            inputs: HashMap::new()
         };
     }
     
@@ -160,9 +262,9 @@ impl PythonSnippetBuilder {
         return self.name.clone();
     }
 
-    /*pub fn get_inputs(&self) -> Vec<(String, String)> {
+    /*pub fn get_inputs(&self) -> Vec<(String, PythonNestedSchema)> {
         //create empty vector of size inputs.len()
-        let mut inputs: Vec<(String, String)> = Vec::with_capacity(self.inputs.len());
+        /*let mut inputs: Vec<(String, String)> = Vec::with_capacity(self.inputs.len());
 
         self.inputs.iter().for_each(|(name, schema)| {
             //convert serde json to string
@@ -175,9 +277,10 @@ impl PythonSnippetBuilder {
                     EMPTY_SCHEMA_JSON_STRING.to_owned()
             };
             inputs.push((name.clone(), json_string_schema));
-        });
+        });*/
 
-        return inputs;
+        //let mut inputs: Vec<(String, PythonNestedSchema)> = Vec::with_capacity(self.inputs.len());
+
     }
 
     pub fn get_outputs(&self) -> Vec<(String, String)> {
@@ -282,7 +385,7 @@ impl PythonNestedSchema {
 
 /// Create the base schema, which can be build upon
 #[pyfunction]
-pub fn create_base_schema() -> PyResult<PythonNestedSchema> {
+fn create_base_schema() -> PyResult<PythonNestedSchema> {
     let nested_schema = PythonNestedSchema {
         nested_fields: HashMap::new()
     };
