@@ -1,3 +1,5 @@
+use std::env;
+
 use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
@@ -15,6 +17,9 @@ pub fn call_init_todo_delete_this_method(sequence_id_generator: &mut SequentialI
     //TODO keep gil active amoung snippet calls
     pyo3::append_to_inittab!(snippet_module);
     pyo3::prepare_freethreaded_python();
+
+    let path = env::current_dir().unwrap();
+    println!("The current directory is {}", path.display());
 
     let python_snippet_creation = match Python::with_gil(|py| -> Result<PythonSnippetBuilder, &'static str> {
         let obj = PyCell::new(py, PythonSnippetBuilder::new("".to_string())).unwrap();

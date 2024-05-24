@@ -62,7 +62,7 @@ impl ApplicationState {
         //load external snippets
         //TODO delete
         //creating snippets for testing
-        {
+        /*{
             let sequential_id_generator = &mut application_state.seq_id_generator;
             let external_snippet_manager = &mut application_state.external_snippet_manager;   
             let directory_manager = &mut application_state.directory_manager;
@@ -89,7 +89,15 @@ impl ApplicationState {
             directory_manager.snippet_structure.categories.insert(category.get_uuid(), category);
 
             call_init_todo_delete_this_method(sequential_id_generator, external_snippet_manager);
-        }
+        }*/
+
+        let sequential_id_generator = &mut application_state.seq_id_generator;
+        let external_snippet_manager = &mut application_state.external_snippet_manager;   
+        let directory_manager = &mut application_state.directory_manager;
+
+        // Initialize directory of snippets
+        directory_manager.init(external_snippet_manager);
+
     }
 }
 

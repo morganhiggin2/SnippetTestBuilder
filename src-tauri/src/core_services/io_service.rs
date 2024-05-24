@@ -1,20 +1,21 @@
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, ffi::OsStr, fs};
 use pyo3::callback::IntoPyCallbackOutput;
 use serde::{Serialize, Deserialize};
 use std::env;
 use pathdiff;
 use std::path::Path;
 
-use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, state_management::{external_snippet_manager::{ExternalSnippetManager, IOContentType, ExternalSnippet}}};
+use crate::{core_components::snippet, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetManager, IOContentType}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
 use super::visual_directory_component_manager::{VisualDirectoryComponentManager, self};
 
-static SNIPPET_DIRECTORY: &str = "/modules/snippets";
+const PYTHON_FILE_EXTENSION: &OsStr = OsStr::new("py");
 
 pub struct DirectoryManager {
+    relative_snippet_directory: String,
     //TODO remove pub
     pub snippet_structure: SnippetStructure,
-    //visual front end components
+    //visual front end components for directory contents
     pub visual_component_manager: VisualDirectoryComponentManager
 }
 
@@ -63,7 +64,14 @@ pub enum FrontExternalSnippetContentType {
 
 impl Default for DirectoryManager {
     fn default() -> Self {
+        let relative_snippet_directory = "data/snippets".to_string();
+
+        //Only run if debug build, as the relative directory for the data will be different
+        #[cfg(debug_assertions)]
+        let relative_snippet_directory = "../data/snippets".to_string();
+
         return DirectoryManager {
+            relative_snippet_directory: relative_snippet_directory,
             snippet_structure: SnippetStructure::default(),
             visual_component_manager: VisualDirectoryComponentManager::default()
         }
@@ -71,9 +79,7 @@ impl Default for DirectoryManager {
 }
 
 impl DirectoryManager {
-    
-
-    /*pub fn map_directory(directory : & str) -> Result<Self, &str>{
+        /*pub fn map_directory(directory : & str) -> Result<Self, &str>{
         //count directory
         let paths = match fs::read_dir(&directory) {
             Ok(result) => result,
@@ -100,7 +106,8 @@ impl DirectoryManager {
     /// and related subsystems
     pub fn init(&mut self, external_snippet_manager: &mut ExternalSnippetManager) {
         //map snippet directory and get external snippets
-        self.snippet_structure.map_directory(external_snippet_manager);
+        //TODO show error on panic, not just close the program
+        self.snippet_structure.map_directory(external_snippet_manager, &self.relative_snippet_directory).unwrap();
     }
 
 
@@ -120,7 +127,7 @@ impl SnippetStructure {
     /// reads snippet directory, reads all snippet files,
     /// and compiles all snippet category, file inforation,
     /// as well as assembles external snippets
-    pub fn map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager) -> Result<(), String> {
+    pub fn map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager, relative_snippet_directory: &String) -> Result<(), String> {
         //get current working directory
         let current_working_directory = match env::current_dir() {
             Ok(result) => result.as_path().to_owned(),
@@ -129,10 +136,12 @@ impl SnippetStructure {
             }
         };    
 
-        let snippets_directory = current_working_directory.join(SNIPPET_DIRECTORY);
+        let snippets_directory = current_working_directory.join(relative_snippet_directory);
 
         //list of relative snippet script files
         let mut relative_snippet_directory_strings: Vec<String> = Vec::new();
+
+        println!("{}", snippets_directory.to_owned().as_os_str().to_string_lossy());
 
         //read directory
         if snippets_directory.is_dir() {
@@ -143,8 +152,10 @@ impl SnippetStructure {
                 }
             };
 
+
             //read directory contents in iterator
             for entry_result in dir_buf{
+
                 let entry = match entry_result {
                     Ok(result) => result,
                     Err(e) => {
@@ -153,6 +164,13 @@ impl SnippetStructure {
                 };
 
                 let cur_path = entry.path();
+
+                //filter out files with don't end in .py
+                if let Some(file_extension) = cur_path.extension(){
+                    if file_extension.eq(PYTHON_FILE_EXTENSION) {
+                        
+                    }
+                }
 
                 //get relative folder path as string
                 let relative_string_path = match pathdiff::diff_paths(&cur_path, &snippets_directory) {
@@ -178,6 +196,21 @@ impl SnippetStructure {
         //todo in snippet structure, use relative string path to get categories
 
         return Ok(());
+    }
+    
+    // Walk directory, and for each folder that is not a snippet, create a category
+    fn map_directory_walker_helper() {
+        //if we are a directory
+            // if this directory has a .py file, and name matches the folder name, it is a snippet, do not recurse further into it
+            // we leave the freedom to the snippet creator to add their own files to the snippet
+
+            // if does not contain matching .py file or sub directory, throw an error 
+
+            // if a directory (so no .py which matches the directory name), go into it, call map_directory_walker_helper
+        //else, 
+            
+            
+        //if directory, return true, else, false
     }
 
     pub fn file_structure_to_front_snippet_contents(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontExternalSnippetContent> {
@@ -380,13 +413,4 @@ impl FrontExternalSnippetContent {
             false,
         );
     }
-}
-
-/// Check if a given file path exists
-pub fn validate_file_location(relative_file_path: String) -> bool {
-    // create file path
-    let file_path = Path::new(&relative_file_path);
-
-    // check if exists
-    return file_path.exists();
 }

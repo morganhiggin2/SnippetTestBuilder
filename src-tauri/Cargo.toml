@@ -1,7 +1,7 @@
 [lib]
 name = "snippet_python_module"
 version = "0.0.0"
-path = "src/lib/lib.rs"
+path = "src/python_libraries/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [package]

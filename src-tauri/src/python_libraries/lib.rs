@@ -1,10 +1,6 @@
-use std::collections::{HashMap};
-use serde_json;
-
+use std::{collections::HashMap, path::Path};
 use pyo3::{exceptions::{PyIOError, PyTypeError}, prelude::*};
-use crate::core_services::io_service::validate_file_location;
-
-
+//use crate::core_services::io_service::validate_file_location;
 
 #[pyclass]
 #[derive(FromPyObject)]
@@ -72,7 +68,7 @@ impl PythonSnippetBuilder {
         }
 
         //check if file exists
-        if !validate_file_location(schema_file) {
+        if !validate_file_location(&schema_file) {
             return Err(PyErr::new::<PyIOError, _>(format!("File {} not found in adding input schema", &schema_file)));
         } 
        
@@ -122,11 +118,11 @@ impl PythonSnippetBuilder {
         }
 
         //check if file exists
-        if !validate_file_location(schema_file) {
+        if !validate_file_location(&schema_file) {
             return Err(PyErr::new::<PyIOError, _>(format!("File {} not found in adding input schema", &schema_file)));
         } 
        
-        self.outputs.insert(name, schema);
+        self.outputs.insert(name, schema_file);
 
         return Ok(());
 
@@ -245,9 +241,6 @@ impl PythonSnippetBuilder {
     }*/
 }
 
-//empty schema
-//const EMPTY_SCHEMA_JSON_STRING: &str = "{}";
-
 impl PythonSnippetBuilder {
     pub fn new(relative_file_location: String) -> Self {
         return PythonSnippetBuilder {
@@ -314,93 +307,21 @@ impl PythonSnippetBuilder {
 
 
 
-// Snipper builder
-
-/*
-#[pyclass]
-#[derive(FromPyObject)]
-struct PythonSchemaBuilder {
-    schema_fields: HashMap<String, SchemaField>
-}*/
-
-enum SchemaFieldType {
-    Bool,
-    NestedSchema
-}
-
-/*
-    Str,
-    Bytes,
-    Bool,
-    Float,
-    Int,
-    Tuple,
-    Set,
-    List, */
-
-#[pyclass]
-#[derive(FromPyObject)]
-
-struct PythonFieldValue {
-    // The field type, maps to the SchemaFieldType enum
-    field_type: String, 
-    // nested field schema, only if NestedSchema type
-    nested_schema: Option<PythonNestedSchema> 
-}
-
-#[pyclass]
-#[derive(FromPyObject)]
-struct PythonNestedSchema {
-    nested_fields: HashMap<String, PythonFieldValue>
-}
-
-#[pymethods]
-impl PythonNestedSchema {
-    fn add_bool_field(&mut self, field_name: String) -> PyResult<()> {
-        // Create field value for boolean type
-        let field_value = PythonFieldValue {
-            field_type: "Bool".to_string(),
-            nested_schema: None
-        };
-
-        // Add as field to nested field
-        self.nested_fields.insert(field_name, field_value);
-
-        return Ok(());
-    }
-
-    fn add_nested_schema(&mut self, field_name: String, nested_schema: PythonNestedSchema) -> PyResult<()> {
-        // Create field value for nested schema type
-        let field_value = PythonFieldValue {
-            field_type: "NestedSchema".to_string(),
-            nested_schema: Some(nested_schema) 
-        };
-
-        // Add as field to nested field
-        self.nested_fields.insert(field_name, field_value);
-
-        return Ok(());
-    }
-}
-
-/// Create the base schema, which can be build upon
-#[pyfunction]
-fn create_base_schema() -> PyResult<PythonNestedSchema> {
-    let nested_schema = PythonNestedSchema {
-        nested_fields: HashMap::new()
-    };
-
-    return Ok(nested_schema);
-}
-
 // important run notes
 // cargo build --features pyo3/extension-module
 
 /// Snipper module implemented in Rust
 #[pymodule]
 pub fn snippet_module(_py: Python, m: &PyModule) -> PyResult<()> {
-    //m.add_function(wrap_pyfunction!(create_snippet, m)?)?;
-    //m.add_class::<PythonSchemaBuilder>()?;
-    m.add_function(wrap_pyfunction!(create_base_schema, m)?)?;
+    m.add_class::<PythonSnippetBuilder>()?;
     Ok(())
+}
+
+/// Check if a given file path exists
+pub fn validate_file_location(relative_file_path: &str) -> bool {
+    // create file path
+    let file_path = Path::new(&relative_file_path);
+
+    // check if exists
+    return file_path.exists();
 }
