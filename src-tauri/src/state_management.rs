@@ -96,7 +96,7 @@ impl ApplicationState {
         let directory_manager = &mut application_state.directory_manager;
 
         // Initialize directory of snippets
-        directory_manager.init(external_snippet_manager);
+        directory_manager.init(external_snippet_manager, sequential_id_generator);
 
     }
 }
