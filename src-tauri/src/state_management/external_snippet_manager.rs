@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use serde::{Serialize, Deserialize};
 
@@ -14,6 +14,16 @@ pub struct ExternalSnippet {
     sub_directory: String,
     name: String,
     io_points: HashMap<Uuid, SnippetIOPoint>
+}
+
+#[derive(Debug)]
+pub struct ExternalSnippetCategory {
+    uuid: Uuid,
+    name: String,
+    parent_category_uuid: Option<Uuid>,
+    //TODO remove pub
+    pub child_snippet_uuids: Vec<Uuid>,
+    child_category_uuids: Vec<Uuid> 
 }
 
 pub struct SnippetIOPoint {
@@ -236,6 +246,47 @@ impl ExternalSnippet {
         }
 
         return pipeline_connectors;
+    }
+}
+
+impl ExternalSnippetCategory {
+    pub fn new_root(seq_id_generator: &mut SequentialIdGenerator, name: String, num_snippets: usize, num_categories: usize) -> Self {
+        return ExternalSnippetCategory {
+            uuid: seq_id_generator.get_id(),
+            name: name,
+            parent_category_uuid: None,
+            child_snippet_uuids: Vec::with_capacity(num_snippets),
+            child_category_uuids: Vec::with_capacity(num_categories)
+        };
+    }
+   
+    pub fn new_child(seq_id_generator: &mut SequentialIdGenerator, name: String, num_snippets: usize, num_categories: usize, parent_category_uuid: Uuid) -> Self {
+        return ExternalSnippetCategory {
+            uuid: seq_id_generator.get_id(),
+            name: name,
+            parent_category_uuid: Some(parent_category_uuid),
+            child_snippet_uuids: Vec::with_capacity(num_snippets),
+            child_category_uuids: Vec::with_capacity(num_categories)
+        };
+    }
+    
+    //TODO remove pub
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+    
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+
+    pub fn add_child_category(&mut self, category: &ExternalSnippetCategory) {
+        self.child_category_uuids.push(category.get_uuid());
+    }
+}
+
+impl fmt::Display for ExternalSnippetCategory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 

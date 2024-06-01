@@ -1,8 +1,10 @@
 use std::env;
+use std::path::PathBuf;
 
 use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
+use std::collections::HashMap;
 
 use crate::state_management::external_snippet_manager::ExternalSnippetManager;
 use crate::state_management::external_snippet_manager::IOContentType;
@@ -124,6 +126,44 @@ def init(*args, **kargs):
     println!("{}", python_snippet_creation.get_name());
 
     //return add_python_snippet_creation_to_external_snippet_manager(sequence_id_generator, external_snippet_manager, python_snippet_creation);
+    return Ok(());
+}
+
+/// call the python handlers for the snippets, initializing them
+/// 
+/// # Arguments
+/// * `snippet_factory_queue` - List of snippet file paths and their corresponding file contents
+pub fn initalize_snippets_python(snippet_factory_queue: Vec<(PathBuf, String)>) -> Result<(), String> {
+    //initialize python enviorment
+    pyo3::append_to_inittab!(snippet_module);
+    pyo3::prepare_freethreaded_python();   
+
+    let python_snippets= match Python::with_gil(|py| -> Result<HashMap<PathBuf, PythonSnippetBuilder>, &'static str> {
+        // mapping of snippet directory to snippet python build
+        let python_snippet_builds = HashMap::<PathBuf, PythonSnippetBuilder>::new();
+
+        // build each python snippet
+        for (snippet_path, snippet_file_content) in snippet_factory_queue {
+            // create python snippet builder, 'bound' to the python gil
+            let obj = Bound::new(py, PythonSnippetBuilder::new("".to_string())).unwrap();
+            
+            // TODO insert file name into code bound
+            // TODO insert module name
+            //    Idea? add to code bound, run it, then remove it
+            PyModule::from_code_bound(py, &snippet_file_content, "", "");
+        }
+
+        // return python snippet builds, exit python context
+        return Ok(python_snippet_builds);
+    })
+    {
+        Ok(result) => result,
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    };
+
+
     return Ok(());
 }
 
