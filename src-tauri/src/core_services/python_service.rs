@@ -134,7 +134,7 @@ def init(*args, **kargs):
 /// # Arguments
 /// * `snippet_factory_queue` - List of snippet file paths and their corresponding file contents
 pub fn initalize_snippets_python(snippet_factory_queue: Vec<(PathBuf, String)>) -> Result<(), String> {
-    //initialize python enviorment
+    //initialize python envrionment
     pyo3::append_to_inittab!(snippet_module);
     pyo3::prepare_freethreaded_python();   
 
@@ -144,13 +144,45 @@ pub fn initalize_snippets_python(snippet_factory_queue: Vec<(PathBuf, String)>) 
 
         // build each python snippet
         for (snippet_path, snippet_file_content) in snippet_factory_queue {
-            // create python snippet builder, 'bound' to the python gil
-            let obj = Bound::new(py, PythonSnippetBuilder::new("".to_string())).unwrap();
+            // get file contents in string 
+
+            // get relative file location
             
-            // TODO insert file name into code bound
-            // TODO insert module name
-            //    Idea? add to code bound, run it, then remove it
-            PyModule::from_code_bound(py, &snippet_file_content, "", "");
+            // get file name
+            let file_name = match snippet_path.file_name() {
+                Some(some) => some,
+                None => {
+                    return Err(&format!("Snippet is not a file!: {}", snippet_path.as_os_str().to_string_lossy()));
+                }
+            };
+
+            let file_name = match file_name.to_str() {
+                Some(some) => some,
+                None => {
+                    return Err(&format!("Snippet file name is not a string!: {}", file_name.to_string_lossy()));
+                }
+            };
+
+            // create python snippet builder, 'bound' to the python gil
+            let obj = Bound::new(py, PythonSnippetBuilder::new()).unwrap();
+
+            // let the module name be the sub directory as a path
+            let full_path_as_string = match snippet_path.as_os_str().to_str() {
+                Some(some) => some,
+                None => {
+                    return Err(&format!("Snippet path is not a string!: {}", snippet_path.to_string_lossy()));
+                }
+            };
+
+            /* TODO determine what to do with this: is this the correct approach?
+            let module_name = full_path_as_string
+                // replace path delimiters '/' with "__"
+                .replace("\\", "__")
+                // remove file extension
+                .replace(".py", "");*/
+
+            // create python code as file in module main 
+            PyModule::from_code_bound(py, &snippet_file_content, &format!("{}.py", file_name), "main");
         }
 
         // return python snippet builds, exit python context

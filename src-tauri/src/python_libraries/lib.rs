@@ -8,8 +8,6 @@ pub struct PythonSnippetBuilder {
     #[pyo3(get)]
     name: String,
     #[pyo3(get)]
-    relative_file_location: String,
-    #[pyo3(get)]
     inputs: HashMap<String, String>, 
     #[pyo3(get)]
     outputs: HashMap<String, String>
@@ -242,10 +240,9 @@ impl PythonSnippetBuilder {
 }
 
 impl PythonSnippetBuilder {
-    pub fn new(relative_file_location: String) -> Self {
+    pub fn new() -> Self {
         return PythonSnippetBuilder {
             name: String::new(),
-            relative_file_location: relative_file_location,
             outputs: HashMap::new(),
             inputs: HashMap::new()
         };

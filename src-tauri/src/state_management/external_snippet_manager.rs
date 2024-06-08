@@ -7,6 +7,7 @@ use crate::{utils::sequential_id_generator::{Uuid, SequentialIdGenerator}, core_
 
 pub struct ExternalSnippetManager {
     external_snippets: Vec<ExternalSnippet>
+    // mapping of external snippets to external snippet file containers
 }
 
 pub struct ExternalSnippet {
@@ -278,6 +279,8 @@ impl ExternalSnippetCategory {
     pub fn get_name(&self) -> String {
         return self.name.clone();
     }
+
+    pub fn get_child_categoryies
 
     pub fn add_child_category(&mut self, category: &ExternalSnippetCategory) {
         self.child_category_uuids.push(category.get_uuid());

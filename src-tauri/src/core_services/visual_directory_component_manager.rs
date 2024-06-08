@@ -2,6 +2,7 @@ use bimap::BiHashMap;
 
 use crate::utils::sequential_id_generator::Uuid;
 
+//TODO link with front directory component manager
 pub struct VisualDirectoryComponentManager {
     directory_front_to_snippet_file_container: BiHashMap<Uuid, Uuid>
 }
