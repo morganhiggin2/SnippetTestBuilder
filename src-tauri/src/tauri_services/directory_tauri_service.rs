@@ -1,6 +1,6 @@
 use std::ops::DerefMut;
 
-use crate::{core_services::{io_service::FrontExternalSnippetContent}, state_management::MutexApplicationState};
+use crate::{core_services::front_directory_component_manager::FrontExternalSnippetContent, state_management::MutexApplicationState};
 
 /// get the snippet directory in it's entirety, and it's information
 #[tauri::command]

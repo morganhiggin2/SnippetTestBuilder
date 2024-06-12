@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, core_components::snippet::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
+use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, core_components::front_snippet_component_manager::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
@@ -270,11 +270,11 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
         }
     };
 
-    //get pipelines, can safely unwrap as we just created the pipeline above
+    // get pipelines, can safely unwrap as we just created the pipeline above
     let pipeline = snippet_manger.find_pipeline(&pipeline_uuid).unwrap();
 
-    //get pipeline front content and add to virtaul manager
-    let pipeline_front = pipeline.get_pipeline_as_front_content(visual_snippet_component_manager, seq_id_generator); 
+    // get pipeline front content and add to virtaul manager
+    let pipeline_front = pipeline.create_pipeline_as_front_content(visual_snippet_component_manager, seq_id_generator); 
 
     return Ok(pipeline_front);
 }

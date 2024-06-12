@@ -1,5 +1,5 @@
 use crate::utils::sequential_id_generator::{SequentialIdGenerator};
-use crate::core_components::front_snippet_component_manager::FrontSnippetManager;
+use crate::core_components::snippet_manager::SnippetManager;
 use crate::utils::sequential_id_generator::Uuid;
 
 use super::visual_snippet_component_manager::VisualSnippetComponentManager;
@@ -10,7 +10,7 @@ pub struct WindowManager {
 
 pub struct WindowSession {
     pub uuid: Uuid,
-    pub snippet_manager: FrontSnippetManager,
+    pub snippet_manager: SnippetManager,
     pub visual_component_manager: VisualSnippetComponentManager
 }
 
@@ -83,7 +83,7 @@ impl WindowSession {
     pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
         return WindowSession {
             uuid: seq_id_generator.get_id(),
-            snippet_manager: FrontSnippetManager::default(),
+            snippet_manager: SnippetManager::default(),
             visual_component_manager: VisualSnippetComponentManager::default()
         }
     }
@@ -93,7 +93,7 @@ impl Default for WindowSession {
     fn default() -> Self {
         return WindowSession {
             uuid: 0,
-            snippet_manager: FrontSnippetManager::default(),
+            snippet_manager: SnippetManager::default(),
             visual_component_manager: VisualSnippetComponentManager::default()
         }
     }

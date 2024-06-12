@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 use pyo3::{exceptions::{PyIOError, PyTypeError}, prelude::*};
-//use crate::core_services::io_service::validate_file_location;
+//use crate::core_services::directory_manager::validate_file_location;
 
 #[pyclass]
 #[derive(FromPyObject)]
