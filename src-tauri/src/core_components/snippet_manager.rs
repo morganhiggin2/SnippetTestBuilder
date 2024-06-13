@@ -1,5 +1,5 @@
-use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet, IOContentType}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
-use crate::core_components::front_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
+use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
+use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
 use std::{sync::MutexGuard, collections::HashMap};
 use bimap::BiHashMap;
 use serde::{Serialize, Deserialize};
@@ -40,7 +40,6 @@ pub struct PipelineConnectorComponent {
     uuid: Uuid,
     external_pipeline_connector_uuid: Uuid,
     name: String,
-    content_type: IOContentType,
     input: bool
 }
 
@@ -486,6 +485,8 @@ impl SnippetComponent {
         //generate contents vector
         let mut contents: Vec<FrontPipelineConnectorContent> = Vec::with_capacity(self.pipeline_connectors.len());
 
+        //TODO try to find in visual snippet component manager by calling find_ method on visual snippet component manager, if not, then create using pipeline_connector.create_as_front_content
+        // have this approach for many
         //get io points
         for pipeline_connector in self.pipeline_connectors.iter() {
             //push to contents
@@ -495,7 +496,6 @@ impl SnippetComponent {
                     seq_id_generator.get_id(),
                     pipeline_connector.uuid.clone(),
                     pipeline_connector.name.clone(),
-                    pipeline_connector.content_type.clone(),
                     pipeline_connector.input
                 )
             )
@@ -515,22 +515,19 @@ impl SnippetComponent {
 }
 
 impl PipelineConnectorComponent {
-    pub fn new(seq_id_generator: &mut SequentialIdGenerator, external_pipeline_connector_uuid: Uuid, name: &str, content_type: &IOContentType, input: bool) -> Self {
+    pub fn new(seq_id_generator: &mut SequentialIdGenerator, external_pipeline_connector_uuid: Uuid, name: &str, input: bool) -> Self {
         return PipelineConnectorComponent {
             uuid: seq_id_generator.get_id(),
             external_pipeline_connector_uuid: external_pipeline_connector_uuid,
             name: name.clone().to_string(),
-            content_type: content_type.clone(),
             input: input
         }
     }
 
+    pub fn 
+
     pub fn get_uuid(&self) -> Uuid {
         return self.uuid;
-    }
-
-    pub fn get_type(&self) -> IOContentType {
-        return self.content_type.clone();
     }
 
     pub fn get_input(&self) -> bool {
@@ -562,12 +559,12 @@ impl PipelineComponent {
     }
 
     /// get front from pipeline connector 
-    pub fn get_front_from_pipeline_connector_uuid(&self) -> Uuid {
+    pub fn get_from_pipeline_connector_uuid(&self) -> Uuid {
         return self.from_pipeline_connector_uuid;
     }
 
     /// get front to pipeline connector 
-    pub fn get_front_to_pipeline_connector_uuid(&self) -> Uuid {
+    pub fn get_to_pipeline_connector_uuid(&self) -> Uuid {
         return self.to_pipeline_connector_uuid;
     }
 }

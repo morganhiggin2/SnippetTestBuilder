@@ -5,9 +5,9 @@ use std::env;
 use pathdiff;
 use std::path::Path;
 
-use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager, IOContentType}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::{front_directory_component_manager::{FrontExternalSnippetContent, FrontExternalSnippetContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}};
+use super::{visual_directory_component_manager::{FrontDirectoryContent, FrontDirectoryContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}};
 
 // TODO seperate front directory service into it's own front service since it can be triggered by the ui
 // This here is not ui related
@@ -261,8 +261,8 @@ impl SnippetStructure {
         return Ok(());
     }
 
-    pub fn file_structure_to_front_snippet_contents(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontExternalSnippetContent> {
-        let mut front_snippet_contents: Vec<FrontExternalSnippetContent> = Vec::with_capacity(self.external_snippet_containers.len());
+    pub fn file_structure_to_front_snippet_contents(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager) -> Vec<FrontDirectoryContent> {
+        let mut front_snippet_contents: Vec<FrontDirectoryContent> = Vec::with_capacity(self.external_snippet_containers.len());
 
         //recursivly iterate though structure with helper function, reference to vec to add front file contents to
         let root_category = match self.root_category.as_ref() {
@@ -277,7 +277,7 @@ impl SnippetStructure {
         let external_snippet_category = self.find_category(&root_category.get_uuid()).unwrap();
 
         //create front snippet content
-        let front_snippet_content = FrontExternalSnippetContent::new_category(visual_directory_component_manager, seq_id_generator, external_snippet_category.get_name(), 0);
+        let front_snippet_content = FrontDirectoryContent::new_category(visual_directory_component_manager, seq_id_generator, external_snippet_category.get_name(), 0);
 
         //add to front snippet contents
         front_snippet_contents.push(front_snippet_content);
@@ -290,7 +290,7 @@ impl SnippetStructure {
 
     /// helper function to snippet_structure_to_front_snippet_contents
     /// recursivly goes though snippet structure
-    fn file_structure_to_front_snippet_contents_helper(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, front_snippet_contents: &mut Vec<FrontExternalSnippetContent>, external_snippet_category: &ExternalSnippetCategory, level: u32) {
+    fn file_structure_to_front_snippet_contents_helper(&self, visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_manager: &mut ExternalSnippetManager, front_snippet_contents: &mut Vec<FrontDirectoryContent>, external_snippet_category: &ExternalSnippetCategory, level: u32) {
         //add external snippets
         for ext_snip_uuid in external_snippet_category.child_snippet_uuids.iter() {
             //find external snippet file container
@@ -299,7 +299,7 @@ impl SnippetStructure {
             //create front snippet content
             //can safely unwrap since we created the external snippet before this method call
             //nothing else could change the existance or properties of it before
-            let front_snippet_content = FrontExternalSnippetContent::new_snippet(visual_directory_component_manager, external_snippet_manager, &self, seq_id_generator, &external_snippet_container, level).unwrap();
+            let front_snippet_content = FrontDirectoryContent::new_snippet(directory_manager, external_snippet_manager, &self, seq_id_generator, &external_snippet_container, level).unwrap();
 
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content)
@@ -311,7 +311,7 @@ impl SnippetStructure {
             let external_snippet_category = self.find_category(&cat_uuid).unwrap();
 
             //create front snippet content
-            let front_snippet_content = FrontExternalSnippetContent::new_category(visual_directory_component_manager, seq_id_generator, external_snippet_category.get_name(), 0);
+            let front_snippet_content = FrontDirectoryContent::new_category(visual_directory_component_manager, seq_id_generator, external_snippet_category.get_name(), 0);
             //add to front snippet contents
             front_snippet_contents.push(front_snippet_content);
 
@@ -360,7 +360,7 @@ impl ExternalSnippetFileContainer {
         return self.uuid;
     }
 
-    pub fn get_as_front_content(&self, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> Result<FrontExternalSnippetContent, &str>{
+    pub fn get_as_front_content(&self, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, level: u32) -> Result<FrontDirectoryContent, &str>{
         //get external snippet 
         let external_snippet = match external_snippet_manager.find_external_snippet(self.get_external_snippet_uuid()) {
             Ok(result) => result,
@@ -369,11 +369,11 @@ impl ExternalSnippetFileContainer {
             }
         };
 
-        let content = FrontExternalSnippetContent::new(
+        let content = FrontDirectoryContent::new(
             seq_id_generator.get_id(),
             external_snippet.get_name(),
             self.get_uuid(),
-            FrontExternalSnippetContentType::Snippet,
+            FrontDirectoryContentType::Snippet,
             false,
             level,
             false,

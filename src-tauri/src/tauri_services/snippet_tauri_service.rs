@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, core_components::front_snippet_component_manager::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
+use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
@@ -512,7 +512,7 @@ pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::Stat
     //get uuids
 
     //get front from pipeline connector uuid
-    let front_from_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_front_from_pipeline_connector_uuid()) {
+    let front_from_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_from_pipeline_connector_uuid()) {
         Some(result) => result,
         None => {
             return Err("could not find front from pipeline connector uuid from pipeline component");
@@ -520,7 +520,7 @@ pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::Stat
     };
 
     //get front to pipeline connector uuid
-    let front_to_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_front_to_pipeline_connector_uuid()) {
+    let front_to_pipeline_connector_uuid = match visual_snippet_component_manager.find_pipeline_connector_front_uuid(&pipeline_component.get_to_pipeline_connector_uuid()) {
         Some(result) => result,
         None => {
             return Err("could not find front to pipeline connector uuid from pipeline component");

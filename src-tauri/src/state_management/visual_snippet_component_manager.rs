@@ -1,4 +1,5 @@
 use bimap::BiHashMap;
+use serde::{Deserialize, Serialize};
 
 use crate::utils::sequential_id_generator::Uuid;
 
@@ -6,6 +7,27 @@ pub struct VisualSnippetComponentManager {
     pipeline_front_to_pipeline: BiHashMap<Uuid, Uuid>,
     pipeline_connector_front_to_pipeline_connector: BiHashMap<Uuid, Uuid>,
     snippet_front_to_snippet: BiHashMap<Uuid, Uuid>
+}
+
+//struct for the json serialization for snippet
+#[derive(Serialize, Deserialize)]
+pub struct FrontSnippetContent {
+    id: Uuid,
+    name: String,
+    pipeline_connectors: Vec<FrontPipelineConnectorContent>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FrontPipelineConnectorContent {
+    id: Uuid,
+    name: String,
+    input: bool 
+}
+
+//struct for the json serialization for pipieline
+#[derive(Serialize, Deserialize)]
+pub struct FrontPipelineContent {
+    id: Uuid,
 }
 
 impl Default for VisualSnippetComponentManager {
@@ -161,5 +183,54 @@ impl VisualSnippetComponentManager {
                 return Err("cannot delete snippet front from internal uuid, as snippet front does not exist");
             }
         };
+    }
+
+    // TODO put create methods for front here
+}
+
+impl FrontSnippetContent {
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>) -> Self {
+        let front_content = FrontSnippetContent {
+            id: uuid,
+            name: name,
+            pipeline_connectors: pipeline_connectors 
+        };
+
+        //add front content to visual component manager
+        visual_snippet_component_manager.put_snippet(uuid, internal_id);
+
+        return front_content;
+    }
+}
+
+impl FrontPipelineConnectorContent {
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, pipeline_connector_id: Uuid, name: String, input: bool) -> Self {
+        let front_content = FrontPipelineConnectorContent {
+            id: uuid,
+            name: name,
+            input: input
+        };
+
+        //add front content to visual component manager
+        visual_snippet_component_manager.put_pipeline_connector(uuid, pipeline_connector_id);
+
+        return front_content;
+    }
+}
+
+impl FrontPipelineContent {
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, pipeline_uuid: Uuid) -> Self {
+        let front_content = FrontPipelineContent {
+            id: uuid,
+        };
+
+        //add front content to visual compoennt manager
+        visual_snippet_component_manager.put_pipeline(uuid, pipeline_uuid);
+
+        return front_content;
+    }
+
+    pub fn get_uuid(&self) -> Uuid {
+        return self.id;
     }
 }

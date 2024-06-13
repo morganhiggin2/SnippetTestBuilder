@@ -1,10 +1,10 @@
 use std::ops::DerefMut;
 
-use crate::{core_services::front_directory_component_manager::FrontExternalSnippetContent, state_management::MutexApplicationState};
+use crate::{core_services::visual_directory_component_manager::FrontDirectoryContent, state_management::MutexApplicationState};
 
 /// get the snippet directory in it's entirety, and it's information
 #[tauri::command]
-pub fn get_snippet_directory(application_state_guard: tauri::State<MutexApplicationState>) -> Vec<FrontExternalSnippetContent> {
+pub fn get_snippet_directory(application_state_guard: tauri::State<MutexApplicationState>) -> Vec<FrontDirectoryContent> {
     // get the state
     let state_guard = &mut application_state_guard.0.lock().unwrap();
     let state = state_guard.deref_mut();

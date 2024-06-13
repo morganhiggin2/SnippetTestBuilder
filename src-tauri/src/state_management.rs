@@ -6,8 +6,6 @@ use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::state_management::external_snippet_manager::{ExternalSnippetManager};
 //use crate::core_services::python_service::{call_init_todo_delete_this_method};
 
-use self::external_snippet_manager::IOContentType;
-
 pub mod window_manager;
 pub mod external_snippet_manager;
 pub mod visual_snippet_component_manager;
