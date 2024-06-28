@@ -9,15 +9,170 @@ use crate::{core_components::snippet_manager, state_management::external_snippet
 
 use super::{visual_directory_component_manager::{FrontDirectoryContent, FrontDirectoryContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}};
 
-// TODO seperate front directory service into it's own front service since it can be triggered by the ui
 // This here is not ui related
 pub struct DirectoryManager {
     relative_snippet_directory: String,
     //TODO remove pub
-    pub snippet_structure: SnippetStructure,
+    pub snippet_directory: SnippetDirectory,
     //visual front end components for directory contents
     pub visual_component_manager: VisualDirectoryComponentManager
 }
+
+// Actually going to be a by-reference instead of by-uuid-lookup implementation
+// A snippet directory has a root snippet directory entry
+// a snippet directory entry is either a snippet directory snippet or a snippet directory category
+// a snippet directory category can be a parent to other snippet directory entries
+pub struct SnippetDirectory {
+    root: Option<SnippetDirectoryEntry>
+}
+
+pub struct SnippetDirectoryEntry {
+    uuid: Uuid,
+    content: SnippetDirectoryType
+}
+
+pub enum SnippetDirectoryType {
+    Snippet(SnippetDirectoryCategory),
+    Category(SnippetDirectorySnippet)
+}
+
+pub struct SnippetDirectorySnippet {
+    uuid: Uuid
+}
+
+pub struct SnippetDirectoryCategory {
+    uuid: Uuid,
+    children: Vec<SnippetDirectoryEntry>
+}
+
+impl Default for SnippetDirectory {
+    fn default() -> Self {
+        return SnippetDirectory {
+            root: None 
+        };
+    }
+}
+
+impl SnippetDirectory {
+    /// Initialize the snippet directory
+    pub fn initialize(&mut self) {
+        
+    }
+     /// reads snippet directory, reads all snippet files,
+    /// and compiles all snippet category, file inforation,
+    /// as well as assembles external snippets
+    fn map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, relative_snippet_directory: &String) -> Result<(), String> {
+        //get current working directory
+        let current_working_directory = match env::current_dir() {
+            Ok(result) => result.as_path().to_owned(),
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        };
+        //get snippet directory
+        let snippets_directory = current_working_directory.join(relative_snippet_directory);
+        
+        // if the root category already exists, we overrite it
+        match self.root_category {
+            Some(_) => {
+                self.root_category = None;
+                //TODO feature enhancement:
+                // when calling this method, get rid of categories that are gone 
+                // and when an existing one is attempted to be added in the map_directory_walker_helper method, it does not override an existing, 
+                // same category with the same one (cause it will have a new uuid and mess up existing references) 
+                return Err("Cannot call this method when there already exists a snippet strcture".to_string());
+            },
+            None => ()
+        };
+        // create root category
+        let mut root_category = ExternalSnippetCategory::new_root(seq_id_generator, "root".to_string(), 0, 1);
+
+        // walk directory recurrsivly
+        self.map_directory_walker_helper(&snippets_directory,&mut root_category, external_snippet_manager, seq_id_generator)?;
+
+        // set root category
+        self.root_category = Some(root_category); 
+
+        // create snippets
+        self.create_snippets(&mut snippet_factory_queue)?;
+      
+        return Ok(());
+    }
+    
+    // New walk directory method, that looks for snippets, when it reaches a .app file in the current directory
+    //   calls another helper to walk that dirctory for all .py files, list of .py file pathbufs
+    //   creates external snippet file container with this list
+    // by the end of this we have a full directory structure. 
+    // the next step would to call initialize snippet to create snippets on every snippet file container
+    // this will create the snippets, and populate the mapping from external snippet front container to external snippets
+    
+    /// Walk directory, and for each folder that is not a snippet, create a category
+    fn map_directory_walker_helper(&mut self, current_path: &PathBuf, parent_category: &mut ExternalSnippetCategory, external_snippet_manager: &mut ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, snippet_factory_queue: &mut Vec<PathBuf>) -> Result<(), String> {
+        // first check to see if there exists a . file in the direcoty, regardless of the other contents
+        // if there is a . file in the directory, there this is a snippet
+        // for each entry in the directory we are in 
+        
+        // get directory iterator
+        let dir_iter = match fs::read_dir(current_path) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!("Error in getting read dir for path {}: {}", current_path.as_os_str().to_string_lossy(), e.to_string()));
+            }
+        };
+
+        // list of directories to iterate over
+        // since the direcotry iterator incurs a cost in iterating the path, we are going to store these results
+        // tempoarary variable
+        let mut directory_entries = Vec::<DirEntry>::new();
+        
+        for entry in dir_iter{
+            // if the entry is load correctly
+            if let Ok(dir_entry) = entry {
+                // call directory walker on directory to recurrsivly dive into each folder
+                if dir_entry.path().is_dir() {
+                    directory_entries.push(dir_entry);
+                }
+                // it is a file
+                else {
+                    
+                    //check if this is a . file
+                    if let Some(file_extension) = dir_entry.path().extension(){
+                        // get file name
+                        let file_name = dir_entry.file_name();
+
+                        // println!(file_extension);
+                        // if this is a app.py file, this is a snippet
+                        if file_extension.eq(OsStr::new("py")) && file_name.eq(OsStr::new("app")) {
+                            //create unitilized snippet, then to be initialized after directory walking
+                            snippet_factory_queue.push(dir_entry.path());
+
+                            // end the directory search
+                            // any other directories in this directory can be considered for the snippet, as a snippet cannot exist inside a snippet
+                            return Ok(());
+                        }    
+                    }
+                    else {
+                        // misc files deal with here
+                        // for now, this is going to be ignored
+                    }
+                }
+            }
+            else {
+                //TODO log error in getting dir entry, maybe some permission issue or what not
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 //TODO remove pub
 pub struct SnippetStructure {
@@ -41,7 +196,7 @@ pub struct ExternalSnippetFileContainer {
 
 impl Default for DirectoryManager {
     fn default() -> Self {
-        let mut relative_snippet_directory = "../data/snippets".to_string();
+        let relative_snippet_directory = "../data/snippets".to_string();
 
         //Only run if debug build, as the relative directory for the data will be different
         //#[cfg(debug_assertions)]
@@ -239,6 +394,7 @@ impl SnippetStructure {
         return Ok(());
     } */
 
+    /*
     /// Create snippets based on their respective paths, running their initialization methods 
     fn create_snippets(&mut self, snippet_factory_queue: &mut Vec<PathBuf>) -> Result<(), String> {
         // Read python code for each snippet path
@@ -318,7 +474,7 @@ impl SnippetStructure {
             //call helper to go into category recurrsivly
             self.file_structure_to_front_snippet_contents_helper(visual_directory_component_manager, seq_id_generator, external_snippet_manager, front_snippet_contents, external_snippet_category, level + 1);
         }
-    }
+    }*/
     
     /// find category given uuid
     pub fn find_category(&self, uuid: &Uuid) -> Option<&ExternalSnippetCategory> {

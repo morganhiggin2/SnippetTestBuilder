@@ -196,6 +196,7 @@ impl ExternalSnippetManager {
         };
     }
 
+    /*
     /// Create root category node
     /// serves the purpose of being the root of all category nodes, has no children by definition
     pub fn new_root_external_category_snippet(seq_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
@@ -203,15 +204,17 @@ impl ExternalSnippetManager {
             uuid: seq_id_generator.get_id(),
             name: name
         };
+
+        //TODO have each snippet have entry in python service holding python info
     }
    
     /// Create child category node, has parent by definition
-    pub fn new_child_external_category_snippet(seq_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
+    pub fn new_child_external_category_snippet(seq_id_generator: &mut SequentialIdGenerator, parent_uuid: Uuid, name: String) -> Self {
         return ExternalSnippetCategory {
             uuid: seq_id_generator.get_id(),
             name: name
         };
-    }
+    }*/
 }
 
 impl ExternalSnippet {
@@ -252,12 +255,13 @@ impl ExternalSnippet {
     }
     
     /// get the io points as pipeline connectors
+    /// for the snippet manager
     pub fn create_pipeline_connectors_for_io_points(&self, seq_id_generator: &mut SequentialIdGenerator) -> Vec<PipelineConnectorComponent> {
         let mut pipeline_connectors = Vec::with_capacity(self.io_points.len());
 
         for io_point_pair in &self.io_points {
             pipeline_connectors.push(
-                PipelineConnectorComponent::new(seq_id_generator, io_point_pair.0.clone(), &io_point_pair.1.name, &io_point_pair.1.content_type, io_point_pair.1.input.clone())
+                PipelineConnectorComponent::new(seq_id_generator, io_point_pair.0.clone(), &io_point_pair.1.name,  io_point_pair.1.input.clone())
             )
         }
 
@@ -265,6 +269,7 @@ impl ExternalSnippet {
     }
 }
 
+/*
 impl ExternalSnippetCategory {
     /// Create new category node
     pub fn new(seq_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
@@ -287,7 +292,7 @@ impl fmt::Display for ExternalSnippetCategory {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
     }
-}
+} */
 
 impl ExternalSnippetIOPoint {
     /// create non action io endpoint

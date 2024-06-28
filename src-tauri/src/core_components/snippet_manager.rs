@@ -78,7 +78,7 @@ impl SnippetManager {
         snippet_component.name = snippet_name;
 
         //add io points to snippet component as pipeline connectors
-        let pipeline_connectors = external_snippet.get_io_points_as_pipeline_connectors(seq_id_generator);
+        let pipeline_connectors = external_snippet.create_pipeline_connectors_for_io_points(seq_id_generator);
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
@@ -410,10 +410,11 @@ impl SnippetManager {
             return Ok(false);
         }
 
+        /*
         //verify types match
         if from_pipeline_connector.get_type() != to_pipeline_connector.get_type() {
             return Ok(false); 
-        }
+        }*/
 
         return Ok(true);
     }
@@ -524,7 +525,9 @@ impl PipelineConnectorComponent {
         }
     }
 
-    pub fn 
+    pub fn get_name(&self) -> String {
+        return self.name.to_owned();
+    }
 
     pub fn get_uuid(&self) -> Uuid {
         return self.uuid;

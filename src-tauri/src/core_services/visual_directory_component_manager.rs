@@ -60,7 +60,7 @@ impl VisualDirectoryComponentManager {
 }
 
 impl FrontDirectoryContent {
-    pub fn new(uuid: Uuid, name: String, internal_id: Uuid, file_type: FrontDirectoryContentType, is_directory: bool, level: u32, showing: bool) -> Self {
+    pub fn new(uuid: Uuid, name: String, file_type: FrontDirectoryContentType, is_directory: bool, level: u32, showing: bool) -> Self {
         let front_content = FrontDirectoryContent {
             id: uuid,
             name: name,
@@ -74,7 +74,7 @@ impl FrontDirectoryContent {
     }
 
     /// create new front snippet content of type external snippet file container 
-    pub fn new_snippet(directory_manager: &DirectoryManager, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
+    pub fn new_snippet(directory_manager: &mut DirectoryManager, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
         //TODO: ask why &str instead of String is not working
         //call front method on file container
         let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(external_snippet_manager, seq_id_generator, level) {
@@ -101,11 +101,10 @@ impl FrontDirectoryContent {
         return FrontDirectoryContent::new(
             seq_id_generator.get_id(),
             name.clone(),
-            0,
             FrontDirectoryContentType::Directory,
             true,
             level,
-            false,
+            false
         );
     }
 }

@@ -1,7 +1,7 @@
 use bimap::BiHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::utils::sequential_id_generator::Uuid;
+use crate::utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid};
 
 pub struct VisualSnippetComponentManager {
     pipeline_front_to_pipeline: BiHashMap<Uuid, Uuid>,
@@ -101,7 +101,7 @@ impl VisualSnippetComponentManager {
     /// * 'uuid' - uuid of the front pipeline component
     pub fn delete_pipeline_by_pipeline_front(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         match self.pipeline_front_to_pipeline.remove_by_left(uuid) {
-            Some(result) => {
+            Some(_) => {
                 return Ok(());
             }
             None => {
@@ -116,7 +116,7 @@ impl VisualSnippetComponentManager {
     /// * 'uuid' - uuid of the pipeline
     pub fn delete_pipeline_by_pipeline(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         match self.pipeline_front_to_pipeline.remove_by_left(uuid) {
-            Some(result) => {
+            Some(_) => {
                 return Ok(());
             }
             None => {
@@ -183,6 +183,16 @@ impl VisualSnippetComponentManager {
                 return Err("cannot delete snippet front from internal uuid, as snippet front does not exist");
             }
         };
+    }
+
+    /// creates pipeline front
+    pub fn create_pipeline_front(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_uuid: Uuid) -> FrontPipelineContent {
+        // Create front pipeline content
+        let front_pipeline_content = FrontPipelineContent::new(self, sequential_id_generator.get_id(), external_uuid);
+
+        self.put_pipeline(front_pipeline_content.get_uuid(), external_uuid);
+
+        return front_pipeline_content;
     }
 
     // TODO put create methods for front here
