@@ -62,3 +62,6 @@ fn logln(text: &str) {
 
 //IMPORTAINT 
 //installed libpython3.10-dev
+
+//COULD DO
+// trait NEW that mandiates the seq id generator with a new() function
