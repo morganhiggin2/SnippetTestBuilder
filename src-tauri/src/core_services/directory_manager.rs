@@ -1,5 +1,6 @@
 use core::fmt;
 use std::{borrow::Borrow, collections::HashMap, ffi::OsStr, fs::{self, DirEntry}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
+use enum_as_inner::EnumAsInner;
 use serde::{Serialize, Deserialize};
 use std::env;
 use pathdiff;
@@ -31,6 +32,7 @@ pub struct SnippetDirectoryEntry {
     content: SnippetDirectoryType
 }
 
+#[derive(EnumAsInner)]
 pub enum SnippetDirectoryType {
     Category(SnippetDirectoryCategory),
     Snippet(SnippetDirectorySnippet)
@@ -117,7 +119,7 @@ impl SnippetDirectory {
     /// and compiles all snippet category, file inforation,
     /// as well as assembles external snippets, existing snippets will not be overriden
     /// and new snippets will be inserted
-    fn scan_and_map_directory(&mut self, external_snippet_manager: &mut ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, relative_snippet_directory: &String) -> Result<(), String> {
+    fn scan_and_map_directory(&mut self, relative_snippet_directory: &String, seq_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         //get current working directory
         let current_working_directory = match env::current_dir() {
             Ok(result) => result.as_path().to_owned(),
@@ -133,32 +135,28 @@ impl SnippetDirectory {
             Some(_) => (), 
             None => {
                 // create root category
-                let mut root_category = SnippetDirectoryEntry::new_category(seq_id_generator); 
+                let root_category = SnippetDirectoryEntry::new_category(seq_id_generator); 
 
                 self.root = Some(root_category);
             }
         };
 
         // becausse we know the root is of type Some, we can safely unwrap
-        let root: &mut Result::Some(SnippetDirectoryEntry) = &mut self.root.try_into().unwrap();
+        let root = self.root.as_mut().unwrap();
+        let root = root.get_as_category().unwrap();
 
         // walk directory recurrsivly
-        self.map_directory_walker_helper(&snippets_directory,root, seq_id_generator)?;
+        SnippetDirectory::directory_walker(root, &snippets_directory, seq_id_generator)?;
       
         return Ok(());
     }
-
-    // 1. scan directory, get new snippets
-    // 2. scan over directory entries and compare to external snippet manager, for any new ones, initialize
-    
-    // New walk directory method, that looks for snippets, when it reaches a .app file in the current directory
-    //   calls another helper to walk that dirctory for all .py files, list of .py file pathbufs
-    //   creates external snippet file container with this list
-    // by the end of this we have a full directory structure. 
     // the next step would to call initialize snippet to create snippets on every snippet file container
     // this will create the snippets, and populate the mapping from external snippet front container to external snippets
 
-    fn directory_walker(sequential_id_generator: &mut SequentialIdGenerator, parent_directory_category: &mut SnippetDirectoryCategory, current_path: &Path, cb: &dyn Fn(&DirEntry)) -> Result<(), String> {
+    /// walk directory method, that looks for snippets, when it reaches a <snippet_name>.py file in the current directory,
+    ///   it calls another helper to walk that dirctory for all .py files, list of .py file pathbufs, and 
+    ///   by the end of this we have a full directory structure. 
+    fn directory_walker(parent_directory_category: &mut SnippetDirectoryCategory, current_path: &Path, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         // Change this to match other logic for seeing it is a snippet, possibly a is_snippet method instead of is_dir
 
         // Get if snippet directory
@@ -166,18 +164,15 @@ impl SnippetDirectory {
 
         if is_snippet_directory {
             // get directory name
-            let dir_name = match current_path.file_name() {
+            /*let dir_name = match current_path.file_name() {
                 Some(some) => some,
                 None => {
                     return Ok(());
                 }
-            };
+            };*/
 
             // create snippet type, add as child 
-            let mut snippet_entry = SnippetDirectoryEntry::new_snippet(sequential_id_generator);
-
-            // get snippet snippet type
-            let snippet_snippet = snippet_entry.get_as_snippet()?;
+            let snippet_entry = SnippetDirectoryEntry::new_snippet(sequential_id_generator);
 
             // add as child
             parent_directory_category.add_child(snippet_entry);
@@ -189,14 +184,26 @@ impl SnippetDirectory {
 
             // get snippet category type
             let snippet_category = snippet_entry.get_as_category()?; 
+
+            let dir_entries = match fs::read_dir(current_path) {
+                Ok(some) => some,
+                Err(e) => {
+                    return Err(format!("Could not get directory entry for a given directory path in directory_walker call: {}", e.to_string()));
+                }
+            };
         
             // walk sub 
-            for directory_entry in fs::read_dir(current_path)? {
-                let entry = directory_entry?;
+            for directory_entry in dir_entries {
+                let entry = match directory_entry {
+                    Ok(some) => some,
+                    Err(e) => {
+                        return Err(format!("Could not get entry from directory entry in directory_walker: {}", e.to_string()));
+                    }
+                };
                 let path = entry.path();
 
                 if path.is_dir() {
-                    SnippetDirectory::directory_walker(sequential_id_generator, snippet_category, current_path, cb)?;
+                    SnippetDirectory::directory_walker(snippet_category, current_path, sequential_id_generator)?;
                 }
             }
 
@@ -214,7 +221,7 @@ impl SnippetDirectory {
             let dir_entries = match fs::read_dir(dir_path) {
                 Ok(some) => some,
                 Err(e) => {
-                    return Err(format!("Could not get directory entried for a given directory path in is_directory_snippet call: {}", e.to_string()));
+                    return Err(format!("Could not get directory entry for a given directory path in is_directory_snippet call: {}", e.to_string()));
                 }
             };
 
@@ -245,6 +252,7 @@ impl SnippetDirectory {
         return Ok(false);
     }
     
+    /*
     /// Walk directory, and for each folder that is not a snippet, create a category
     fn map_directory_walker_helper(&mut self, current_path: &PathBuf, parent_category: &mut ExternalSnippetCategory, seq_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         // first check to see if there exists a . file in the direcoty, regardless of the other contents
@@ -302,7 +310,7 @@ impl SnippetDirectory {
         }
 
         return Ok(());
-    }
+    }*/
 }
 
 
@@ -314,7 +322,7 @@ impl SnippetDirectory {
 
 
 
-
+/* 
 //TODO remove pub
 pub struct SnippetStructure {
     //TODO remove all pubs
@@ -679,3 +687,4 @@ impl ExternalSnippetFileContainer {
         return Ok(content);
     }
 }
+*/

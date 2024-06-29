@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{state_management::external_snippet_manager::ExternalSnippetManager, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::directory_manager::{DirectoryManager, ExternalSnippetFileContainer};
+use super::directory_manager::{DirectoryManager};
 
 //TODO link with front directory component manager
 pub struct VisualDirectoryComponentManager {
