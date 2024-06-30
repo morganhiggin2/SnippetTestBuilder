@@ -74,10 +74,10 @@ impl FrontDirectoryContent {
     }
 
     /// create new front snippet content of type external snippet file container 
-    pub fn new_snippet(directory_manager: &mut DirectoryManager, external_snippet_manager: &ExternalSnippetManager, seq_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
+    pub fn new_snippet(directory_manager: &mut DirectoryManager, external_snippet_manager: &ExternalSnippetManager, sequential_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
         //TODO: ask why &str instead of String is not working
         //call front method on file container
-        let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(external_snippet_manager, seq_id_generator, level) {
+        let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(external_snippet_manager, sequential_id_generator, level) {
             Ok(result) => result,
             Err(e) => {
                 return Err(e.to_string());
@@ -93,13 +93,13 @@ impl FrontDirectoryContent {
         //find external snippet
         //let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_container.get_external_snippet_uuid()).unwrap();
 
-        //return external_snippet.get_as_front_content(visual_directory_component_manager, external_snippet_manager, seq_id_generator, level);        
+        //return external_snippet.get_as_front_content(visual_directory_component_manager, external_snippet_manager, sequential_id_generator, level);        
     }
 
     /// create new front snippet content of type category 
-    pub fn new_category(visual_directory_component_manager: &mut VisualDirectoryComponentManager, seq_id_generator: &mut SequentialIdGenerator, name: String,  level: u32) -> Self {
+    pub fn new_category(visual_directory_component_manager: &mut VisualDirectoryComponentManager, sequential_id_generator: &mut SequentialIdGenerator, name: String,  level: u32) -> Self {
         return FrontDirectoryContent::new(
-            seq_id_generator.get_id(),
+            sequential_id_generator.get_id(),
             name.clone(),
             FrontDirectoryContentType::Directory,
             true,

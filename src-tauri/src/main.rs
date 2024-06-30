@@ -36,7 +36,7 @@ fn main() {
         //call init for state management system
         ApplicationState::init(app_ref);
 
-        /*match call_init(&mut app_ref.seq_id_generator, &mut app_ref.external_snippet_manager) {
+        /*match call_init(&mut app_ref.sequential_id_generator, &mut app_ref.external_snippet_manager) {
             Ok(_) => (),
             Err(e) => {
                 println!("error {}", e);

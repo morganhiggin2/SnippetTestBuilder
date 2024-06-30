@@ -17,9 +17,9 @@ pub struct WindowSession {
 impl WindowManager {
     /// create a new window session for the window sessions manager
     /// returns uuid of session
-    pub fn new_window_session(&mut self, seq_id_generator: &mut SequentialIdGenerator) -> Uuid {
+    pub fn new_window_session(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Uuid {
         //create new window session
-        let window_session = WindowSession::new(seq_id_generator);
+        let window_session = WindowSession::new(sequential_id_generator);
 
         //copy window session uuid
         let window_session_uuid = window_session.uuid;
@@ -80,9 +80,9 @@ impl Default for WindowManager {
 
 impl WindowSession {
     /// create a new window session
-    pub fn new(seq_id_generator: &mut SequentialIdGenerator) -> Self {
+    pub fn new(sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return WindowSession {
-            uuid: seq_id_generator.get_id(),
+            uuid: sequential_id_generator.get_id(),
             snippet_manager: SnippetManager::default(),
             visual_component_manager: VisualSnippetComponentManager::default()
         }

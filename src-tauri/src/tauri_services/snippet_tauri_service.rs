@@ -17,7 +17,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     let state = state_guard.deref_mut();
 
     //borrow split
-    let seq_id_generator = &mut state.seq_id_generator;
+    let sequential_id_generator = &mut state.sequential_id_generator;
     let window_manager = &mut state.window_manager;
     let ext_snippet_manager = &mut state.external_snippet_manager;
     let directory_manager = &mut state.directory_manager;
@@ -60,7 +60,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     };
 
     //create snippet
-    let snippet_uuid = snippet_manager.new_snippet(seq_id_generator, external_snippet);
+    let snippet_uuid = snippet_manager.new_snippet(sequential_id_generator, external_snippet);
 
     //get the snippet
     let snippet = match snippet_manager.find_snippet(&snippet_uuid) {
@@ -71,7 +71,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     };
 
     //get snippet at front content and add to virtual manager
-    let front_snippet = snippet.get_snippet_to_front_snippet(visual_snippet_component_manager, seq_id_generator, &snippet_manager);
+    let front_snippet = snippet.get_snippet_to_front_snippet(visual_snippet_component_manager, sequential_id_generator, &snippet_manager);
     
     //return uuid
     return Ok(front_snippet);
@@ -241,7 +241,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
     };
 
     //borrow split
-    let mut seq_id_generator = &mut state.seq_id_generator;
+    let mut sequential_id_generator = &mut state.sequential_id_generator;
 
     let snippet_manger = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
@@ -263,7 +263,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
 
     //attempt to create pipeline
     //if could not be created, return none
-    let pipeline_uuid: Uuid = match snippet_manger.create_pipeline(&mut seq_id_generator, from_uuid, to_uuid) {
+    let pipeline_uuid: Uuid = match snippet_manger.create_pipeline(&mut sequential_id_generator, from_uuid, to_uuid) {
         Ok(result) => result,
         Err(err) => {
             return Err(err);
@@ -274,7 +274,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
     let pipeline = snippet_manger.find_pipeline(&pipeline_uuid).unwrap();
 
     // get pipeline front content and add to virtaul manager
-    let pipeline_front = pipeline.create_pipeline_as_front_content(visual_snippet_component_manager, seq_id_generator); 
+    let pipeline_front = pipeline.create_pipeline_as_front_content(visual_snippet_component_manager, sequential_id_generator); 
 
     return Ok(pipeline_front);
 }
@@ -544,10 +544,10 @@ pub fn get_id(application_state: tauri::State<MutexApplicationState>) -> Uuid {
     let state = state_guard.deref_mut();
 
     //borrow split
-    let seq_id_generator = &mut state.seq_id_generator;
+    let sequential_id_generator = &mut state.sequential_id_generator;
 
     //get new id
-    let id = seq_id_generator.get_id();
+    let id = sequential_id_generator.get_id();
     
     return id;
 }

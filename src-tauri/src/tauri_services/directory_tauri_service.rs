@@ -10,11 +10,11 @@ pub fn get_snippet_directory(application_state_guard: tauri::State<MutexApplicat
     let state = state_guard.deref_mut();
 
     //borrow split
-    let seq_id_generator = &mut state.seq_id_generator;
+    let sequential_id_generator = &mut state.sequential_id_generator;
     let ext_snippet_manager = &mut state.external_snippet_manager;
     let directory_manager = &mut state.directory_manager;
     let visual_directory_component_manager = &mut directory_manager.visual_component_manager;
 
     //create front snippet containers and add to virtual manager
-    return directory_manager.snippet_structure.file_structure_to_front_snippet_contents(visual_directory_component_manager, seq_id_generator, ext_snippet_manager);
+    return directory_manager.snippet_structure.file_structure_to_front_snippet_contents(visual_directory_component_manager, sequential_id_generator, ext_snippet_manager);
 }

@@ -14,7 +14,7 @@ pub struct MutexApplicationState(pub Mutex<ApplicationState>);
 
 pub struct ApplicationState {
     //sequential id generator
-    pub seq_id_generator: SequentialIdGenerator,
+    pub sequential_id_generator: SequentialIdGenerator,
     pub window_manager: WindowManager,
     pub external_snippet_manager: ExternalSnippetManager,
     pub directory_manager: DirectoryManager 
@@ -30,7 +30,7 @@ impl Default for ApplicationState {
     /// implement default application state
     fn default() -> ApplicationState {
         return ApplicationState {
-            seq_id_generator: SequentialIdGenerator::default(),
+            sequential_id_generator: SequentialIdGenerator::default(),
             window_manager: WindowManager::default(),
             external_snippet_manager: ExternalSnippetManager::default(),
             directory_manager: DirectoryManager::default() 
@@ -44,7 +44,7 @@ impl ApplicationState {
     }
 
     pub fn get_sequence_id_generator(&mut self) ->  &mut SequentialIdGenerator {
-        return  &mut self.seq_id_generator;
+        return  &mut self.sequential_id_generator;
     }
 
     /// init for the state managment 
@@ -54,14 +54,14 @@ impl ApplicationState {
         //let mut app = app_guard.lock().unwrap();
 
 
-        //let sig = &mut app.seq_id_generator;
+        //let sig = &mut app.sequential_id_generator;
         //let esp = &mut app.external_snippet_manager;
 
         //load external snippets
         //TODO delete
         //creating snippets for testing
         /*{
-            let sequential_id_generator = &mut application_state.seq_id_generator;
+            let sequential_id_generator = &mut application_state.sequential_id_generator;
             let external_snippet_manager = &mut application_state.external_snippet_manager;   
             let directory_manager = &mut application_state.directory_manager;
 
@@ -89,12 +89,12 @@ impl ApplicationState {
             call_init_todo_delete_this_method(sequential_id_generator, external_snippet_manager);
         }*/
 
-        let sequential_id_generator = &mut application_state.seq_id_generator;
+        let sequential_id_generator = &mut application_state.sequential_id_generator;
         let external_snippet_manager = &mut application_state.external_snippet_manager;   
         let directory_manager = &mut application_state.directory_manager;
 
         // Initialize directory of snippets
-        directory_manager.init(external_snippet_manager, sequential_id_generator);
+        directory_manager.initialize(sequential_id_generator).unwrap();
 
     }
 }
