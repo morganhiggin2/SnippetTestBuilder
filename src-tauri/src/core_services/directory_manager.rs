@@ -30,7 +30,8 @@ pub struct SnippetDirectory {
 pub struct SnippetDirectoryEntry {
     name: String,
     uuid: Uuid,
-    content: SnippetDirectoryType
+    content: SnippetDirectoryType,
+    path: PathBuf
 }
 
 #[derive(EnumAsInner)]
@@ -92,7 +93,7 @@ impl SnippetDirectory {
             Some(_) => (), 
             None => {
                 // create root category
-                let root_category = SnippetDirectoryEntry::new_category("main".to_owned(), sequential_id_generator); 
+                let root_category = SnippetDirectoryEntry::new_category("main".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
 
                 self.root = Some(root_category);
             }
@@ -132,7 +133,7 @@ impl SnippetDirectory {
         if is_snippet_directory {
 
             // create snippet type, add as child 
-            let snippet_entry = SnippetDirectoryEntry::new_snippet(dir_name.to_owned(), sequential_id_generator);
+            let snippet_entry = SnippetDirectoryEntry::new_snippet(dir_name.to_owned(), current_path.to_owned(), sequential_id_generator);
 
             // add as child
             parent_directory_category.add_child(snippet_entry);
@@ -140,7 +141,7 @@ impl SnippetDirectory {
         }
         else if current_path.is_dir() {
             // create category
-            let mut snippet_entry = SnippetDirectoryEntry::new_category(dir_name.to_owned(), sequential_id_generator);
+            let mut snippet_entry = SnippetDirectoryEntry::new_category(dir_name.to_owned(), current_path.to_owned(), sequential_id_generator);
 
             // get snippet category type
             let snippet_category = snippet_entry.get_as_category()?; 
@@ -278,19 +279,21 @@ impl SnippetDirectory {
 }
 
 impl SnippetDirectoryEntry {
-    pub fn new_category(name: String, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
+    pub fn new_category(name: String, path: PathBuf, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetDirectoryEntry {
             name: name,
             uuid: sequential_id_generator.get_id(),
-            content: SnippetDirectoryType::Category(SnippetDirectoryCategory::new())
+            content: SnippetDirectoryType::Category(SnippetDirectoryCategory::new()),
+            path: path
         }
     }
 
-    pub fn new_snippet(name: String, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
+    pub fn new_snippet(name: String, path: PathBuf, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetDirectoryEntry {
             name: name,
             uuid: sequential_id_generator.get_id(),
-            content: SnippetDirectoryType::Snippet(SnippetDirectorySnippet::new())
+            content: SnippetDirectoryType::Snippet(SnippetDirectorySnippet::new()),
+            path: path
         }
     }
 
@@ -322,6 +325,10 @@ impl SnippetDirectoryEntry {
 
     pub fn get_name(&self) -> String {
         return self.name.to_owned();
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        return self.path.to_owned();
     }
 }
 

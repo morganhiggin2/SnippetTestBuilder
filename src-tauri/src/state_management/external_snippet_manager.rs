@@ -62,6 +62,11 @@ impl ExternalSnippetManager {
             SnippetDirectoryType::Snippet(entry) => {
                 // create external snippet
                 self.create_empty_snippet(sequential_id_generator, &name);
+
+                //TODO
+                // 1. create python component
+                // 2. call component, initialize snippet, get information
+                // 3. build external snippet with this information (name, schema, etc), include python component
             }
         };
 

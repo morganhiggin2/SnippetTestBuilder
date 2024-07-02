@@ -1,4 +1,49 @@
 //https://pyo3.rs/main/building_and_distribution#dynamically-embedding-the-python-interpreter
+
+use pyo3::{prelude::*, PyClass};
+use pyo3::{wrap_pyfunction, wrap_pymodule};
+use pyo3::types::*;
+use tauri::utils::config::BuildConfig;
+
+use crate::core_services::directory_manager::{self, DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet};
+
+pub fn initialize_snippets(directory_snippets: Vec<&SnippetDirectoryEntry>) {
+    // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
+    let py_result = Python::with_gil(|py| -> PyResult<()> {
+        for directory_snippet in directory_snippets {
+            let mut path = directory_snippet.get_path();
+            let name = directory_snippet.get_name();
+
+            let directory_snippet_snippet = directory_snippet.get_as_snippet();
+            
+            // Read the main file and the main file only
+            let main_file_path = path.extend(name + ".py");
+
+            //.Open main file
+            // Read main file
+            // Close main file 
+
+            // Create new gil pool
+            // Run main file, get result
+            // Return result as rust type only
+        }
+
+        return PyResult::Ok(());
+    });
+
+    /*
+    Python::with_gil(|py| -> PyResult<()> {
+    for _ in 0..10 {
+        let pool = unsafe { py.new_pool() };
+        let py = pool.python();
+        let hello: &PyString = py.eval("\"Hello World!\"", None, None)?.extract()?;
+        println!("Python says: {}", hello);
+    }
+    Ok(())
+})?;
+    */ 
+}
+
 /*use pyo3::{prelude::*, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
 use pyo3::types::*;

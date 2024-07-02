@@ -16,6 +16,7 @@ pub mod utils;
 pub mod core_components;
 pub mod tauri_services;
 pub mod core_services;
+pub mod python_libraries;
 
 fn main() {
     /*match call_init() {
