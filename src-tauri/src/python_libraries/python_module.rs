@@ -1,48 +1,101 @@
 //https://pyo3.rs/main/building_and_distribution#dynamically-embedding-the-python-interpreter
 
+use std::path::PathBuf;
+
 use pyo3::{prelude::*, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
 use pyo3::types::*;
 use tauri::utils::config::BuildConfig;
 
 use crate::core_services::directory_manager::{self, DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet};
+use crate::utils::sequential_id_generator::Uuid;
 
-pub fn initialize_snippets(directory_snippets: Vec<&SnippetDirectoryEntry>) {
-    // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
-    let py_result = Python::with_gil(|py| -> PyResult<()> {
-        for directory_snippet in directory_snippets {
-            let mut path = directory_snippet.get_path();
-            let name = directory_snippet.get_name();
-
-            let directory_snippet_snippet = directory_snippet.get_as_snippet();
-            
-            // Read the main file and the main file only
-            let main_file_path = path.extend(name + ".py");
-
-            //.Open main file
-            // Read main file
-            // Close main file 
-
-            // Create new gil pool
-            // Run main file, get result
-            // Return result as rust type only
-        }
-
-        return PyResult::Ok(());
-    });
-
-    /*
-    Python::with_gil(|py| -> PyResult<()> {
-    for _ in 0..10 {
-        let pool = unsafe { py.new_pool() };
-        let py = pool.python();
-        let hello: &PyString = py.eval("\"Hello World!\"", None, None)?.extract()?;
-        println!("Python says: {}", hello);
-    }
-    Ok(())
-})?;
-    */ 
+// Initialized builder, containing all the information to build the snippets
+pub struct InitializedPythonSnippetInitializerBuilder {
+    build_information: Vec<PythonSnippetBuildInformation>
 }
+
+// the build information for each snippet
+pub struct PythonSnippetBuildInformation {
+    directory_uuid: Uuid,
+    name: String,
+    path: PathBuf
+}
+
+// the state of the builder once the snippets have been built
+pub struct FinalizedPythonSnipppetInitializerBuilder {
+    
+}
+
+impl InitializedPythonSnippetInitializerBuilder {
+    /// initialize  new python builder
+    pub fn new() -> Self {
+        return InitializedPythonSnippetInitializerBuilder {
+            build_information: Vec::<PythonSnippetBuildInformation>::new()
+        };
+    }
+     
+    /// add a new snippet information to the python builder
+    pub fn add_snippet(&mut self, name: String, path: PathBuf, directory_uuid: Uuid) {
+        let snippet_build_information = PythonSnippetBuildInformation::new(name, path, directory_uuid);
+
+        self.build_information.push(snippet_build_information); 
+    }
+
+    pub fn build(self) -> FinalizedPythonSnipppetInitializerBuilder {
+        todo!();
+
+
+    }
+
+    fn initialize_snippets(&self, directory_snippets: Vec<&SnippetDirectoryEntry>) {
+        // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
+        let py_result = Python::with_gil(|py| -> PyResult<()> {
+            for directory_snippet in directory_snippets {
+                let mut path = directory_snippet.get_path();
+                let name = directory_snippet.get_name();
+
+                let directory_snippet_snippet = directory_snippet.get_as_snippet();
+                
+                // Read the main file and the main file only
+                let main_file_path = path.extend(name + ".py");
+
+                //.Open main file
+                // Read main file
+                // Close main file 
+
+                // Create new gil pool
+                // Run main file, get result
+                // Return result as rust type only
+            }
+
+            return PyResult::Ok(());
+        });
+
+        /*
+        Python::with_gil(|py| -> PyResult<()> {
+        for _ in 0..10 {
+            let pool = unsafe { py.new_pool() };
+            let py = pool.python();
+            let hello: &PyString = py.eval("\"Hello World!\"", None, None)?.extract()?;
+            println!("Python says: {}", hello);
+        }
+        Ok(())
+    })?;
+        */ 
+    }}
+
+impl PythonSnippetBuildInformation {
+    /// create new python build information for a snippet to be built 
+    pub fn new(name: String, path: PathBuf, directory_uuid: Uuid) -> Self {
+        return PythonSnippetBuildInformation {
+            directory_uuid: directory_uuid,
+            name: name,
+            path: path
+        };
+    }
+}
+
 
 /*use pyo3::{prelude::*, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
