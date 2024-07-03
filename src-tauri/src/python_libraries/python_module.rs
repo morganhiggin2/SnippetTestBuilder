@@ -1,8 +1,10 @@
 //https://pyo3.rs/main/building_and_distribution#dynamically-embedding-the-python-interpreter
 
+use std::fs::File;
+use std::io::{self, Read};
 use std::path::PathBuf;
 
-use pyo3::{prelude::*, PyClass};
+use pyo3::{prelude::*, GILPool, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
 use pyo3::types::*;
 use tauri::utils::config::BuildConfig;
@@ -27,6 +29,13 @@ pub struct FinalizedPythonSnipppetInitializerBuilder {
     
 }
 
+#[pyclass]
+#[derive(FromPyObject)]
+pub struct PythonSnippetBuilder {
+    name: String,
+    relative_file_location: String
+}
+
 impl InitializedPythonSnippetInitializerBuilder {
     /// initialize  new python builder
     pub fn new() -> Self {
@@ -42,36 +51,99 @@ impl InitializedPythonSnippetInitializerBuilder {
         self.build_information.push(snippet_build_information); 
     }
 
-    pub fn build(self) -> FinalizedPythonSnipppetInitializerBuilder {
+    pub fn build(self) -> Result<FinalizedPythonSnipppetInitializerBuilder, String> {
+
+
+
         todo!();
 
 
     }
 
-    fn initialize_snippets(&self, directory_snippets: Vec<&SnippetDirectoryEntry>) {
+    fn initialize_snippets(&self, python_build_information_list: Vec<PythonSnippetBuildInformation>) -> Result<(), String> {
         // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
-        let py_result = Python::with_gil(|py| -> PyResult<()> {
-            for directory_snippet in directory_snippets {
-                let mut path = directory_snippet.get_path();
-                let name = directory_snippet.get_name();
+        let py_result = Python::with_gil(|py| -> Result<Vec::<PythonSnippetBuilder>, String> {
+            let mut python_snippet_builders: Vec::<PythonSnippetBuilder> = Vec::<PythonSnippetBuilder>::new();
 
-                let directory_snippet_snippet = directory_snippet.get_as_snippet();
-                
+            //TODO handle cases
+            // misnames python file, how do we communicate this to the end user?
+            // how do we get the python file parsing error to the end user?
+
+            for python_build_information in python_build_information_list {
+                // Create file path
+                let mut main_python_file_path = python_build_information.path.into_os_string();
+                main_python_file_path.push(python_build_information.name + ".py");
+                let full_path: PathBuf = main_python_file_path.into();
+
                 // Read the main file and the main file only
-                let main_file_path = path.extend(name + ".py");
+                let mut file = match File::open(full_path) {
+                    Ok(file) => file,
+                    Err(e) => {
+                        //TODO return error
+                        return Err(format!("Could not open file to read python sippet: {}", e.to_string()));
+                    }
+                };
 
-                //.Open main file
-                // Read main file
-                // Close main file 
+                // Read the contents of the file
+                let mut contents = String::new();
+
+                // Attempt to read the file contents in to the string
+                match file.read_to_string(&mut contents) {
+                    io::Result::Ok(_) => (),
+                    io::Result::Err(e) => {
+                        //TODO return error
+                        return Err(format!("Could not read the contents of the main python file: {}", e.to_string())); 
+                    }
+                };
 
                 // Create new gil pool
-                // Run main file, get result
-                // Return result as rust type only
+                let pool = unsafe { py.new_pool() };
+                let py = pool.python();
+
+                // import code to pool
+                let fun: Py<PyAny> = match PyModule::from_code_bound(
+                    py,
+                    &contents,
+                    "",
+                    "",
+                ) {
+                    PyResult::Ok(some) => some,
+                    PyResult::Err(e) => {
+                        return Err(format!("Could not create python code from main python file: {}", e.to_string()));
+                    }
+                }
+                .getattr("init")?
+                .into(); 
+
+                // Create arguments for init function
+                // which includes a python callable object
+                let obj = Bound::new(py, PythonSnippetBuilder::default()).unwrap();
+                let args = PyTuple::new_bound(py, &[obj]);
+
+                // Define python function call closure
+                let init_python_return = match fun.call1(py, args) {
+                    PyResult::Ok(some) => some,
+                    PyResult::Err(e) => {
+                        return Err(format!("Error calling init function from main python file: {}", e.to_string()));
+                    }
+                };
+
+                let init_python_return : PythonSnippetBuilder = match init_python_return.extract(py) {
+                    PyResult::Ok(some) => some,
+                    PyResult::Err(e) => {
+                        return Err(format!("Error extacting python snippet builder result from init function call: {}", e.to_string()));
+                    }
+                };
+
+                //TODO include python snippet information
+
+                python_snippet_builders.push(init_python_return);
             }
 
-            return PyResult::Ok(());
+            return Ok(python_snippet_builders);
         });
 
+        // Iterate over python snippet results
         /*
         Python::with_gil(|py| -> PyResult<()> {
         for _ in 0..10 {
@@ -83,6 +155,8 @@ impl InitializedPythonSnippetInitializerBuilder {
         Ok(())
     })?;
         */ 
+
+        return Ok(());
     }}
 
 impl PythonSnippetBuildInformation {
@@ -93,6 +167,46 @@ impl PythonSnippetBuildInformation {
             name: name,
             path: path
         };
+    }
+}
+
+#[pymethods]
+impl PythonSnippetBuilder {
+    #[new]
+    fn new(name: String) -> Self {
+        PythonSnippetBuilder { name: name, relative_file_location: "".to_string() }
+    }
+
+    /*#[classmethod]
+    fn add_property(cls: &PyType, name: &PyUnicode, property_type: &PyUnicode) -> PyResult<()>{
+        //convert from pytypes to rust types
+        let r_name: String = name.extract()?;
+        let cl: Self = cls.extract()?;
+        return Ok(());
+    }*/
+
+    /// callable method from python
+    /// add property parameter to snippet
+    #[pyo3(text_signature = "$self, name, property_type")]
+    fn add_property(&mut self, name: String, property_type: String) -> PyResult<()> {
+        //convert from pytypes to rust types
+        return Ok(());
+    }
+    
+    /// callable method from python
+    /// finishes the snippet creation
+    /// adds snippet information to external snippet manager
+    fn fnish(&self) -> PyResult<()> {
+        return Ok(());
+    }
+}
+
+impl Default for PythonSnippetBuilder {
+    fn default() -> Self {
+        return PythonSnippetBuilder { 
+            name: String::new(), 
+            relative_file_location: String::new() 
+        }
     }
 }
 

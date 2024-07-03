@@ -319,6 +319,10 @@ impl SnippetDirectoryEntry {
         }
     }
 
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+
     pub fn get_inner_as_ref(&self) -> &SnippetDirectoryType {
         return &self.content;
     }

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fmt};
-use crate::{core_components::snippet_manager::PipelineConnectorComponent, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::PipelineConnectorComponent, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
@@ -42,31 +42,37 @@ impl ExternalSnippetManager {
             }
         };
 
-        self.directory_walker(root_directory_entry, sequential_id_generator)?;
+        // Create python snippet builder
+        let mut python_snippet_builder = InitializedPythonSnippetInitializerBuilder::new();
+
+        self.directory_walker(root_directory_entry, &mut python_snippet_builder, sequential_id_generator)?;
+
+        // Build python snippet builder
+        let python_snippet_builder: FinalizedPythonSnipppetInitializerBuilder = python_snippet_builder.build()?;
 
         return Ok(());
     }
 
     /// Walk though the directory, creating snippets as we go
-    fn directory_walker(&mut self, directory_entry: &SnippetDirectoryEntry, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+    fn directory_walker(&self, directory_entry: &SnippetDirectoryEntry, python_snippet_builder: &mut InitializedPythonSnippetInitializerBuilder, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         // get name
         let name = directory_entry.get_name();
+        let path = directory_entry.get_path();
+        let directory_uuid = directory_entry.get_uuid();
         
         match directory_entry.get_inner_as_ref() {
             SnippetDirectoryType::Category(entry) => {
                 // if category, traverse children 
                 for child_entry in entry.get_children() {
-                    self.directory_walker(child_entry, sequential_id_generator);
+                    self.directory_walker(child_entry, python_snippet_builder, sequential_id_generator);
                 }
             }
             SnippetDirectoryType::Snippet(entry) => {
                 // create external snippet
-                self.create_empty_snippet(sequential_id_generator, &name);
+                //self.create_empty_snippet(sequential_id_generator, &name);
 
-                //TODO
-                // 1. create python component
-                // 2. call component, initialize snippet, get information
-                // 3. build external snippet with this information (name, schema, etc), include python component
+                // add snippet information for python building
+                python_snippet_builder.add_snippet(name, path, directory_uuid);
             }
         };
 
