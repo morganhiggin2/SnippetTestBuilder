@@ -1,6 +1,6 @@
 use std::sync::{Mutex};
 
-use crate::core_services::directory_manager::{DirectoryManager, ExternalSnippetFileContainer};
+use crate::core_services::directory_manager::{DirectoryManager};
 use crate::state_management::window_manager::WindowManager;
 use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 use crate::state_management::external_snippet_manager::{ExternalSnippetManager};
@@ -95,6 +95,9 @@ impl ApplicationState {
 
         // Initialize directory of snippets
         directory_manager.initialize(sequential_id_generator).unwrap();
+
+        // create external snippets from directory manager
+        external_snippet_manager.create_external_snippets_from_directory(directory_manager, sequential_id_generator).unwrap();
 
     }
 }

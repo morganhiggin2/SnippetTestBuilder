@@ -6,6 +6,10 @@ def run_snippet(snippet_path, function_inputs: dict[str, any], function_outputs:
     :param module_path: path of the module relative to this file
     :param function_outputs: dictionary with names of the outputs with their corresponding output data type schema 
     '''
+
+    # TODO set output of std in to something that the program can buffer into the user
+    # probably on the os level
+
     #import snippet from other file
     py_snippet = importlib.import_module(snippet_path)
 

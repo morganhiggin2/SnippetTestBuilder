@@ -1,11 +1,14 @@
 use std::{collections::HashMap, fmt};
-use crate::{core_components::snippet_manager::PipelineConnectorComponent, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use bimap::BiHashMap;
+
+use crate::{core_components::snippet_manager::PipelineConnectorComponent, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
 
 pub struct ExternalSnippetManager {
-    external_snippets: Vec<ExternalSnippet>
+    external_snippets: Vec<ExternalSnippet>,
+    external_snippets_to_directory_entries: BiHashMap<Uuid, Uuid>
 }
 
 pub struct ExternalSnippet {
@@ -32,6 +35,15 @@ pub struct ExternalSnippetIOPoint {
     input: bool
 }
 
+impl Default for ExternalSnippetManager {
+    fn default() -> Self {
+        return ExternalSnippetManager {
+            external_snippets: Vec::new(),
+            external_snippets_to_directory_entries: BiHashMap::new()
+        }
+    }
+}
+
 impl ExternalSnippetManager {
     /// Create the exernal snippets from the directory manager
     pub fn create_external_snippets_from_directory(&mut self, directory_manager: &DirectoryManager, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
@@ -49,6 +61,11 @@ impl ExternalSnippetManager {
 
         // Build python snippet builder
         let python_snippet_builder: FinalizedPythonSnipppetInitializerBuilder = python_snippet_builder.build()?;
+
+        // create external snippets from python snippet builders
+        for python_snippet_information in python_snippet_builder.get_build_information() {
+            self.create_snippet_from_python_build_information(python_snippet_information, sequential_id_generator);
+        }
 
         return Ok(());
     }
@@ -78,7 +95,35 @@ impl ExternalSnippetManager {
 
         return Ok(());
     }
+    
+    pub fn create_snippet_from_python_build_information(&mut self, python_build_information: &PythonSnippetBuilderWrapper, sequential_id_generator: &mut SequentialIdGenerator) -> Uuid {
+        // Get io points from schema 
 
+        // create external snippet
+        let mut external_snippet = ExternalSnippet::empty(sequential_id_generator, &python_build_information.get_name());
+
+        // add io (input and output) points
+        for input in python_build_information.get_inputs() {
+            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, input.to_owned(), "".to_string(), true);
+        }
+
+        for output in python_build_information.get_outputs() {
+            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, output.to_owned(), "".to_string(), false);
+        }
+
+        // get uuid of external snippet
+        let uuid = external_snippet.uuid;
+
+        // add directory entry to directory entry list
+        self.external_snippets_to_directory_entries.insert(uuid.to_owned(), python_build_information.get_directory_entry_uuid());
+
+        //add it to manager
+        self.external_snippets.push(external_snippet);
+
+        return uuid;
+    }
+
+    /*
     /// create snippet that does not input or output
     pub fn create_non_acting_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, name: &str) -> Uuid {
         //create external snippet
@@ -115,7 +160,7 @@ impl ExternalSnippetManager {
         self.external_snippets.push(external_snippet);
 
         return uuid;
-    }
+    }*/
 
     /// add io points, given the input and output points
     pub fn add_io_points(&mut self, sequential_id_generator: &mut SequentialIdGenerator, snippet_uuid: Uuid, io_points: Vec::<(String, Schema, bool)>) -> Result<(), &'static str> {
@@ -130,9 +175,6 @@ impl ExternalSnippetManager {
         for io_point in io_points {
             //create new point
             let snippet_io_point: ExternalSnippetIOPoint = ExternalSnippetIOPoint::new(sequential_id_generator, io_point.0, io_point.1, io_point.2);
-
-            //add point
-            let uuid = snippet_io_point.uuid;
 
             match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
                 Some(_) => (),
@@ -162,6 +204,32 @@ impl ExternalSnippetManager {
             }
         };
 
+        //create new point
+        let snippet_io_point: ExternalSnippetIOPoint = ExternalSnippetIOPoint::new(sequential_id_generator, name, schema, input);
+
+        //add point
+        let uuid = snippet_io_point.uuid;
+        
+        match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
+            Some(_) => (),
+            None => {
+                return Err("duplicate snippet io point inserted into external snippet");
+            }
+        };
+
+        //return good result
+        return Ok(uuid);
+    }
+    
+    /// Add io point to snippet given the exteranl snippet
+    /// 
+    /// # Arguments
+    /// 
+    /// * 'snippet_uuid' - uuid of the external snippet
+    /// * 'name' - name of the io point
+    /// * 'schema' - binding type schema of the io point
+    /// * 'input' - is input io point
+    pub fn add_io_point_provided_external_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &mut ExternalSnippet, name: String, schema: Schema, input: bool) -> Result<Uuid, &'static str> {
         //create new point
         let snippet_io_point: ExternalSnippetIOPoint = ExternalSnippetIOPoint::new(sequential_id_generator, name, schema, input);
 

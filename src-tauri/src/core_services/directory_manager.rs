@@ -48,6 +48,16 @@ pub struct SnippetDirectoryCategory {
     children: Vec<SnippetDirectoryEntry>
 }
 
+impl Default for DirectoryManager {
+    fn default() -> Self {
+        DirectoryManager {
+            relative_snippet_directory: "".to_string(),
+            snippet_directory: SnippetDirectory::default(),
+            visual_component_manager: VisualDirectoryComponentManager::default()
+        }
+    }
+}
+
 impl DirectoryManager {
     // Initialize the directory manager
     pub fn initialize(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
