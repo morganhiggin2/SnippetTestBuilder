@@ -286,6 +286,10 @@ impl SnippetDirectory {
     pub fn get_root_directory_entry(&self) -> Option<&SnippetDirectoryEntry> {
         return self.root.as_ref();
     }
+
+    pub fn get_directory_as_front(&self) -> Vec::<FrontDirectoryContent> {
+        // Walk directory recursivly, keeping track of level, calling VisualDirectoryComponentManager::new_from_directory_entry
+    }
 }
 
 impl SnippetDirectoryEntry {

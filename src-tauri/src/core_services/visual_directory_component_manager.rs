@@ -3,17 +3,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::{state_management::external_snippet_manager::ExternalSnippetManager, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::directory_manager::{DirectoryManager};
+use super::directory_manager::{DirectoryManager, SnippetDirectoryCategory, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType};
 
 //TODO link with front directory component manager
 pub struct VisualDirectoryComponentManager {
-    directory_front_to_snippet_file_container: BiHashMap<Uuid, Uuid>
+    directory_front_to_directory_entry: BiHashMap<Uuid, Uuid>
 }
 
 impl Default for VisualDirectoryComponentManager {
     fn default() -> Self {
         return VisualDirectoryComponentManager { 
-            directory_front_to_snippet_file_container: BiHashMap::new()
+            directory_front_to_directory_entry: BiHashMap::new()
         };
     }
 }
@@ -41,21 +41,15 @@ impl VisualDirectoryComponentManager {
     /// # Arguments
     /// * 'uuid' - snippet file container uuid
     pub fn find_directory_front_uuid(&self, uuid: &Uuid) -> Option<Uuid> {
-        return self.directory_front_to_snippet_file_container.get_by_right(uuid).copied(); 
+        return self.directory_front_to_directory_entry.get_by_right(uuid).copied(); 
     }
     
     /// find directorys uuid from directory front uuid
     ///  
     /// # Arguments
     /// * 'uuid' - directory front uuid
-    pub fn find_snippet_file_container_uuid(&self, uuid: &Uuid) -> Option<Uuid> {
-        return self.directory_front_to_snippet_file_container.get_by_left(uuid).copied(); 
-    }
-
-    /// put directory front and component pair
-    /// will overwrite
-    pub fn put_snippet_file_container_uuid(&mut self, front_uuid: Uuid, component_uuid: Uuid) {
-        self.directory_front_to_snippet_file_container.insert(front_uuid, component_uuid);
+    pub fn find_directory_entry_uuid(&self, uuid: &Uuid) -> Option<Uuid> {
+        return self.directory_front_to_directory_entry.get_by_left(uuid).copied(); 
     }
 }
 
@@ -73,8 +67,61 @@ impl FrontDirectoryContent {
         return front_content;
     }
 
+    pub fn new_from_directory_entry(directory_entry: &SnippetDirectoryEntry, level: u32, visual_directory_component_manager: &mut VisualDirectoryComponentManager, sequential_id_generator: &mut SequentialIdGenerator) -> FrontDirectoryContent {
+        let name = directory_entry.get_name();
+        let directory_entry_uuid = directory_entry.get_uuid();
+
+        match directory_entry.get_inner_as_ref() {
+            SnippetDirectoryType::Category(some) => {
+                return FrontDirectoryContent::new_category_from_directory_entry(name, directory_entry_uuid, some, level, visual_directory_component_manager, sequential_id_generator);
+            },
+            SnippetDirectoryType::Snippet(some) => {
+                return FrontDirectoryContent::new_snippet_from_directory_entry(name, directory_entry_uuid, some, level, visual_directory_component_manager, sequential_id_generator)
+            },
+        }
+    }
+
+    fn new_snippet_from_directory_entry(name: String, directory_entry_uuid: Uuid, directory_entry: &SnippetDirectorySnippet, level: u32, visual_directory_component_manager: &mut VisualDirectoryComponentManager, sequential_id_generator: &mut SequentialIdGenerator) -> FrontDirectoryContent {
+        let front_directory_content = FrontDirectoryContent {
+            id: sequential_id_generator.get_id(),
+            name: name,
+            file_type: FrontDirectoryContentType::Snippet,
+            is_directory: false,
+            level: level,
+            showing: false,
+        };
+
+        visual_directory_component_manager.directory_front_to_directory_entry.insert(front_directory_content.id, directory_entry_uuid);
+
+        return front_directory_content;
+    }
+
+    fn new_category_from_directory_entry(name: String, directory_entry_uuid: Uuid, directory_entry: &SnippetDirectoryCategory, level: u32, visual_directory_component_manager: &mut VisualDirectoryComponentManager, sequential_id_generator: &mut SequentialIdGenerator) -> FrontDirectoryContent {
+        // if level == 1, which is root, then show, else, don't
+        let mut showing = false;
+
+        if level == 1 {
+            showing = true;
+        }
+
+        let front_directory_content = FrontDirectoryContent {
+            id: sequential_id_generator.get_id(),
+            name: name,
+            file_type: FrontDirectoryContentType::Snippet,
+            is_directory: false,
+            level: level,
+            showing: showing
+        };
+
+        visual_directory_component_manager.directory_front_to_directory_entry.insert(front_directory_content.id, directory_entry_uuid);
+
+        return front_directory_content;
+    }
+
+
+    /*
     /// create new front snippet content of type external snippet file container 
-    pub fn new_snippet(directory_manager: &mut DirectoryManager, external_snippet_manager: &ExternalSnippetManager, sequential_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &ExternalSnippetFileContainer, level: u32) -> Result<Self, String> {
+    pub fn new_snippet(directory_manager: &mut DirectoryManager, external_snippet_manager: &ExternalSnippetManager, sequential_id_generator: &mut SequentialIdGenerator, external_snippet_file_container: &SnippetDirectoryEntry, level: u32) -> Result<Self, String> {
         //TODO: ask why &str instead of String is not working
         //call front method on file container
         let front_external_snippet_content = match external_snippet_file_container.get_as_front_content(external_snippet_manager, sequential_id_generator, level) {
@@ -106,6 +153,6 @@ impl FrontDirectoryContent {
             level,
             false
         );
-    }
+    }*/
 }
 
