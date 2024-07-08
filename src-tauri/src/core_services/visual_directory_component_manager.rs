@@ -1,9 +1,9 @@
 use bimap::BiHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{state_management::external_snippet_manager::ExternalSnippetManager, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::SnippetManager, state_management::external_snippet_manager::ExternalSnippetManager, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::directory_manager::{DirectoryManager, SnippetDirectoryCategory, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType};
+use super::directory_manager::{DirectoryManager, SnippetDirectory, SnippetDirectoryCategory, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType};
 
 //TODO link with front directory component manager
 pub struct VisualDirectoryComponentManager {
@@ -51,6 +51,50 @@ impl VisualDirectoryComponentManager {
     pub fn find_directory_entry_uuid(&self, uuid: &Uuid) -> Option<Uuid> {
         return self.directory_front_to_directory_entry.get_by_left(uuid).copied(); 
     }
+
+    /// Get the directory as front elements
+    /// These are displayed in descencing order, expandable and contractable based on parent
+    /// If the directory were to get reloaded, we would need to reload the front directory
+    pub fn get_directory_as_front(&mut self, snippet_directory: &SnippetDirectory, sequential_id_generator: &mut SequentialIdGenerator) -> Vec::<FrontDirectoryContent> {
+        // Walk directory recursivly, keeping track of level, calling VisualDirectoryComponentManager::new_from_directory_entry
+        let mut front_directory_content = Vec::<FrontDirectoryContent>::new();
+
+        let root_directory_entry = match snippet_directory.get_root_directory_entry() {
+            Some(some) => some,
+            None => {
+                //return Err("Root directory entry does not exist for snippet directory in get_directory_as_front method call, perhaps initializations has not occured");
+                return front_directory_content;
+            }
+        };
+
+        self.front_directory_walker_helper(root_directory_entry, 1, &mut front_directory_content, sequential_id_generator);
+
+        return front_directory_content; 
+    }
+
+    fn front_directory_walker_helper(&mut self, current_directory_entry: &SnippetDirectoryEntry, level: u32, front_directory_content: &mut Vec::<FrontDirectoryContent>, sequential_id_generator: &mut SequentialIdGenerator) {
+        let name = current_directory_entry.get_name();
+        let uuid = current_directory_entry.get_uuid();
+
+        match current_directory_entry.get_inner_as_ref() {
+            SnippetDirectoryType::Category(category) => {
+                // Create category as front
+                let front_directory_entry = FrontDirectoryContent::new_category_from_directory_entry(name, uuid, category, level, self, sequential_id_generator);
+                front_directory_content.push(front_directory_entry);
+
+                // Call children of category directory entry
+                for child_directory_entry in category.get_children() {
+                    self.front_directory_walker_helper(child_directory_entry, level + 1, front_directory_content, sequential_id_generator);
+                }
+            },
+            SnippetDirectoryType::Snippet(snippet) => {
+                // Create snippet as front
+                let front_directory_entry = FrontDirectoryContent::new_snippet_from_directory_entry(name, uuid, snippet, level, self, sequential_id_generator);
+                front_directory_content.push(front_directory_entry);
+            },
+        };
+    }
+
 }
 
 impl FrontDirectoryContent {
@@ -154,5 +198,7 @@ impl FrontDirectoryContent {
             false
         );
     }*/
+
+
 }
 
