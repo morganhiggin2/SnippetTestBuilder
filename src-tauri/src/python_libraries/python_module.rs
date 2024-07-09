@@ -38,8 +38,11 @@ pub struct PythonSnippetBuilderWrapper {
 #[pyclass]
 #[derive(FromPyObject)]
 pub struct PythonSnippetBuilder {
+    #[pyo3(get)]
     name: String,
+    #[pyo3(get)]
     inputs: Vec::<String>,
+    #[pyo3(get)]
     outputs: Vec::<String>
 }
 
@@ -79,7 +82,7 @@ impl InitializedPythonSnippetInitializerBuilder {
             for python_build_information in python_build_information_list {
                 // Create file path
                 let mut main_python_file_path = python_build_information.path.into_os_string();
-                main_python_file_path.push(python_build_information.name + ".py");
+                main_python_file_path.push("/app.py");
                 let full_path: PathBuf = main_python_file_path.into();
 
                 // Read the main file and the main file only
@@ -104,8 +107,8 @@ impl InitializedPythonSnippetInitializerBuilder {
                 };
 
                 // Create new gil pool
-                let pool = unsafe { py.new_pool() };
-                let py = pool.python();
+                /*let pool = unsafe { py.new_pool() };
+                let py = pool.python();*/
 
                 // import code to pool
                 let fun = match PyModule::from_code_bound(
@@ -131,6 +134,7 @@ impl InitializedPythonSnippetInitializerBuilder {
                 // Create arguments for init function
                 // which includes a python callable object
                 let obj = Bound::new(py, PythonSnippetBuilder::default()).unwrap();
+                //TODO pass it as argument with key 'snippet' in kargs
                 let args = PyTuple::new_bound(py, &[obj]);
 
                 // Define python function call closure

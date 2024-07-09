@@ -24,7 +24,7 @@ tauri = { version = "1.2", features = ["shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bimap = "0.6.3" 
-pyo3 = { version = "0.22.0", features = ["gil-refs"] }
+pyo3 = { version = "0.22.0", features = ["gil-refs", "auto-initialize"] }
 pathdiff = "0.2.1"
 enum-as-inner = "0.6.0"
 

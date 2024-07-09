@@ -98,21 +98,5 @@ impl ApplicationState {
 
         // create external snippets from directory manager
         external_snippet_manager.create_external_snippets_from_directory(directory_manager, sequential_id_generator).unwrap();
-
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

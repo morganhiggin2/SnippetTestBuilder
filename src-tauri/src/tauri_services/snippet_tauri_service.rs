@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{state_management::{MutexApplicationState, ApplicationState, window_manager::{WindowSession}}, state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineContent}, utils::sequential_id_generator::{Uuid}};
+use crate::{state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, MutexApplicationState}, utils::sequential_id_generator::Uuid};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
@@ -19,7 +19,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     //borrow split
     let sequential_id_generator = &mut state.sequential_id_generator;
     let window_manager = &mut state.window_manager;
-    let ext_snippet_manager = &mut state.external_snippet_manager;
+    let external_snippet_manager = &mut state.external_snippet_manager;
     let directory_manager = &mut state.directory_manager;
 
     //find window session
@@ -36,7 +36,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     let visual_directory_component_manager = &mut directory_manager.visual_component_manager;
     
     //get file container external snippet uuid from directory front uuid
-    let directory_uuid = match visual_directory_component_manager.find_snippet_file_container_uuid(&directory_front_uuid) {
+    let directory_uuid = match visual_directory_component_manager.find_directory_entry_uuid(&directory_front_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find directory content uuid with directory front uuid");
@@ -44,18 +44,10 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
     };
 
     //get external snippet uuid from directory manager
-    let external_snippet_uuid = match directory_manager.snippet_structure.find_external_snippet_container(&directory_uuid) {
-        Some(result) => result.get_external_snippet_uuid(),
+    let external_snippet = match external_snippet_manager.find_external_snippet(directory_uuid) {
+        Some(result) => result,
         None => {
             return Err("external snippet container does not exist for found directory uuid");
-        }
-    };
-
-    //get the external snippet
-    let external_snippet = match ext_snippet_manager.find_external_snippet(external_snippet_uuid) {
-        Ok(result) => result,
-        Err(e) => {
-            return Err(e);
         }
     };
 

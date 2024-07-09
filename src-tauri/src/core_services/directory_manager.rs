@@ -12,7 +12,6 @@ use super::{visual_directory_component_manager::{FrontDirectoryContent, FrontDir
 
 // This here is not ui related
 pub struct DirectoryManager {
-    relative_snippet_directory: String,
     //TODO remove pub
     pub snippet_directory: SnippetDirectory,
     //visual front end components for directory contents
@@ -51,7 +50,6 @@ pub struct SnippetDirectoryCategory {
 impl Default for DirectoryManager {
     fn default() -> Self {
         DirectoryManager {
-            relative_snippet_directory: "".to_string(),
             snippet_directory: SnippetDirectory::default(),
             visual_component_manager: VisualDirectoryComponentManager::default()
         }
@@ -141,7 +139,6 @@ impl SnippetDirectory {
         };
 
         if is_snippet_directory {
-
             // create snippet type, add as child 
             let snippet_entry = SnippetDirectoryEntry::new_snippet(dir_name.to_owned(), current_path.to_owned(), sequential_id_generator);
 
@@ -174,7 +171,7 @@ impl SnippetDirectory {
                 let path = entry.path();
 
                 if path.is_dir() {
-                    SnippetDirectory::directory_walker(snippet_category, current_path, sequential_id_generator)?;
+                    SnippetDirectory::directory_walker(snippet_category, &entry.path(), sequential_id_generator)?;
                 }
             }
 
@@ -205,12 +202,11 @@ impl SnippetDirectory {
                     }
                 };
 
-                // check if this is a . file
+                // check if this is a .py file
                 if let Some(file_extension) = entry.path().extension(){
                     // get file name
-                    let file_name = entry.file_name();
+                    let file_name = entry.path().file_stem().unwrap_or_default().to_owned();
 
-                    // println!(file_extension);
                     // if this is a app.py file, this is a snippet
                     if file_extension.eq(OsStr::new("py")) && file_name.eq(OsStr::new("app")) {
                         //create unitilized snippet, then to be initialized after directory walking
