@@ -321,12 +321,6 @@ impl SnippetManager {
                     // create new edge, returning edge index
                     let edge_index = self.snippet_graph.add_edge(from_snippet.graph_uuid, to_snippet.graph_uuid, 1);
 
-                    // check for cycle, if there is one, remove edge and return nothing
-                    //NOTE this must be the first thing that is done, or else we risk having bad values floating around
-                    if petgraph::algo::is_cyclic_directed(&self.snippet_graph) {
-                        self.snippet_graph.remove_edge(edge_index);
-                    }
-
                     edge_index
                 }
             });
@@ -422,7 +416,7 @@ impl SnippetManager {
     /// # Arguments
     /// * 'from_uuid' from pipeline connector's uuid
     /// * 'to uuid' to pipeline connector's uuid
-    pub fn validate_pipeline(&self, from_uuid: Uuid, to_uuid: Uuid) -> Result<bool, &'static str> {
+    pub fn validate_pipeline(&mut self, from_uuid: Uuid, to_uuid: Uuid) -> Result<bool, &'static str> {
         //find pipeline connectors
         //find pipeline connector uuid
         let from_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
@@ -500,6 +494,34 @@ impl SnippetManager {
             return Ok(false);
         }
 
+        // attempt to find existing edge
+        let edge_result = self.snippet_graph.find_edge(from_snippet.graph_uuid, to_snippet.graph_uuid);
+
+        let dag_valid = match edge_result {
+            // We know this if valid from a dag standpoint because the connection already exists
+            Some(_) => true,
+            None => {
+                // create new edge, returning edge index
+                let edge_index = self.snippet_graph.add_edge(from_snippet.graph_uuid, to_snippet.graph_uuid, 1);
+
+                // check for cycle, if there is one, remove edge and return nothing
+                let mut is_dag = true; 
+
+                if petgraph::algo::is_cyclic_directed(&self.snippet_graph) {
+                    is_dag = false;
+                }
+
+                // remove edge
+                self.snippet_graph.remove_edge(edge_index);
+
+                is_dag
+            }
+        };
+
+        // if we did not pass the dag check, return false
+        if dag_valid == false {
+            return Ok(false);
+        }
         /*
         //verify types match
         if from_pipeline_connector.get_type() != to_pipeline_connector.get_type() {

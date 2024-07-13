@@ -73,6 +73,7 @@ fn logln(text: &str) {
 1. be able to delete snippets - done
 2. be able to delete pipelines / io lines - done
 3. prevent cycles (so this must be a dag)
+4. unit tests
 3. snip on grid
 4. visual pipelines are filled in grid spots 
   - but don't show grid lines, so ontop
