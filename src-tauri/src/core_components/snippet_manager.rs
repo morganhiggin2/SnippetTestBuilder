@@ -1,9 +1,6 @@
 use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
 use std::{collections::HashMap, ops::Add, sync::MutexGuard};
-use bimap::BiHashMap;
-use serde::{Serialize, Deserialize};
-use tauri::window;
 use crate::utils::sequential_id_generator::Uuid;
 use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, visit::{EdgeIndexable, EdgeRef}};
 
@@ -272,7 +269,8 @@ impl SnippetManager {
             }
         }
         
-        let graph_uuid_container: Option<petgraph::prelude::EdgeIndex> = Option::None;
+        //TODO better way
+        let mut graph_uuid_container: Option<petgraph::prelude::EdgeIndex> = Option::None;
 
         {
             let from_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
@@ -308,26 +306,34 @@ impl SnippetManager {
             // attempt to find existing edge
             let edge_result = self.snippet_graph.find_edge(from_snippet.graph_uuid, to_snippet.graph_uuid);
 
-            let graph_uuid = match edge_result {
+            graph_uuid_container = Some(match edge_result {
                 Some(edge) => {
                     // get current weight
                     let edge_weight = self.snippet_graph.edge_weight_mut(edge).unwrap();
 
                     // update existing edge
-                    edge_weight.add(1);
+                    *edge_weight = *edge_weight + 1;
 
                     // return edge index
                     edge
                 },
                 None => {
                     // create new edge, returning edge index
-                    self.snippet_graph.add_edge(from_snippet.graph_uuid, to_snippet.graph_uuid, 1)
+                    let edge_index = self.snippet_graph.add_edge(from_snippet.graph_uuid, to_snippet.graph_uuid, 1);
+
+                    // check for cycle, if there is one, remove edge and return nothing
+                    //NOTE this must be the first thing that is done, or else we risk having bad values floating around
+                    if petgraph::algo::is_cyclic_directed(&self.snippet_graph) {
+                        self.snippet_graph.remove_edge(edge_index);
+                    }
+
+                    edge_index
                 }
-            };
+            });
         }
 
         //create new pipeline
-        let pipeline_component = PipelineComponent::new(graph_uuid, sequential_id_generator, &from_uuid, &to_uuid);
+        let pipeline_component = PipelineComponent::new(graph_uuid_container.unwrap(), sequential_id_generator, &from_uuid, &to_uuid);
 
         //get pipeline uuid for return
         let pipeline_uuid = pipeline_component.get_uuid();
@@ -351,6 +357,7 @@ impl SnippetManager {
     pub fn delete_pipeline(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         let mut from_pipeline_connector_uuid = 0;
         let mut to_pipeline_connector_uuid = 0;
+        let mut graph_uuid_container: Option<petgraph::prelude::EdgeIndex> = Option::None;
 
         //get pipeline uuids without violating borrow rules for self
         {
@@ -365,9 +372,20 @@ impl SnippetManager {
             //grab copies of the pipeline connector uuids
             from_pipeline_connector_uuid = pipeline_component.from_pipeline_connector_uuid.clone();
             to_pipeline_connector_uuid = pipeline_component.to_pipeline_connector_uuid.clone();
+            graph_uuid_container = Some(pipeline_component.graph_uuid);
         }
+        
+        //get edge weight
+        let edge_weight = self.snippet_graph.edge_weight_mut(graph_uuid_container.unwrap()).unwrap();
 
-        //if the weight of the edge is 0, remove it
+        // if there is more than one existing pipeline in this direction still connecting, then reduce weight
+        if *edge_weight > 1 {
+            *edge_weight = *edge_weight - 1;
+        }
+        // delete the edge
+        else {
+            self.snippet_graph.remove_edge(graph_uuid_container.unwrap());
+        }
 
         //delete front from pipeline connector to pipeline relationship 
         match self.pipeline_connector_to_pipeline.remove(&from_pipeline_connector_uuid) {
