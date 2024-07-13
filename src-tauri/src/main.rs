@@ -45,11 +45,11 @@ fn main() {
         }*/
     }
 
-    /*tauri::Builder::default()
+    tauri::Builder::default()
         .manage(application_state_guard)
         .invoke_handler(tauri::generate_handler![logln, new_window_session, get_snippet_directory, new_snippet, validate_pipeline_connection, new_pipeline, check_pipeline_connector_capacity_full, get_id, get_pipeline_connector_uuids_from_pipeline, delete_pipeline, get_snippet_pipelines, get_pipeline_connector_uuids_from_snippet, delete_snippet])
         .run(tauri::generate_context!())
-        .expect("error while starting tauri application");*/
+        .expect("error while starting tauri application");
 }
 
 #[tauri::command]
@@ -66,3 +66,24 @@ fn logln(text: &str) {
 
 //COULD DO
 // trait NEW that mandiates the seq id generator with a new() function
+
+
+
+/*
+1. be able to delete snippets - done
+2. be able to delete pipelines / io lines - done
+3. prevent cycles (so this must be a dag)
+3. snip on grid
+4. visual pipelines are filled in grid spots 
+  - but don't show grid lines, so ontop
+  - can represent as multiple lines
+5. parameter snippets
+  - build in
+  - add to directory structure
+6. ui for parameters
+7. python console output to rust output stream
+  - custom os stream
+  - wrapper for run function that catpures input and errors, and calls rust to output it
+
+
+*/

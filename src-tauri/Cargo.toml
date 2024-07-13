@@ -27,6 +27,7 @@ bimap = "0.6.3"
 pyo3 = { version = "0.22.0", features = ["gil-refs", "auto-initialize"] }
 pathdiff = "0.2.1"
 enum-as-inner = "0.6.0"
+petgraph = "0.6.5"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

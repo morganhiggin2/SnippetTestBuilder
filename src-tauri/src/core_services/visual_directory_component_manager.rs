@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use bimap::BiHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -67,9 +69,26 @@ impl VisualDirectoryComponentManager {
             }
         };
 
-        self.front_directory_walker_helper(root_directory_entry, 1, &mut front_directory_content, sequential_id_generator);
+        // We don't want to parse the root directory
 
-        return front_directory_content; 
+        self.front_directory_walker_seeker(root_directory_entry, &mut front_directory_content, sequential_id_generator);
+
+        // Remove root from directory fronts, which will be the first element
+        return front_directory_content;
+    }
+
+    fn front_directory_walker_seeker(&mut self, root_directory_entry: &SnippetDirectoryEntry, front_directory_content: &mut Vec::<FrontDirectoryContent>, sequential_id_generator: &mut SequentialIdGenerator) {
+        match root_directory_entry.get_inner_as_ref() {
+            SnippetDirectoryType::Category(category) => {
+                // Call children of category directory entry
+                for child_directory_entry in category.get_children() {
+                    self.front_directory_walker_helper(child_directory_entry, 1, front_directory_content, sequential_id_generator);
+                }
+            }
+            SnippetDirectoryType::Snippet(_) => {
+                panic!("Root category cannot be of type snippet, something has gone horribly wrong!");
+            }
+        };
     }
 
     fn front_directory_walker_helper(&mut self, current_directory_entry: &SnippetDirectoryEntry, level: u32, front_directory_content: &mut Vec::<FrontDirectoryContent>, sequential_id_generator: &mut SequentialIdGenerator) {
@@ -94,7 +113,6 @@ impl VisualDirectoryComponentManager {
             },
         };
     }
-
 }
 
 impl FrontDirectoryContent {
@@ -151,7 +169,7 @@ impl FrontDirectoryContent {
         let front_directory_content = FrontDirectoryContent {
             id: sequential_id_generator.get_id(),
             name: name,
-            file_type: FrontDirectoryContentType::Snippet,
+            file_type: FrontDirectoryContentType::Directory,
             is_directory: false,
             level: level,
             showing: showing

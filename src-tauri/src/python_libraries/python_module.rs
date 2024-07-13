@@ -133,7 +133,7 @@ impl InitializedPythonSnippetInitializerBuilder {
 
                 // Create arguments for init function
                 // which includes a python callable object
-                let obj = Bound::new(py, PythonSnippetBuilder::default()).unwrap();
+                let obj = Bound::new(py, PythonSnippetBuilder::new(python_build_information.name)).unwrap();
                 //TODO pass it as argument with key 'snippet' in kargs
                 let args = PyTuple::new_bound(py, &[obj]);
 

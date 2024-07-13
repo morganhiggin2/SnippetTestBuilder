@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, MutexApplicationState}, utils::sequential_id_generator::Uuid};
+use crate::{core_services::directory_manager, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, MutexApplicationState}, utils::sequential_id_generator::Uuid};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
@@ -43,8 +43,8 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
         }
     };
 
-    //get external snippet uuid from directory manager
-    let external_snippet = match external_snippet_manager.find_external_snippet(directory_uuid) {
+    //get external snippet from directory uuid
+    let external_snippet = match external_snippet_manager.find_external_snippet_from_directory_uuid(directory_uuid) {
         Some(result) => result,
         None => {
             return Err("external snippet container does not exist for found directory uuid");

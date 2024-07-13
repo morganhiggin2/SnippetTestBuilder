@@ -101,7 +101,7 @@ impl SnippetDirectory {
             Some(_) => (), 
             None => {
                 // create root category
-                let root_category = SnippetDirectoryEntry::new_category("main".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
+                let root_category = SnippetDirectoryEntry::new_category("root".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
 
                 self.root = Some(root_category);
             }

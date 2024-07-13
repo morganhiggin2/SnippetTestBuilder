@@ -131,5 +131,6 @@
         border-top: 2px solid lightgrey;
         white-space: nowrap;
         overflow-y: auto;
+        cursor: default;
     }
 </style>

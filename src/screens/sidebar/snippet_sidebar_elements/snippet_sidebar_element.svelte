@@ -33,7 +33,7 @@
 <div 
     id={name}
     class="body" 
-    style="--indent: {level * 17}px"
+    style="--indent: {(level - 1) * 17}px"
     draggable=true
     on:dragstart={onDragStart}
     on:dragend={onDragEnd}

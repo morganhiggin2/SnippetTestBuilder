@@ -7,9 +7,10 @@
 
 <div class="body">
     <div class="container">
+        <!--
         <div class="tab-bar">
             <TabBar/>
-        </div>
+        </div>-->
         <div class="design-area">
             <TestDesignArea/>
         </div>

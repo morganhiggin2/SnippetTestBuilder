@@ -297,6 +297,18 @@ impl ExternalSnippetManager {
         return self.external_snippets.iter().find(|pipe: && ExternalSnippet | pipe.uuid == uuid);
     }
 
+    pub fn find_external_snippet_from_directory_uuid(&self, uuid: Uuid) -> Option<&ExternalSnippet> {
+        let external_snippet_uuid = self.external_snippets_to_directory_entries.get_by_right(&uuid)?.to_owned();
+
+        return self.find_external_snippet(external_snippet_uuid);
+    }
+
+    pub fn find_external_snippet_mut_from_directory_uuid(&mut self, uuid: Uuid) -> Option<&mut ExternalSnippet> {
+        let external_snippet_uuid = self.external_snippets_to_directory_entries.get_by_right(&uuid)?.to_owned();
+
+        return self.find_external_snippet_mut(external_snippet_uuid);
+    }
+
     /*
     /// Create root category node
     /// serves the purpose of being the root of all category nodes, has no children by definition

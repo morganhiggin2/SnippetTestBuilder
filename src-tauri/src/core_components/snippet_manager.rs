@@ -1,10 +1,11 @@
 use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
-use std::{sync::MutexGuard, collections::HashMap};
+use std::{collections::HashMap, ops::Add, sync::MutexGuard};
 use bimap::BiHashMap;
 use serde::{Serialize, Deserialize};
 use tauri::window;
 use crate::utils::sequential_id_generator::Uuid;
+use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, visit::{EdgeIndexable, EdgeRef}};
 
 /// the manager of the snippets, and their links
 pub struct SnippetManager {
@@ -16,7 +17,12 @@ pub struct SnippetManager {
 
     //mapping for pipeline connects to pipeline components
     pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
-    pipeline_connectors_to_snippet: HashMap<Uuid, Uuid>
+    pipeline_connectors_to_snippet: HashMap<Uuid, Uuid>,
+
+    // graph for keeping track of cycles
+    // where the weight of the node is the uuid of the snippet it represents
+    // and the edge weight is the number of connections (pipelines) form that snippet to the other snippet
+    snippet_graph: petgraph::Graph<(), i16, petgraph::Directed>
 
     //mapping for snippets and pipelines
     //list of uuid of snippets to index in edge adj list
@@ -31,6 +37,7 @@ pub struct SnippetManager {
 /// the actual snippet itself
 pub struct SnippetComponent {
     uuid: Uuid,
+    graph_uuid: petgraph::graph::NodeIndex,
     name: String,
     external_snippet_uuid: Uuid,
     pipeline_connectors: Vec<PipelineConnectorComponent> 
@@ -45,6 +52,7 @@ pub struct PipelineConnectorComponent {
 
 pub struct PipelineComponent {
     uuid: Uuid, 
+    graph_uuid: petgraph::graph::EdgeIndex,
     from_pipeline_connector_uuid: Uuid,
     to_pipeline_connector_uuid: Uuid
 }
@@ -55,8 +63,8 @@ impl Default for SnippetManager {
             snippets: HashMap::with_capacity(12),
             pipelines: HashMap::with_capacity(12),
             pipeline_connector_to_pipeline: HashMap::with_capacity(24),
-            pipeline_connectors_to_snippet: HashMap::with_capacity(24)
-            //uuid_to_edge_adj_index: HashMap::with_capacity(24),
+            pipeline_connectors_to_snippet: HashMap::with_capacity(24),
+            snippet_graph: petgraph::Graph::new()
         };
     }
 }
@@ -64,8 +72,11 @@ impl Default for SnippetManager {
 impl SnippetManager {
     /// create a new snippet
     pub fn new_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &ExternalSnippet) -> Uuid {
+        //add snippet to graph
+        let graph_uuid = self.snippet_graph.add_node(());
+
         //create snippet component
-        let mut snippet_component : SnippetComponent = SnippetComponent::new(sequential_id_generator);
+        let mut snippet_component : SnippetComponent = SnippetComponent::new(graph_uuid, sequential_id_generator);
 
         //get snippet uuid before borrowed mut
         let snippet_uuid : Uuid = snippet_component.uuid;
@@ -100,7 +111,7 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the snippet
-    pub fn delete_snippet(&mut self, uuid: &Uuid) -> Result<(), &'static str>{
+    pub fn delete_snippet(&mut self, uuid: &Uuid) -> Result<(), &'static str> {
         //find snippet
         let snippet_component = match self.find_snippet(uuid) {
             Some(result) => result,
@@ -108,6 +119,8 @@ impl SnippetManager {
                 return Err("snippet component with snippet uuid does not exist in snippet manager");
             }
         };
+
+        let graph_uuid = snippet_component.graph_uuid;
 
         //get pipelines connectors
         let pipeline_connectors_uuid : Vec<Uuid> = (&snippet_component.pipeline_connectors)
@@ -135,6 +148,9 @@ impl SnippetManager {
                 return Err("snippet component with snippet uuid does not exist in mapping in snippet manager");
             }
         };
+
+        //remove snippet and it's edges from the graph
+        self.snippet_graph.remove_node(graph_uuid);
 
         return Ok(());
     }
@@ -255,9 +271,63 @@ impl SnippetManager {
                 from_uuid = temp;
             }
         }
+        
+        let graph_uuid_container: Option<petgraph::prelude::EdgeIndex> = Option::None;
+
+        {
+            let from_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&from_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("from snippet uuid from pipeline connector not found");
+                }
+            };
+
+            let from_snippet = match self.find_snippet(&from_snippet_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("from snippet from pipeline connector not found")
+                }
+            };
+
+
+            //find pipeline connector uuid
+            let to_snippet_uuid = match self.find_snippet_uuid_from_pipeline_connector(&to_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("to snippet uuid from pipeline connector not found");
+                }
+            };
+
+            let to_snippet = match self.find_snippet(&to_snippet_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("to snippet from pipeline connector not found")
+                }
+            };
+
+            // attempt to find existing edge
+            let edge_result = self.snippet_graph.find_edge(from_snippet.graph_uuid, to_snippet.graph_uuid);
+
+            let graph_uuid = match edge_result {
+                Some(edge) => {
+                    // get current weight
+                    let edge_weight = self.snippet_graph.edge_weight_mut(edge).unwrap();
+
+                    // update existing edge
+                    edge_weight.add(1);
+
+                    // return edge index
+                    edge
+                },
+                None => {
+                    // create new edge, returning edge index
+                    self.snippet_graph.add_edge(from_snippet.graph_uuid, to_snippet.graph_uuid, 1)
+                }
+            };
+        }
 
         //create new pipeline
-        let pipeline_component = PipelineComponent::new(sequential_id_generator, &from_uuid, &to_uuid);
+        let pipeline_component = PipelineComponent::new(graph_uuid, sequential_id_generator, &from_uuid, &to_uuid);
 
         //get pipeline uuid for return
         let pipeline_uuid = pipeline_component.get_uuid();
@@ -296,6 +366,8 @@ impl SnippetManager {
             from_pipeline_connector_uuid = pipeline_component.from_pipeline_connector_uuid.clone();
             to_pipeline_connector_uuid = pipeline_component.to_pipeline_connector_uuid.clone();
         }
+
+        //if the weight of the edge is 0, remove it
 
         //delete front from pipeline connector to pipeline relationship 
         match self.pipeline_connector_to_pipeline.remove(&from_pipeline_connector_uuid) {
@@ -430,9 +502,10 @@ impl SnippetManager {
 }
 
 impl SnippetComponent {
-    pub fn new(sequential_id_generator: &mut SequentialIdGenerator) -> Self {
+    pub fn new(graph_uuid: petgraph::prelude::NodeIndex, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetComponent {
             uuid: sequential_id_generator.get_id(),
+            graph_uuid: graph_uuid,
             name: String::new(),
             external_snippet_uuid: 0,
             pipeline_connectors: Vec::new()
@@ -539,9 +612,10 @@ impl PipelineConnectorComponent {
 }
 
 impl PipelineComponent {
-    pub fn new(sequential_id_generator: &mut SequentialIdGenerator, from_uuid: &Uuid, to_uuid: &Uuid) -> Self {
+    pub fn new(graph_uuid: petgraph::graph::EdgeIndex, sequential_id_generator: &mut SequentialIdGenerator, from_uuid: &Uuid, to_uuid: &Uuid) -> Self {
         return PipelineComponent {
             uuid: sequential_id_generator.get_id(),
+            graph_uuid: graph_uuid,
             from_pipeline_connector_uuid: from_uuid.clone(),
             to_pipeline_connector_uuid: to_uuid.clone()
         }
