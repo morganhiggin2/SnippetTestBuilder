@@ -6,9 +6,9 @@ crate-type = ["cdylib", "rlib"]
 
 [package]
 name = "snippet_test_builder_desktop"
-version = "0.0.0"
+version = "0.0.1"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Morgan Higginbotham"]
 license = ""
 repository = ""
 edition = "2021"

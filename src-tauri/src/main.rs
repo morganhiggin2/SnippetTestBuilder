@@ -56,7 +56,6 @@ fn main() {
 fn logln(text: &str) {
     println!("{text}");
 }
-
 //TODO write test cases
 
 //std::process:Command

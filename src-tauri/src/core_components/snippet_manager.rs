@@ -69,7 +69,15 @@ impl Default for SnippetManager {
 impl SnippetManager {
     /// create a new snippet
     pub fn new_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &ExternalSnippet) -> Uuid {
-        //add snippet to graph
+        let pipeline_connectors = external_snippet.create_pipeline_connectors_for_io_points(sequential_id_generator);
+
+        //call handler method, return value
+        //return uuid of snippet
+        return self.new_snippet_handler(sequential_id_generator, pipeline_connectors, external_snippet.get_uuid(), external_snippet.get_name());
+    }
+
+    fn new_snippet_handler(&mut self, sequential_id_generator: &mut SequentialIdGenerator, pipeline_connectors: Vec<PipelineConnectorComponent>, external_snippet_uuid: Uuid, external_snippet_name: String) -> Uuid {
+         //add snippet to graph
         let graph_uuid = self.snippet_graph.add_node(());
 
         //create snippet component
@@ -79,14 +87,11 @@ impl SnippetManager {
         let snippet_uuid : Uuid = snippet_component.uuid;
 
         //get snippet name
-        let snippet_name : String = external_snippet.get_name();
+        let snippet_name : String = external_snippet_name;
 
         //add components from external snippet to snippet
-        snippet_component.external_snippet_uuid = external_snippet.get_uuid();
+        snippet_component.external_snippet_uuid = external_snippet_uuid;
         snippet_component.name = snippet_name;
-
-        //add io points to snippet component as pipeline connectors
-        let pipeline_connectors = external_snippet.create_pipeline_connectors_for_io_points(sequential_id_generator);
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
@@ -101,6 +106,7 @@ impl SnippetManager {
 
         //return uuid of snippet
         return snippet_uuid;
+
     }
 
     /// delete snippet component and it's pipeline connector components
@@ -700,3 +706,92 @@ impl PipelineComponent {
 //TODO hide all new shippet stuff with internal id's behind abstraction layer of virtual component manager
 //TODO be able to move visual snippet components on screen, have pipelines either (a disapear temproarly, so visiabiliy off, then redraw), or if working
 //  b) be able to have dotted lines that move with the snippet as the pipelines when it moves (can implement a first, then b)
+
+#[cfg(test)]
+mod tests {
+    use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::SequentialIdGenerator};
+
+    use super::*;
+
+    /// simple new snippet test
+    #[test]
+    fn test_new_snippet() {
+        // create self, default
+        let mut snippet_manager = SnippetManager::default(); 
+        let mut sequential_id_generator = SequentialIdGenerator::default();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+
+        // temp variable
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_pipeline_connector_one", true));
+
+        let external_snippet_uuid = sequential_id_generator.get_id();
+        let snippet_id = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, external_snippet_uuid, "testing_snippet".to_string());
+
+        // assert that the state of the snippet manager was changed in the correct way
+        // assert that the snippet was added by the correct id
+        let snippet_get_result = snippet_manager.snippets.get(&snippet_id);
+        let snippet = match snippet_get_result {
+            Some(snippet) => snippet,
+            None => {
+                assert!(false);
+
+                return;
+            },
+        };
+
+        // check contents of snippet
+        assert_eq!(snippet.name, "testing_snippet");
+        assert_eq!(snippet.external_snippet_uuid, external_snippet_uuid);
+        
+        // assert graph is assembled correctly
+        let snippet_node_weight_result = snippet_manager.snippet_graph.node_weight(snippet.graph_uuid);
+
+        let snippet_node_weight = match snippet_node_weight_result {
+            Some(weight) => weight,
+            None => {
+                assert!(false);
+
+                return;
+            },
+        };
+
+        // weight is of empty type
+        assert_eq!(*snippet_node_weight, ());
+        // assert only one node in graph
+        assert_eq!(snippet_manager.snippet_graph.node_count(), 1);
+        // asssert no edges
+        assert_eq!(snippet_manager.snippet_graph.edge_count(), 0);
+        
+        assert_eq!(snippet.pipeline_connectors.len(), 1);
+        
+        // assert that the pipeline connectors are added correctly
+        assert_eq!(snippet.pipeline_connectors.get(0).unwrap().uuid, 1);
+        // assert the name of the pipeline connector is correct
+        assert_eq!(snippet.pipeline_connectors.get(0).unwrap().input, true);
+        // assert that the name is the same
+        assert_eq!(snippet.pipeline_connectors.get(0).unwrap().name, "input_pipeline_connector_one");
+    }
+
+    #[test]
+    fn delete_snippet() {
+        // create self, default
+        let mut snippet_manager = SnippetManager::default(); 
+        let mut sequential_id_generator = SequentialIdGenerator::default();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+
+        // temp variable
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_pipeline_connector_one", true));
+
+        let external_snippet_uuid = sequential_id_generator.get_id();
+        let snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, external_snippet_uuid, "testing_snippet".to_string());
+
+        //TODO add more pipelines, add other snippets, make sure all pipelines are disconnected
+
+        // delete snippet
+        snippet_manager.delete_snippet(&snippet_uuid).unwrap();
+
+        
+    }
+}
