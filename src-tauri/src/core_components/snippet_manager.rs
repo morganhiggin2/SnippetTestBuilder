@@ -775,23 +775,119 @@ mod tests {
 
     #[test]
     fn delete_snippet() {
+        /*// create self, default
+        let mut snippet_manager = SnippetManager::default(); 
+        let mut sequential_id_generator = SequentialIdGenerator::default();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+
+        // create the first snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+
+        let first_external_snippet_uuid = sequential_id_generator.get_id();
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+
+        // create second snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
+
+        let second_external_snippet_uuid = sequential_id_generator.get_id();
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
+
+
+        // create third snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+
+        let third_external_snippet_uuid = sequential_id_generator.get_id();
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
+        // connect one to three
+        snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
+        
+        // connect three to one
+        snippet_manager.create_pipeline(&mut sequential_id_generator, 7, 13).unwrap();
+        
+        // delete third snippet
+        snippet_manager.delete_snippet(&third_snippet_uuid).unwrap();
+
+        // check that there are no exsting pipelines, as all of them were connected to snippet three
+        assert_eq!(snippet_manager.pipelines.len(), 0);
+        assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 0);
+
+        // check that there still exists the same number of snippets
+        assert_eq!(snippet_manager.snippets.len(), 2);
+
+        // check that there are the same number of pipeline connectors, minus the ones from three
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 5);
+
+        // make sure the pipeline connectors from the third one are 
+        //TODO insert rest
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&6), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&7), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&8), true);*/
+
+        
         // create self, default
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
 
-        // temp variable
+        // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_pipeline_connector_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
-        let external_snippet_uuid = sequential_id_generator.get_id();
-        let snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, external_snippet_uuid, "testing_snippet".to_string());
+        let first_external_snippet_uuid = sequential_id_generator.get_id();
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
 
-        //TODO add more pipelines, add other snippets, make sure all pipelines are disconnected
+        // create second snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
 
-        // delete snippet
-        snippet_manager.delete_snippet(&snippet_uuid).unwrap();
+        let second_external_snippet_uuid = sequential_id_generator.get_id();
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
 
-        
+
+        // create third snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+
+        let third_external_snippet_uuid = sequential_id_generator.get_id();
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
+        // delete third snippet
+        snippet_manager.delete_snippet(&third_snippet_uuid).unwrap();
+
+        // check that there are no exsting pipelines, as all of them were connected to snippet three
+        assert_eq!(snippet_manager.pipelines.len(), 0);
+        assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 0);
+
+        // check that there still exists the same number of snippets
+        assert_eq!(snippet_manager.snippets.len(), 2);
+
+        // check that there are the same number of pipeline connectors, minus the ones from three
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 5);
+
+        // make sure the pipeline connectors from the third one are 
+        //TODO insert rest
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&1), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&2), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&6), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&7), true);
+        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&8), true);
     }
 }

@@ -218,66 +218,6 @@ impl SnippetDirectory {
 
         return Ok(false);
     }
-    
-    /*
-    /// Walk directory, and for each folder that is not a snippet, create a category
-    fn map_directory_walker_helper(&mut self, current_path: &PathBuf, parent_category: &mut ExternalSnippetCategory, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
-        // first check to see if there exists a . file in the direcoty, regardless of the other contents
-        // if there is a . file in the directory, there this is a snippet
-        // for each entry in the directory we are in 
-        
-        // get directory iterator
-        let dir_iter = match fs::read_dir(current_path) {
-            Ok(some) => some,
-            Err(e) => {
-                return Err(format!("Error in getting read dir for path {}: {}", current_path.as_os_str().to_string_lossy(), e.to_string()));
-            }
-        };
-
-        // list of directories to iterate over
-        // since the direcotry iterator incurs a cost in iterating the path, we are going to store these results
-        // tempoarary variable
-        let mut directory_entries = Vec::<DirEntry>::new();
-        
-        for entry in dir_iter{
-            // if the entry is load correctly
-            if let Ok(dir_entry) = entry {
-                // call directory walker on directory to recurrsivly dive into each folder
-                if dir_entry.path().is_dir() {
-                    directory_entries.push(dir_entry);
-                }
-                // it is a file
-                else {
-                    
-                    //check if this is a . file
-                    if let Some(file_extension) = dir_entry.path().extension(){
-                        // get file name
-                        let file_name = dir_entry.file_name();
-
-                        // println!(file_extension);
-                        // if this is a app.py file, this is a snippet
-                        if file_extension.eq(OsStr::new("py")) && file_name.eq(OsStr::new("app")) {
-                            //create unitilized snippet, then to be initialized after directory walking
-                            snippet_factory_queue.push(dir_entry.path());
-
-                            // end the directory search
-                            // any other directories in this directory can be considered for the snippet, as a snippet cannot exist inside a snippet
-                            return Ok(());
-                        }    
-                    }
-                    else {
-                        // misc files deal with here
-                        // for now, this is going to be ignored
-                    }
-                }
-            }
-            else {
-                //TODO log error in getting dir entry, maybe some permission issue or what not
-            }
-        }
-
-        return Ok(());
-    }*/
 
     pub fn get_root_directory_entry(&self) -> Option<&SnippetDirectoryEntry> {
         return self.root.as_ref();
