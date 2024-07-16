@@ -775,66 +775,6 @@ mod tests {
 
     #[test]
     fn delete_snippet() {
-        /*// create self, default
-        let mut snippet_manager = SnippetManager::default(); 
-        let mut sequential_id_generator = SequentialIdGenerator::default();
-        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-
-        // create the first snippet
-        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
-
-        let first_external_snippet_uuid = sequential_id_generator.get_id();
-        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
-
-        // create second snippet
-        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
-        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
-
-        let second_external_snippet_uuid = sequential_id_generator.get_id();
-        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
-
-
-        // create third snippet
-        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
-        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
-        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
-
-        let third_external_snippet_uuid = sequential_id_generator.get_id();
-        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
-
-        // connect one to three
-        snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
-        
-        // connect three to one
-        snippet_manager.create_pipeline(&mut sequential_id_generator, 7, 13).unwrap();
-        
-        // delete third snippet
-        snippet_manager.delete_snippet(&third_snippet_uuid).unwrap();
-
-        // check that there are no exsting pipelines, as all of them were connected to snippet three
-        assert_eq!(snippet_manager.pipelines.len(), 0);
-        assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 0);
-
-        // check that there still exists the same number of snippets
-        assert_eq!(snippet_manager.snippets.len(), 2);
-
-        // check that there are the same number of pipeline connectors, minus the ones from three
-        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 5);
-
-        // make sure the pipeline connectors from the third one are 
-        //TODO insert rest
-        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&6), true);
-        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&7), true);
-        assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&8), true);*/
-
-        
         // create self, default
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
@@ -889,6 +829,12 @@ mod tests {
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&6), true);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&7), true);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.contains_key(&8), true);
+
+        // assert only two nodes in graph
+        assert_eq!(snippet_manager.snippet_graph.node_count(), 2);
+        // asssert no edges 
+        assert_eq!(snippet_manager.snippet_graph.edge_count(), 0);
+        // assert that 
     }
 
     #[test]
@@ -947,6 +893,52 @@ mod tests {
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 4);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 8);
+
+        // assert 3 nodes
+        assert_eq!(snippet_manager.snippet_graph.node_count(), 3);
+
+        // get snippet's graph uuid
+        let snippet_one_graph_uuid = snippet_manager.find_snippet(&4).unwrap().graph_uuid;
+        let snippet_two_graph_uuid = snippet_manager.find_snippet(&10).unwrap().graph_uuid;
+        let snippet_three_graph_uuid = snippet_manager.find_snippet(&16).unwrap().graph_uuid;
+
+        // asssert only two edges 
+        assert_eq!(snippet_manager.snippet_graph.edge_count(), 2);
+
+        assert!(match snippet_manager.snippet_graph.find_edge(snippet_one_graph_uuid, snippet_three_graph_uuid) {
+            Some(_) => true,
+            None => false,
+        });
+        assert!(match snippet_manager.snippet_graph.find_edge(snippet_two_graph_uuid, snippet_three_graph_uuid) {
+            Some(_) => true,
+            None => false,
+        });
+
+        let edge_one = snippet_manager.snippet_graph.find_edge(snippet_one_graph_uuid, snippet_three_graph_uuid).unwrap();
+        let edge_two = snippet_manager.snippet_graph.find_edge(snippet_two_graph_uuid, snippet_three_graph_uuid).unwrap();
+
+        assert!(match snippet_manager.snippet_graph.edge_weight(edge_one) {
+            Some(val) => {
+                if *val == 1 {
+                   true 
+                }
+                else {
+                    false
+                }
+            },
+            None => false,
+        });
+        assert!(match snippet_manager.snippet_graph.edge_weight(edge_two) {
+            Some(val) => {
+                if *val == 1 {
+                   true 
+                }
+                else {
+                    false
+                }
+            },
+            None => false,
+        });
 
     }
 
@@ -1008,6 +1000,44 @@ mod tests {
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 2);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 8);
+
+        // assert 3 nodes
+        assert_eq!(snippet_manager.snippet_graph.node_count(), 3);
+
+        // get snippet's graph uuid
+        let snippet_one_graph_uuid = snippet_manager.find_snippet(&4).unwrap().graph_uuid;
+        let snippet_two_graph_uuid = snippet_manager.find_snippet(&10).unwrap().graph_uuid;
+        let snippet_three_graph_uuid = snippet_manager.find_snippet(&16).unwrap().graph_uuid;
+
+        // asssert only one edge 
+        assert_eq!(snippet_manager.snippet_graph.edge_count(), 1);
+
+        assert!(match snippet_manager.snippet_graph.find_edge(snippet_one_graph_uuid, snippet_three_graph_uuid) {
+            Some(_) => false,
+            None => true,
+        });
+        assert!(match snippet_manager.snippet_graph.find_edge(snippet_two_graph_uuid, snippet_three_graph_uuid) {
+            Some(_) => true,
+            None => false,
+        });
+
+        let edge_one = snippet_manager.snippet_graph.find_edge(snippet_two_graph_uuid, snippet_three_graph_uuid).unwrap();
+
+        assert!(match snippet_manager.snippet_graph.edge_weight(edge_one) {
+            Some(val) => {
+                if *val == 1 {
+                   true 
+                }
+                else {
+                    false
+                }
+            },
+            None => false,
+        });
+    }
+
+    #[test]
+    fn test_validate_pipeline() {
 
     }
 }
