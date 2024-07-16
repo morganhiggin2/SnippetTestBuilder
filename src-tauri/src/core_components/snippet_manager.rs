@@ -487,10 +487,14 @@ impl SnippetManager {
             }
         }
 
-        //verify that one is an output and one is an input
+        //verify that from is an output and to is an input
         //TODO validate schemas
         {
-            if from_pipeline_connector.get_input() == to_pipeline_connector.get_input() {
+            if from_pipeline_connector.get_input() {
+                return Ok(false);
+            }
+
+            if !to_pipeline_connector.get_input() {
                 return Ok(false);
             }
         }
@@ -1038,6 +1042,57 @@ mod tests {
 
     #[test]
     fn test_validate_pipeline() {
+        // create self, default
+        let mut snippet_manager = SnippetManager::default(); 
+        let mut sequential_id_generator = SequentialIdGenerator::default();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
 
+        // create the first snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+
+        let first_external_snippet_uuid = sequential_id_generator.get_id();
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+
+        // create second snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
+
+        let second_external_snippet_uuid = sequential_id_generator.get_id();
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
+
+
+        // create third snippet
+        let external_pipeline_connector_uuid = sequential_id_generator.get_id();
+        let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
+        pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
+
+        let third_external_snippet_uuid = sequential_id_generator.get_id();
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
+        // connect one to three
+        snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
+
+        // valid valid case (is dag, output to input)
+        // validate two to three
+        assert!(snippet_manager.validate_pipeline(7, 13).unwrap());
+
+        // validate input output invalid case
+        assert!(!snippet_manager.validate_pipeline(13, 7).unwrap());
+
+        // test if going to different snippets
+        assert!(!snippet_manager.validate_pipeline(7, 8).unwrap());
+
+        snippet_manager.create_pipeline(&mut sequential_id_generator, 7, 13).unwrap();
+
+        // validate dag invalid case
+        // validate three to one
+        assert!(!snippet_manager.validate_pipeline(14, 6).unwrap());
     }
 }

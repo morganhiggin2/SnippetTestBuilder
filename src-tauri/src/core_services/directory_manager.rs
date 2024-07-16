@@ -123,8 +123,6 @@ impl SnippetDirectory {
     ///   it calls another helper to walk that dirctory for all .py files, list of .py file pathbufs, and 
     ///   by the end of this we have a full directory structure. 
     fn directory_walker(parent_directory_category: &mut SnippetDirectoryCategory, current_path: &Path, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
-        // Change this to match other logic for seeing it is a snippet, possibly a is_snippet method instead of is_dir
-
         // Get if snippet directory
         let is_snippet_directory = SnippetDirectory::is_directory_snippet(current_path)?;
 
