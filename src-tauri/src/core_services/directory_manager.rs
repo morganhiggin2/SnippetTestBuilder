@@ -58,9 +58,9 @@ impl Default for DirectoryManager {
 
 impl DirectoryManager {
     // Initialize the directory manager
-    pub fn initialize(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+    pub fn initialize(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         // First create the snippet directory
-        self.snippet_directory.initialize(sequential_id_generator)?;
+        self.snippet_directory.initialize(relative_snippet_directory, sequential_id_generator)?;
 
         return Ok(());
     }
@@ -76,8 +76,8 @@ impl Default for SnippetDirectory {
 
 impl SnippetDirectory {
     /// Initialize the snippet directory
-    pub fn initialize(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
-        self.scan_and_map_directory(&"../data/snippets/main/".to_string(), sequential_id_generator)?;
+    pub fn initialize(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+        self.scan_and_map_directory(relative_snippet_directory, sequential_id_generator)?;
         
         return Ok(());
     }
@@ -97,7 +97,7 @@ impl SnippetDirectory {
         let snippets_directory = current_working_directory.join(relative_snippet_directory);
 
         // if root category does not exist, override it 
-        match self.root {
+        /*match self.root {
             Some(_) => (), 
             None => {
                 // create root category
@@ -105,14 +105,55 @@ impl SnippetDirectory {
 
                 self.root = Some(root_category);
             }
+        };*/
+
+        let mut placeholder_parent_entry = SnippetDirectoryEntry::new_category("placeholder".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
+        let mut placeholder_parent_category = match placeholder_parent_entry.content {
+            SnippetDirectoryType::Category(category) => category,
+            // Should not be possible, hard coded logic error if so
+            SnippetDirectoryType::Snippet(_) => panic!(),
         };
 
         // becausse we know the root is of type Some, we can safely unwrap
-        let root = self.root.as_mut().unwrap();
-        let root = root.get_as_category().unwrap();
+        //let root = self.root.as_mut().unwrap();
+        //let root = root.get_as_category().unwrap();
 
         // walk directory recurrsivly
-        SnippetDirectory::directory_walker(root, &snippets_directory, sequential_id_generator)?;
+        SnippetDirectory::directory_walker(&mut placeholder_parent_category, &snippets_directory, sequential_id_generator)?;
+
+        /*match self.root {
+            Some(_) => (), 
+            None => {
+                // create root category
+                //let root_category = SnippetDirectoryEntry::new_category("root".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
+
+                self.root = Some(root_category);
+            }
+        };*/
+
+        let mut roots: Vec<SnippetDirectoryEntry> = placeholder_parent_category.children.into_iter().filter(|child| -> bool {
+            if child.get_name().eq(&"root".to_string()) {
+                return match &child.content {
+                    SnippetDirectoryType::Category(_) => true,
+                    SnippetDirectoryType::Snippet(_) => false,
+                }
+            }
+
+            false
+        })
+        .collect();
+
+        // we don't have a root folder
+        if roots.len() == 0 {
+            return Err("Root root directory missing".to_string());
+        }
+        // if there is more than one 'root', we have a bad directory
+        else if roots.len() > 1 {
+            return Err("More then one root directory found, not valid directory structure".to_string()); 
+        }
+
+        // get one that is named root
+        self.root = Some(roots.remove(0));
       
         return Ok(());
     }
@@ -299,5 +340,74 @@ impl SnippetDirectoryCategory {
 impl SnippetDirectorySnippet {
     fn new() -> Self {
         return SnippetDirectorySnippet {  }; 
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, ffi::OsStr, path::PathBuf};
+    use crate::core_services::directory_manager::SnippetDirectoryType;
+    use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+
+    use super::{DirectoryManager, SnippetDirectory};
+
+    #[test]
+    fn test_scan_and_map_directory() {
+        let mut sequential_id_generator = SequentialIdGenerator::default();
+        let mut snippet_directory = SnippetDirectory::default();
+        let working_directory = env::current_dir().unwrap();
+        
+        // We are reading from a sample directory
+        snippet_directory.scan_and_map_directory(&"tests/testing_files/sample_directory/data/snippets/root".to_string(), &mut sequential_id_generator).unwrap();
+
+        // Test that the snippet directory was set up accordingly
+        let root = match snippet_directory.root {
+            Some(entry) => entry,
+            None => {
+                assert!(false);
+                return
+            }
+        };
+
+        assert_eq!(root.name, "root");
+        assert_eq!(root.path, working_directory.join("tests/testing_files/sample_directory/data/snippets/root"));
+        
+        let mut root_content = match root.content {
+            SnippetDirectoryType::Category(category) => category,
+            SnippetDirectoryType::Snippet(_) => {
+                assert!(false); 
+                return
+            }
+        };
+
+        assert_eq!(root_content.children.len(), 1);
+
+        let main_entry = root_content.children.remove(0); 
+
+        assert_eq!(main_entry.name, "main");
+        assert_eq!(main_entry.path, working_directory.join("tests/testing_files/sample_directory/data/snippets/root/main"));
+
+        let main_content = match main_entry.content {
+            SnippetDirectoryType::Category(category) => category,
+            SnippetDirectoryType::Snippet(_) => {
+                assert!(false);
+                return
+            }
+        };
+
+        assert_eq!(main_content.children.len(), 4);
+
+        //assert_eq!(main.name, "main");
+        //assert_eq!(main.path, working_directory.join("tests/testing_files/sample_directory/data/snippets/main"));
+
+
+        // Follow from the root, checking the name, path, and content
+
+
+
+
+        //TOOD other
+        // check duplicate roots
+        // check duplicate sub category names
     }
 }
