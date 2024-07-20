@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{borrow::Borrow, collections::HashMap, ffi::OsStr, fs::{self, DirEntry}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
+use std::{borrow::Borrow, collections::{HashMap, HashSet}, ffi::OsStr, fs::{self, DirEntry}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
 use enum_as_inner::EnumAsInner;
 use serde::{Serialize, Deserialize};
 use std::env;
@@ -147,10 +147,6 @@ impl SnippetDirectory {
         if roots.len() == 0 {
             return Err("Root root directory missing".to_string());
         }
-        // if there is more than one 'root', we have a bad directory
-        else if roots.len() > 1 {
-            return Err("More then one root directory found, not valid directory structure".to_string()); 
-        }
 
         // get one that is named root
         self.root = Some(roots.remove(0));
@@ -163,9 +159,12 @@ impl SnippetDirectory {
     /// walk directory method, that looks for snippets, when it reaches a <snippet_name>.py file in the current directory,
     ///   it calls another helper to walk that dirctory for all .py files, list of .py file pathbufs, and 
     ///   by the end of this we have a full directory structure. 
-    fn directory_walker(parent_directory_category: &mut SnippetDirectoryCategory, current_path: &Path, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+    /// Returns whether or not the entry is or has a child snippet
+    fn directory_walker(parent_directory_category: &mut SnippetDirectoryCategory, current_path: &Path, sequential_id_generator: &mut SequentialIdGenerator) -> Result<bool, String> {
         // Get if snippet directory
         let is_snippet_directory = SnippetDirectory::is_directory_snippet(current_path)?;
+        // flag for whether or not the the entry is or has a child snippet
+        let mut is_parent_category_or_snippet = false;
 
         let dir_name = match current_path.file_stem() {
             Some(some) => some,
@@ -184,6 +183,8 @@ impl SnippetDirectory {
             // add as child
             parent_directory_category.add_child(snippet_entry);
 
+            is_parent_category_or_snippet = true;
+
         }
         else if current_path.is_dir() {
             // create category
@@ -198,6 +199,8 @@ impl SnippetDirectory {
                     return Err(format!("Could not get directory entry for a given directory path in directory_walker call: {}", e.to_string()));
                 }
             };
+
+            // by definition of a directory, we cannot have duplicate entries
         
             // walk sub 
             for directory_entry in dir_entries {
@@ -207,20 +210,27 @@ impl SnippetDirectory {
                         return Err(format!("Could not get entry from directory entry in directory_walker: {}", e.to_string()));
                     }
                 };
+
                 let path = entry.path();
 
                 if path.is_dir() {
-                    SnippetDirectory::directory_walker(snippet_category, &entry.path(), sequential_id_generator)?;
+                    is_parent_category_or_snippet = SnippetDirectory::directory_walker(snippet_category, &entry.path(), sequential_id_generator)? || is_parent_category_or_snippet;
                 }
             }
 
-            // add as child to parent category
-            parent_directory_category.add_child(snippet_entry);
+            // only if any of the children are snippets, does this qualify as a category
+            if is_parent_category_or_snippet {
+                // add as child to parent category
+                parent_directory_category.add_child(snippet_entry);
+            }
+
         }
+
+        println!("{} {}", dir_name, is_parent_category_or_snippet);
 
         //else this is a random file or something, ignore
 
-        return Ok(());
+        return Ok(is_parent_category_or_snippet);
     }
 
     fn is_directory_snippet(dir_path: &Path) -> Result<bool, String> {
@@ -345,8 +355,9 @@ impl SnippetDirectorySnippet {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::{env, ffi::OsStr, path::PathBuf};
-    use crate::core_services::directory_manager::SnippetDirectoryType;
+    use crate::core_services::directory_manager::{SnippetDirectoryEntry, SnippetDirectoryType};
     use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 
     use super::{DirectoryManager, SnippetDirectory};
@@ -395,7 +406,54 @@ mod tests {
             }
         };
 
-        assert_eq!(main_content.children.len(), 4);
+        // if a category has no snippet children, is it not a snippet category
+        assert_eq!(main_content.children.len(), 3);
+
+        let children_map: HashMap<String, SnippetDirectoryEntry> = main_content.children.into_iter().map(|element| -> (String, SnippetDirectoryEntry) {
+            return (element.name.to_owned(), element);
+        })
+        .collect();
+
+        // get first child
+        let child_one = match children_map.get("basic_snippet_one") {
+            Some(entity) => entity,
+            None => {
+                assert!(false);
+
+                return
+            },
+        };
+
+        // assert first child is a snippet
+        let child_one_content = match child_one.content {
+            SnippetDirectoryType::Category(_) => {
+                assert!(false);
+
+                return
+            },
+            SnippetDirectoryType::Snippet(snippet) => snippet,
+        };
+
+        // get second child
+        let child_two = match children_map.get("string_operations") {
+            Some(entity) => entity,
+            None => {
+                assert!(false);
+
+                return
+            },
+        };
+
+        // assert first child is a snippet
+        let child_two_content = match child_two.content {
+            SnippetDirectoryType::Category(category) => category,
+            SnippetDirectoryType::Snippet(_) => {
+                assert!(false);
+
+                return
+            },
+        };
+
 
         //assert_eq!(main.name, "main");
         //assert_eq!(main.path, working_directory.join("tests/testing_files/sample_directory/data/snippets/main"));
