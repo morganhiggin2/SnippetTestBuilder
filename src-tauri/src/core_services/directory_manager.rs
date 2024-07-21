@@ -226,8 +226,6 @@ impl SnippetDirectory {
 
         }
 
-        println!("{} {}", dir_name, is_parent_category_or_snippet);
-
         //else this is a random file or something, ignore
 
         return Ok(is_parent_category_or_snippet);
@@ -415,7 +413,7 @@ mod tests {
         .collect();
 
         // get first child
-        let child_one = match children_map.get("basic_snippet_one") {
+        let child_one = match children_map.get("basic_one_snippet") {
             Some(entity) => entity,
             None => {
                 assert!(false);
@@ -425,7 +423,7 @@ mod tests {
         };
 
         // assert first child is a snippet
-        let child_one_content = match child_one.content {
+        let child_one_content = match &child_one.content {
             SnippetDirectoryType::Category(_) => {
                 assert!(false);
 
@@ -444,8 +442,8 @@ mod tests {
             },
         };
 
-        // assert first child is a snippet
-        let child_two_content = match child_two.content {
+        // assert first child is a category 
+        let child_two_content = match &child_two.content {
             SnippetDirectoryType::Category(category) => category,
             SnippetDirectoryType::Snippet(_) => {
                 assert!(false);
@@ -454,18 +452,106 @@ mod tests {
             },
         };
 
+        // child two has only one child 
+        assert_eq!(child_two_content.children.len(), 1);
+        
+        // child two's child
+        let child_two_child_only = child_two_content.children.get(0).unwrap();
 
-        //assert_eq!(main.name, "main");
-        //assert_eq!(main.path, working_directory.join("tests/testing_files/sample_directory/data/snippets/main"));
+        assert_eq!(child_two_child_only.name, "remove_index_in_str");
 
+        // get inner snippet, check if it is snippet
+        let child_two_child_only_content = match child_two_child_only.content {
+            SnippetDirectoryType::Category(_) => assert!(false),
+            SnippetDirectoryType::Snippet(_) => {
 
-        // Follow from the root, checking the name, path, and content
+            },
+        };
 
+        // get child three
+        let child_three = match children_map.get("math") {
+            Some(entity) => entity,
+            None => {
+                assert!(false);
 
+                return
+            },
+        };
 
+        // assert first child is a category 
+        let child_three_content = match &child_three.content {
+            SnippetDirectoryType::Category(category) => category,
+            SnippetDirectoryType::Snippet(_) => {
+                assert!(false);
 
-        //TOOD other
-        // check duplicate roots
-        // check duplicate sub category names
+                return
+            },
+        };
+        
+        assert_eq!(child_three_content.children.len(), 3);
+
+        let children_map: HashMap<String, &SnippetDirectoryEntry> = child_three_content.children.iter().map(|element| -> (String, &SnippetDirectoryEntry) {
+            return (element.name.to_owned(), element);
+        })
+        .collect();
+
+        {
+            let child_three_child_one  = match children_map.get("add") {
+                Some(entity) => entity,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // assert first child is a category 
+            let child_three_child_one_content = match &child_three_child_one.content {
+                SnippetDirectoryType::Category(_) => {
+                    assert!(false);
+
+                    return
+                },
+                SnippetDirectoryType::Snippet(snippet) => snippet,
+            };
+            
+            let child_three_child_two  = match children_map.get("subtract") {
+                Some(entity) => entity,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // assert first child is a category 
+            let child_three_child_two_content = match &child_three_child_two.content {
+                SnippetDirectoryType::Category(_) => {
+                    assert!(false);
+
+                    return
+                },
+                SnippetDirectoryType::Snippet(snippet) => snippet,
+            }; 
+            
+            let child_three_child_three  = match children_map.get("multiply") {
+                Some(entity) => entity,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // assert first child is a category 
+            let child_three_child_three_content = match &child_three_child_three.content {
+                SnippetDirectoryType::Category(_) => {
+                    assert!(false);
+
+                    return
+                },
+                SnippetDirectoryType::Snippet(snippet) => snippet,
+            };
+        }
     }
 }
