@@ -422,6 +422,7 @@ mod test {
     /// This uses the sample directory 
     fn test_external_snippet_manager_from_directory_manager() {
         //TODO enforce minimum python version
+        //TODO same snippet names in different category paths
 
         let mut sequential_id_generator = SequentialIdGenerator::default(); 
 
@@ -433,6 +434,8 @@ mod test {
         let mut external_snippet_manager = ExternalSnippetManager::default();
         external_snippet_manager.create_external_snippets_from_directory(&directory_manager, &mut sequential_id_generator).unwrap();
 
+        assert_eq!(external_snippet_manager.external_snippets.len(), 5);
+
         // test for external snippet manager state
         let snippet_map: HashMap<String, &ExternalSnippet> = external_snippet_manager.external_snippets.iter().map(|element| -> (String, &ExternalSnippet) {
             return (element.name.to_owned(), element);
@@ -440,7 +443,7 @@ mod test {
         .collect();
 
         {
-            let external_snippet = match snippet_map.get("basic_snippet_one") {
+            let external_snippet = match snippet_map.get("basic_one_snippet") {
                 Some(snippet) => snippet,
                 None => {
                     assert!(false);
@@ -484,8 +487,241 @@ mod test {
             // check if io point uuid exists in external snippet manager io point to snippet uuid map, with correct external snippet uuid
         }
 
+        {
+            let external_snippet = match snippet_map.get("add") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
 
+                    return
+                },
+            };
 
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("a".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("b".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("c".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+        }
+
+        {
+            let external_snippet = match snippet_map.get("subtract") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("a".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("b".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("c".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+        }
+
+        {
+            let external_snippet = match snippet_map.get("multiply") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("a".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("b".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("c".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+        }
+
+        {
+            let external_snippet = match snippet_map.get("remove_index_in_str") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("index".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("str".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("new_str".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("original_str".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+        }
         //TODO map them to correct directory entries, so look to see if we can get them, and if that directory entry has the right name
     }
 }
