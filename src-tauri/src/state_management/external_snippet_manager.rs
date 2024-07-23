@@ -382,31 +382,6 @@ impl ExternalSnippet {
     }
 }
 
-/*
-impl ExternalSnippetCategory {
-    /// Create new category node
-    pub fn new(sequential_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
-        return ExternalSnippetCategory {
-            uuid: sequential_id_generator.get_id(),
-            name: name
-        };
-    }
-    
-    pub fn get_uuid(&self) -> Uuid {
-        return self.uuid;
-    }
-    
-    pub fn get_name(&self) -> String {
-        return self.name.clone();
-    }
-}
-
-impl fmt::Display for ExternalSnippetCategory {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-} */
-
 impl ExternalSnippetIOPoint {
     /// create non action io endpoint
     /// useful for connecting snippets together that share no data
@@ -432,3 +407,110 @@ impl ExternalSnippetIOPoint {
         return snippet_io_point;
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use crate::{core_services::directory_manager::{self, DirectoryManager}, state_management::external_snippet_manager::ExternalSnippetIOPoint, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+
+    use super::{ExternalSnippet, ExternalSnippetManager};
+
+    #[test]
+    /// Testing creating the external snippet manager from the directory manager.
+    /// This will invoke the create directory manager and the python module to run the init() of each snippet as well
+    /// This uses the sample directory 
+    fn test_external_snippet_manager_from_directory_manager() {
+        //TODO enforce minimum python version
+
+        let mut sequential_id_generator = SequentialIdGenerator::default(); 
+
+        // create and initialize the directory manager
+        let mut directory_manager = DirectoryManager::default();
+        directory_manager.initialize(&"tests/testing_files/sample_directory/data/snippets/root".to_string(), &mut sequential_id_generator).unwrap();
+
+        // create and initalize the external snippet manager
+        let mut external_snippet_manager = ExternalSnippetManager::default();
+        external_snippet_manager.create_external_snippets_from_directory(&directory_manager, &mut sequential_id_generator).unwrap();
+
+        // test for external snippet manager state
+        let snippet_map: HashMap<String, &ExternalSnippet> = external_snippet_manager.external_snippets.iter().map(|element| -> (String, &ExternalSnippet) {
+            return (element.name.to_owned(), element);
+        })
+        .collect();
+
+        {
+            let external_snippet = match snippet_map.get("basic_snippet_one") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("numbers".to_string(), true)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+
+            // search for each one
+            let io_point = match io_map.get(&("numbers".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+            // check if io point uuid exists in external snippet manager io point to snippet uuid map, with correct external snippet uuid
+        }
+
+
+
+        //TODO map them to correct directory entries, so look to see if we can get them, and if that directory entry has the right name
+    }
+}
+
+/*
+impl ExternalSnippetCategory {
+    /// Create new category node
+    pub fn new(sequential_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
+        return ExternalSnippetCategory {
+            uuid: sequential_id_generator.get_id(),
+            name: name
+        };
+    }
+    
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid;
+    }
+    
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+}
+
+impl fmt::Display for ExternalSnippetCategory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+} */
