@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{core_services::directory_manager, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, MutexApplicationState}, utils::sequential_id_generator::Uuid};
+use crate::{core_services::directory_manager, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
 use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
@@ -11,7 +11,7 @@ use std::ops::DerefMut;
 /// * 'window_session_uuid' - uuid of the window session
 /// * 'external_snippet_uuid' - uuid of the external snippet it is going to blueprint
 #[tauri::command] 
-pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, directory_front_uuid: Uuid) -> Result<FrontSnippetContent, &str> {
+pub fn new_snippet(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, directory_front_uuid: Uuid) -> Result<FrontSnippetContent, &str> {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -74,7 +74,7 @@ pub fn new_snippet(application_state: tauri::State<MutexApplicationState>, windo
 /// # Arguments 
 /// * 'front_uuid' - uuid of snippet 
 #[tauri::command]
-pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
+pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -132,7 +132,7 @@ pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State
 /// # Arguments 
 /// * 'front_uuid' - uuid of the snippet
 #[tauri::command] 
-pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), &str> {
+pub fn delete_snippet(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -219,7 +219,7 @@ pub fn delete_snippet(application_state: tauri::State<MutexApplicationState>, wi
 /// * 'from_front_uuid' - from pipeline connector front uuid
 /// * 'to_front_uuid' - to pipeline connector front uuid
 #[tauri::command] 
-pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, from_front_uuid: Uuid, to_front_uuid: Uuid) -> Result<FrontPipelineContent, &str> {
+pub fn new_pipeline(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, from_front_uuid: Uuid, to_front_uuid: Uuid) -> Result<FrontPipelineContent, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -272,7 +272,7 @@ pub fn new_pipeline(application_state: tauri::State<MutexApplicationState>, wind
 }
 
 #[tauri::command] 
-pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), & str> {
+pub fn delete_pipeline(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid) -> Result<(), & str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -323,7 +323,7 @@ pub fn delete_pipeline(application_state: tauri::State<MutexApplicationState>, w
 /// * 'from_fornt_uuid' - from front pipeline connector uuid
 /// * 'to_front_uuid' - to front pipeline connector uuid
 #[tauri::command] 
-pub fn validate_pipeline_connection(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, from_front_uuid: Uuid, to_front_uuid: Uuid) -> Result<bool, &str> {
+pub fn validate_pipeline_connection(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, from_front_uuid: Uuid, to_front_uuid: Uuid) -> Result<bool, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -362,7 +362,7 @@ pub fn validate_pipeline_connection(application_state: tauri::State<MutexApplica
 
 /// get pipelines associated with snippet
 #[tauri::command] 
-pub fn get_snippet_pipelines(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, snippet_front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
+pub fn get_snippet_pipelines(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, snippet_front_uuid: Uuid) -> Result<Vec<Uuid>, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -429,7 +429,7 @@ pub fn get_snippet_pipelines(application_state: tauri::State<MutexApplicationSta
 /// check if pipeline connector is already involved in pipeline
 /// TODO when connectors can take more than one, this will evolve to handle that
 #[tauri::command] 
-pub fn check_pipeline_connector_capacity_full(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_pipeline_connector_uuid: Uuid) -> Result<bool, &str> {
+pub fn check_pipeline_connector_capacity_full(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_pipeline_connector_uuid: Uuid) -> Result<bool, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -467,7 +467,7 @@ pub struct FrontPipelineConnectorResult {
 
 /// get front pipeline connector uuids for front pipeline uuid
 #[tauri::command]
-pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::State<MutexApplicationState>, window_session_uuid: Uuid, front_pipeline_uuid: Uuid) -> Result<FrontPipelineConnectorResult, &str> {
+pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_pipeline_uuid: Uuid) -> Result<FrontPipelineConnectorResult, &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -530,7 +530,7 @@ pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::Stat
 
 /// to get a new unique id
 #[tauri::command]
-pub fn get_id(application_state: tauri::State<MutexApplicationState>) -> Uuid {
+pub fn get_id(application_state: tauri::State<SharedApplicationState>) -> Uuid {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();

@@ -59,10 +59,28 @@ impl Default for DirectoryManager {
 impl DirectoryManager {
     // Initialize the directory manager
     pub fn initialize(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+        // if we are already initialized
+        if let Some(_) = self.snippet_directory.root {
+            // unitialize snippet directory 
+
+
+            // clear visual component manager
+        }
+
         // First create the snippet directory
         self.snippet_directory.initialize(relative_snippet_directory, sequential_id_generator)?;
 
         return Ok(());
+    }
+
+    /// Get directory manager as front
+    pub fn get_as_front(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Vec<FrontDirectoryContent> {
+        self.visual_component_manager.get_directory_as_front(&self.snippet_directory, sequential_id_generator)
+    }
+
+    /// return true if the directory manager is initialized, false otherwise
+    pub fn is_initialized(&self) -> bool {
+        return self.snippet_directory.is_initialized();
     }
 }
 
@@ -77,6 +95,7 @@ impl Default for SnippetDirectory {
 impl SnippetDirectory {
     /// Initialize the snippet directory
     pub fn initialize(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+
         self.scan_and_map_directory(relative_snippet_directory, sequential_id_generator)?;
         
         return Ok(());
@@ -107,7 +126,7 @@ impl SnippetDirectory {
             }
         };*/
 
-        let mut placeholder_parent_entry = SnippetDirectoryEntry::new_category("placeholder".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
+        let placeholder_parent_entry = SnippetDirectoryEntry::new_category("placeholder".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
         let mut placeholder_parent_category = match placeholder_parent_entry.content {
             SnippetDirectoryType::Category(category) => category,
             // Should not be possible, hard coded logic error if so
@@ -268,6 +287,15 @@ impl SnippetDirectory {
 
     pub fn get_root_directory_entry(&self) -> Option<&SnippetDirectoryEntry> {
         return self.root.as_ref();
+    }
+
+    /// return true if the snippet directory is initialized, false otherwise
+    pub fn is_initialized(&self) -> bool {
+        if let Some(_) = self.root {
+            return true;
+        }
+
+        return false;
     }
 }
 
