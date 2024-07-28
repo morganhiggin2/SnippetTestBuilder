@@ -13,18 +13,9 @@
     }
 
     let window_height = 0;
-    let window_session_id = 0;
+    export let window_session_id;
 
     let src = "";
-
-    onMount(() => {
-        //create new window sesison
-        //set id on completion
-        invoke('new_window_session')
-            .then((result) => {
-            window_session_id = result;
-        });
-    });
 
 </script>
 

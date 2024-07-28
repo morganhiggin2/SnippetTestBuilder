@@ -1,8 +1,13 @@
 <script>
+    import { onMount } from 'svelte';
     import NavigationBar from './navigation_bar.svelte';
     import SectionSidebar from './sidebar/section_sidebar.svelte';
     import SnippetDisplay from './sidebar/snippet_display.svelte';
     import Workarea from './workarea/work_area.svelte';
+    import { invoke } from '@tauri-apps/api';
+
+    // for window uuid
+    let window_session_id = 0;
 
     //for border resizing
     //sidebar-workarea
@@ -40,6 +45,15 @@
     function trigger_logging(event) {
         trigger_logging_(event.detail.log_id);
     }
+
+    onMount(() => {
+        //create new window sesison
+        //set id on completion
+        invoke('new_window_session')
+            .then((result) => {
+            window_session_id = result;
+        });
+    });
 </script>
 
 <div class="container" style="grid-template-columns: 50px {secondary_sidebar_width}px 2px 100%;" on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}>
@@ -50,11 +64,11 @@
         <SectionSidebar/>
     </div>
     <div class="body sidebar" id="secondary">
-        <SnippetDisplay on:triggerLogging={trigger_logging}/>
+        <SnippetDisplay window_session_id={window_session_id} on:triggerLogging={trigger_logging}/>
     </div>
     <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
     <div class="body work-area">
-        <Workarea bind:trigger_logging={trigger_logging_}/> 
+        <Workarea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/> 
     </div>
 </div>
 

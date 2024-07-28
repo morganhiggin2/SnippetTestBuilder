@@ -9,20 +9,14 @@
 
     //files to sidebar
     let files = [];
+    export let window_session_id;
 
     let logging_dispatch = createEventDispatcher();
 
     onMount(() => {
         //invoke('get_snippet_directory', {}).then((result) => {files = result;});
         //console.log(files);
-         
-        // call the spawn initalize snippet directory
-        invoke('spawn_initialize_snippet_directory', {}).then((log_id) => {
-            logging_dispatch('triggerLogging', {
-                log_id: log_id 
-            });
-        });
-
+ 
         // wait for done event
         event.once('directory_initialized', (event) => {
             invoke('get_snippet_directory_details', {}).then((result) => {
@@ -36,7 +30,17 @@
                     }
                 }
             });
+        });        
+        
+        logging_dispatch('triggerLogging', {
+            log_id: window_session_id 
         });
+
+        // call the spawn initalize snippet directory
+        invoke('spawn_initialize_snippet_directory', {windowSessionUuid: window_session_id}).then((log_id) => {
+            //TODO unused log id
+        });
+
         /*logging_dispatch('triggerLogging', {
             log_id: log_id
         });*/

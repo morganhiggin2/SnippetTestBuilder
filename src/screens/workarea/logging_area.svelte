@@ -4,36 +4,32 @@
     export let window_session_id;
     
     // logging
-    let logging_active = null;
+    let logging_active;
+    let log_text = "";
 
     export const trigger_logging = (stream_i) => {
         var stream_id = "log_" + stream_i;
-        invoke('logln', {text: JSON.stringify('entering')});
 
-        //invoke('logln', {text: 'registering event ' + stream_id});
-
-        let unlisten = event.listen(stream_id, (event) => {
+        event.listen(stream_id, (event) => {
             var payload = event.payload;
 
             // if we receive the close log event
             if (payload == "") {
-                // unlisten to self
+                //TODO maybe not actually ending, maybe not timly (i.e. other events queued before this could get called) 
                 logging_active();
-                logging_active = null;
-                invoke('logln', {text: JSON.stringify('unactivating')});
             }
             else {
                 // append log to logging component
-                invoke('logln', {text: JSON.stringify(payload)});
+                log_text += "> " + payload;
             }
+        }).then((unlisten) => {
+            logging_active = unlisten; 
         });
-
-        logging_active = unlisten;
     };
 </script>
 
 <div class="body">
-
+    <textarea bind:value={log_text} class="logging_area" readonly wrap="hard"/>
 </div>
 
 <style>
@@ -43,5 +39,9 @@
         background-color: white;
         border-top: 2px solid lightgrey;
         overflow-y: auto;
+    }
+    .logging_area {
+        width: 100%;
+        height: 100%;
     }
 </style>

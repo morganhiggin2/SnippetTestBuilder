@@ -2,6 +2,8 @@
     import TabBar from "./tab-bar/tab_bar.svelte";
     import TestDesignArea from "./test_design_area.svelte";
 
+    export let window_session_id;    
+
     let sessions = [];
 
     // logging
@@ -19,7 +21,7 @@
             <TabBar/>
         </div>-->
         <div class="design-area">
-            <TestDesignArea bind:trigger_logging={trigger_logging_}/>
+            <TestDesignArea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/>
         </div>
     </div>
 </div>

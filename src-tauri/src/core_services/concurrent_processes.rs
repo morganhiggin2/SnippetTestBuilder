@@ -9,7 +9,6 @@ use super::{directory_manager, runtime_logging_service::LoggingStreamInstance};
 /// This event spawns the initalize event, returning the event id and the log file id.
 /// This will emit the event id to the front id  when the process is complete
 pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<ApplicationState>>, mut logging_stream_instance: LoggingStreamInstance) {
-    print!("here in process");
     // lock the application state
     let mut state_guard = application_state.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -33,12 +32,12 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     else {
         logging_stream_instance.append_log(format!("Finished successfully intializing all snippets"));
     }
+        
+    logging_stream_instance.append_log(format!("Another message"));
     
     // close the log
     let app_handle = logging_stream_instance.close_log();
 
     // emit event back to front end
     app_handle.emit_all("directory_initialized", "".to_string()).unwrap(); 
-
-    print!("done with process");
 }
