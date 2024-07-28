@@ -50,7 +50,7 @@
         <SectionSidebar/>
     </div>
     <div class="body sidebar" id="secondary">
-        <SnippetDisplay/>
+        <SnippetDisplay on:triggerLogging={trigger_logging}/>
     </div>
     <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
     <div class="body work-area">

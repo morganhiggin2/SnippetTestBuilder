@@ -3,16 +3,12 @@
 
     export let window_session_id;
     
-    export const trigger_logging = (stream_i) => {
-        invoke('logln', {text: 'hello ' + stream_i});
-    }
-    /*
-    
     // logging
     let logging_active = null;
 
     export const trigger_logging = (stream_i) => {
         var stream_id = "log_" + stream_i;
+        invoke('logln', {text: JSON.stringify('entering')});
 
         //invoke('logln', {text: 'registering event ' + stream_id});
 
@@ -24,6 +20,7 @@
                 // unlisten to self
                 logging_active();
                 logging_active = null;
+                invoke('logln', {text: JSON.stringify('unactivating')});
             }
             else {
                 // append log to logging component
@@ -32,7 +29,7 @@
         });
 
         logging_active = unlisten;
-    };*/
+    };
 </script>
 
 <div class="body">

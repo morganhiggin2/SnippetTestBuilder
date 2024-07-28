@@ -5,9 +5,12 @@
     import { onMount } from "svelte";
     import DirectorySidebarElement from "./snippet_sidebar_elements/directory_sidebar_element.svelte";
     import SnippetSidebarElement from "./snippet_sidebar_elements/snippet_sidebar_element.svelte";
+    import { createEventDispatcher } from 'svelte';
 
     //files to sidebar
     let files = [];
+
+    let logging_dispatch = createEventDispatcher();
 
     onMount(() => {
         //invoke('get_snippet_directory', {}).then((result) => {files = result;});
@@ -15,9 +18,9 @@
          
         // call the spawn initalize snippet directory
         invoke('spawn_initialize_snippet_directory', {}).then((log_id) => {
-            /*logging_dispatch('triggerLogging', {
+            logging_dispatch('triggerLogging', {
                 log_id: log_id 
-            });*/
+            });
         });
 
         // wait for done event
