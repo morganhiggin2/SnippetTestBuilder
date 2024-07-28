@@ -62,6 +62,7 @@ impl DirectoryManager {
         // if we are already initialized
         if let Some(_) = self.snippet_directory.root {
             // unitialize snippet directory 
+            todo!();
 
 
             // clear visual component manager

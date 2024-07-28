@@ -17,13 +17,18 @@ pub fn get_snippet_directory_details(application_state: tauri::State<SharedAppli
 }
 
 #[tauri::command]
-pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle) {
+pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle) -> u32 {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
 
+    print!("before logging instance");
+
     // create log file, get stream id
-    let logging_instance = state.logging_manager.create_new_stream().unwrap();
+    let logging_instance = state.logging_manager.create_new_stream(app_handle).unwrap();
+    let stream_i = logging_instance.get_stream_i();
+
+    print!("after logging instance");
 
     // get shared reference to state 
     // note this is a custom clone implementation utilizing on arc::clone
@@ -31,8 +36,12 @@ pub fn spawn_initialize_snippet_directory(application_state: tauri::State<Shared
 
     // spawn process, passing ownership of shared application state
     tauri::async_runtime::spawn(async move {
-        spawn_initialize_directory_event(application_state_ref.0, logging_instance, app_handle).await;     
+        spawn_initialize_directory_event(application_state_ref.0, logging_instance).await;     
     });
+
+    print!("are we even returning this");
+
+    return stream_i;
 }
 
 /*

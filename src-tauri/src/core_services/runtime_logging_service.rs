@@ -3,11 +3,13 @@
 
 use std::{borrow::BorrowMut, cell::RefCell, collections::HashSet, env, io::Write, ops::Range, path::PathBuf, rc::Rc, sync::{Arc, Mutex}};
 
+use tauri::{api, AppHandle, Manager};
+
 static BASE_LOG_PATH: &str = "/logging";
 
 //TODO global list of taken streaming numbers, can be added to and taken away from
 //Held in global tauri state
-pub struct LoggingStreamManager (
+/*pub struct LoggingStreamManager (
     Arc::<Mutex::<LoggingStreamCoordinator>>
 );
 
@@ -39,6 +41,11 @@ impl LoggingStreamManager {
         // get logging stream coordinator
         let mut logging_stream_coordinator_lock = self.0.lock().unwrap();
         let logging_stream_coordinator = logging_stream_coordinator_lock.borrow_mut();
+
+        // impose limit until we implement multiple processes on the front end
+        if logging_stream_coordinator.active_streams.len() > 1 {
+            return Err("Due to pending parallel workflow processing, parallel log streaming will not be allowed".to_string());
+        }
 
         // Start from 1, finding first stream index that is not already taken
         let range = Range::<u32> {start: 1, end: u32::max_value()};
@@ -162,5 +169,115 @@ impl Drop for LoggingStreamInstance {
 
         // drop self
         drop(self);
+    }
+}*/
+
+pub struct LoggingStreamManager (
+    Arc::<Mutex::<LoggingStreamCoordinator>>
+);
+
+struct LoggingStreamCoordinator {
+    active_stream: Option<u32> 
+}
+
+pub struct LoggingStreamInstance {
+    stream_i: u32,
+    app_handle: tauri::AppHandle,
+    logging_stream_coordinator: Arc<Mutex<LoggingStreamCoordinator>>
+}
+
+impl Default for LoggingStreamManager {
+    fn default() -> Self {
+        return LoggingStreamManager(Arc::new(Mutex::new(LoggingStreamCoordinator::default())));
+    }
+}
+
+impl Default for LoggingStreamCoordinator {
+    fn default() -> Self {
+        Self { active_stream: Default::default() }
+    }
+}
+
+impl LoggingStreamManager {
+    /// Create a new stream.
+    /// returns error if stream could not be created successfully
+    pub fn create_new_stream(&mut self, app_handle: tauri::AppHandle) -> Result<LoggingStreamInstance, String> {
+        // get logging stream coordinator
+        let mut logging_stream_coordinator_lock = self.0.lock().unwrap();
+        let logging_stream_coordinator = logging_stream_coordinator_lock.borrow_mut();
+
+        // impose limit until we implement multiple processes on the front end
+        if let Some(_) = logging_stream_coordinator.active_stream {
+            return Err("Due to pending parallel workflow processing, parallel log streaming will not be allowed".to_string());
+        }
+
+        let stream_i = 1; 
+
+        // create log stream instance
+        let logging_stream_instance = LoggingStreamInstance::new(Arc::clone(&self.0), stream_i, app_handle)?; 
+
+        // Add stream id to active streams after successful creation 
+        logging_stream_coordinator.active_stream = Some(stream_i);
+
+        return Ok(logging_stream_instance);
+    }
+}
+
+impl LoggingStreamCoordinator {
+    // Remove stream, irregardless if stream already exists or not
+    pub fn done_with_stream(&mut self) {
+        // remove stream from active stream
+        self.active_stream = None;
+    }
+}
+
+// As long as the runtime service is alive, the file descriptor will be held
+impl LoggingStreamInstance {
+    /// Creates a new runtime logging service instance 
+    fn new(logging_streams: Arc<Mutex<LoggingStreamCoordinator>>, stream_i: u32, app_handle: tauri::AppHandle) -> Result<Self, String> {
+        // create new runtime logging service
+        let service = LoggingStreamInstance {
+            stream_i: stream_i,
+            app_handle: app_handle,
+            logging_stream_coordinator: logging_streams
+        };
+
+        return Ok(service);
+    }
+
+    pub fn get_stream_i(&self) -> u32 {
+        return self.stream_i;
+    }
+
+    /// append log
+    pub fn append_log(&mut self, log: String) {
+        // emit name
+        let event_name = format!("log_{}", self.stream_i);
+        // append new line
+        let contents = log + "\n"; 
+        // emit log
+        self.app_handle.emit_all(&event_name, contents).unwrap();
+    }
+
+    /// Close the log
+    pub fn close_log(self) -> tauri::AppHandle{
+        // emit name
+        let event_name = format!("log_{}", self.stream_i);
+        // an empty log will be a closing signal
+        // this is safe because each append log has at least the new line character
+        let contents = ""; 
+        // emit log
+        self.app_handle.emit_all(&event_name, contents).unwrap();
+
+        {
+            // get logging stream coordinator
+            let mut logging_stream_coordinator_lock = self.logging_stream_coordinator.lock().unwrap();
+            let logging_stream_coordinator = logging_stream_coordinator_lock.borrow_mut();
+
+            // close stream from stream coordinator
+            logging_stream_coordinator.done_with_stream();
+        }
+
+        return self.app_handle;
     }
 }
