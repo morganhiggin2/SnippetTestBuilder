@@ -34,6 +34,12 @@
         secondary_sidebar_workarea_resize_in_action = false;
     }
 
+    // logging
+    let trigger_logging_;
+    
+    function trigger_logging(event) {
+        trigger_logging_(event.detail.log_id);
+    }
 </script>
 
 <div class="container" style="grid-template-columns: 50px {secondary_sidebar_width}px 2px 100%;" on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}>
@@ -48,7 +54,7 @@
     </div>
     <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
     <div class="body work-area">
-        <Workarea/> 
+        <Workarea bind:trigger_logging={trigger_logging_}/> 
     </div>
 </div>
 

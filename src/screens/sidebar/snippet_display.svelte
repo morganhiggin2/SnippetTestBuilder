@@ -1,7 +1,7 @@
 <script>
     import ContextMenu from './context_menus/context_menu.svelte';
     import ContextMenuOption from './context_menus/context_menu_option.svelte';
-    import { invoke } from "@tauri-apps/api";
+    import { invoke, event } from "@tauri-apps/api";
     import { onMount } from "svelte";
     import DirectorySidebarElement from "./snippet_sidebar_elements/directory_sidebar_element.svelte";
     import SnippetSidebarElement from "./snippet_sidebar_elements/snippet_sidebar_element.svelte";
@@ -12,17 +12,31 @@
     onMount(() => {
         //invoke('get_snippet_directory', {}).then((result) => {files = result;});
         //console.log(files);
-        invoke('get_snippet_directory', {}).then((result) => {
-            //set files to be the list of snippet files and directories
-            files = result;
-
-            //set parent files to be showing
-            for (const [i, file] of files.entries()) {
-                if (file.level == 0) {
-                    files[i].showing = true;
-                }
-            }
+         
+        // call the spawn initalize snippet directory
+        invoke('spawn_initialize_snippet_directory', {}).then((log_id) => {
+            /*logging_dispatch('triggerLogging', {
+                log_id: log_id 
+            });*/
         });
+
+        // wait for done event
+        event.once('directory_initialized', (event) => {
+            invoke('get_snippet_directory_details', {}).then((result) => {
+                //set files to be the list of snippet files and directories
+                files = result;
+
+                //set parent files to be showing
+                for (const [i, file] of files.entries()) {
+                    if (file.level == 0) {
+                        files[i].showing = true;
+                    }
+                }
+            });
+        });
+        /*logging_dispatch('triggerLogging', {
+            log_id: log_id
+        });*/
     });
 
     function fileExpand(e) {

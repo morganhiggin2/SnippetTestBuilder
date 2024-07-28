@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@esbuild/linux-x64@0.18.20":
+  version "0.18.20"
+  resolved "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.18.20.tgz"
+  integrity sha512-UYqiqemphJcNsFEskc73jQ7B9jgwjWrSayxawS6UVFZGWrAAtkzjxSqnoclCXxWtfwLdzU+vTpcNYhpn43uP1w==
+
 "@fontsource/inter@^4.5.15":
   version "4.5.15"
   resolved "https://registry.npmjs.org/@fontsource/inter/-/inter-4.5.15.tgz"
@@ -67,6 +72,16 @@
   version "1.2.0"
   resolved "https://registry.npmjs.org/@tauri-apps/api/-/api-1.2.0.tgz"
   integrity sha512-lsI54KI6HGf7VImuf/T9pnoejfgkNoXveP14pVV7XarrQ46rOejIVJLFqHI9sRReJMGdh2YuCoI3cc/yCWCsrw==
+
+"@tauri-apps/cli-linux-x64-gnu@1.2.3":
+  version "1.2.3"
+  resolved "https://registry.npmjs.org/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-1.2.3.tgz"
+  integrity sha512-ZMz1jxEVe0B4/7NJnlPHmwmSIuwiD6ViXKs8F+OWWz2Y4jn5TGxWKFg7DLx5OwQTRvEIZxxT7lXHi5CuTNAxKg==
+
+"@tauri-apps/cli-linux-x64-musl@1.2.3":
+  version "1.2.3"
+  resolved "https://registry.npmjs.org/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-1.2.3.tgz"
+  integrity sha512-B/az59EjJhdbZDzawEVox0LQu2ZHCZlk8rJf85AMIktIUoAZPFbwyiUv7/zjzA/sY6Nb58OSJgaPL2/IBy7E0A==
 
 "@tauri-apps/cli@^1.2.2":
   version "1.2.3"
@@ -190,33 +205,33 @@ es6-promise@^3.1.2:
   resolved "https://registry.npmjs.org/es6-promise/-/es6-promise-3.3.1.tgz"
   integrity sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==
 
-esbuild@^0.16.14:
-  version "0.16.17"
-  resolved "https://registry.npmjs.org/esbuild/-/esbuild-0.16.17.tgz"
-  integrity sha512-G8LEkV0XzDMNwXKgM0Jwu3nY3lSTwSGY6XbxM9cr9+s0T/qSV1q1JVPBGzm3dcjhCic9+emZDmMffkwgPeOeLg==
+esbuild@^0.18.10:
+  version "0.18.20"
+  resolved "https://registry.npmjs.org/esbuild/-/esbuild-0.18.20.tgz"
+  integrity sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA==
   optionalDependencies:
-    "@esbuild/android-arm" "0.16.17"
-    "@esbuild/android-arm64" "0.16.17"
-    "@esbuild/android-x64" "0.16.17"
-    "@esbuild/darwin-arm64" "0.16.17"
-    "@esbuild/darwin-x64" "0.16.17"
-    "@esbuild/freebsd-arm64" "0.16.17"
-    "@esbuild/freebsd-x64" "0.16.17"
-    "@esbuild/linux-arm" "0.16.17"
-    "@esbuild/linux-arm64" "0.16.17"
-    "@esbuild/linux-ia32" "0.16.17"
-    "@esbuild/linux-loong64" "0.16.17"
-    "@esbuild/linux-mips64el" "0.16.17"
-    "@esbuild/linux-ppc64" "0.16.17"
-    "@esbuild/linux-riscv64" "0.16.17"
-    "@esbuild/linux-s390x" "0.16.17"
-    "@esbuild/linux-x64" "0.16.17"
-    "@esbuild/netbsd-x64" "0.16.17"
-    "@esbuild/openbsd-x64" "0.16.17"
-    "@esbuild/sunos-x64" "0.16.17"
-    "@esbuild/win32-arm64" "0.16.17"
-    "@esbuild/win32-ia32" "0.16.17"
-    "@esbuild/win32-x64" "0.16.17"
+    "@esbuild/android-arm" "0.18.20"
+    "@esbuild/android-arm64" "0.18.20"
+    "@esbuild/android-x64" "0.18.20"
+    "@esbuild/darwin-arm64" "0.18.20"
+    "@esbuild/darwin-x64" "0.18.20"
+    "@esbuild/freebsd-arm64" "0.18.20"
+    "@esbuild/freebsd-x64" "0.18.20"
+    "@esbuild/linux-arm" "0.18.20"
+    "@esbuild/linux-arm64" "0.18.20"
+    "@esbuild/linux-ia32" "0.18.20"
+    "@esbuild/linux-loong64" "0.18.20"
+    "@esbuild/linux-mips64el" "0.18.20"
+    "@esbuild/linux-ppc64" "0.18.20"
+    "@esbuild/linux-riscv64" "0.18.20"
+    "@esbuild/linux-s390x" "0.18.20"
+    "@esbuild/linux-x64" "0.18.20"
+    "@esbuild/netbsd-x64" "0.18.20"
+    "@esbuild/openbsd-x64" "0.18.20"
+    "@esbuild/sunos-x64" "0.18.20"
+    "@esbuild/win32-arm64" "0.18.20"
+    "@esbuild/win32-ia32" "0.18.20"
+    "@esbuild/win32-x64" "0.18.20"
 
 fast-glob@^3.2.7:
   version "3.2.12"
@@ -248,11 +263,6 @@ fs.realpath@^1.0.0:
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
-function-bind@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.npmjs.org/function-bind/-/function-bind-1.1.1.tgz"
-  integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
-
 glob-parent@^5.1.2, glob-parent@~5.1.2:
   version "5.1.2"
   resolved "https://registry.npmjs.org/glob-parent/-/glob-parent-5.1.2.tgz"
@@ -276,13 +286,6 @@ graceful-fs@^4.1.3:
   version "4.2.10"
   resolved "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.10.tgz"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
-
-has@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.npmjs.org/has/-/has-1.0.3.tgz"
-  integrity sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==
-  dependencies:
-    function-bind "^1.1.1"
 
 immutable@^4.0.0:
   version "4.2.4"
@@ -316,13 +319,6 @@ is-binary-path@~2.1.0:
   integrity sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==
   dependencies:
     binary-extensions "^2.0.0"
-
-is-core-module@^2.9.0:
-  version "2.11.0"
-  resolved "https://registry.npmjs.org/is-core-module/-/is-core-module-2.11.0.tgz"
-  integrity sha512-RRjxlvLDkD1YJwDbroBHMb+cukurkDWNyHx7D3oNB5x9rb5ogcksMC5wHCadcXoo67gVr/+3GFySh3134zi6rw==
-  dependencies:
-    has "^1.0.3"
 
 is-extglob@^2.1.1:
   version "2.1.1"
@@ -412,10 +408,10 @@ ms@2.1.2:
   resolved "https://registry.npmjs.org/ms/-/ms-2.1.2.tgz"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
 
-nanoid@^3.3.4:
-  version "3.3.4"
-  resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.3.4.tgz"
-  integrity sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==
+nanoid@^3.3.7:
+  version "3.3.7"
+  resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.3.7.tgz"
+  integrity sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==
 
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"
@@ -441,29 +437,24 @@ path-is-absolute@^1.0.0:
   resolved "https://registry.npmjs.org/path-is-absolute/-/path-is-absolute-1.0.1.tgz"
   integrity sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==
 
-path-parse@^1.0.7:
-  version "1.0.7"
-  resolved "https://registry.npmjs.org/path-parse/-/path-parse-1.0.7.tgz"
-  integrity sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==
-
-picocolors@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/picocolors/-/picocolors-1.0.0.tgz"
-  integrity sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==
+picocolors@^1.0.0, picocolors@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.npmjs.org/picocolors/-/picocolors-1.0.1.tgz"
+  integrity sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==
 
 picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.3.1:
   version "2.3.1"
   resolved "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
 
-"postcss@^7 || ^8", postcss@^8.4.21:
-  version "8.4.21"
-  resolved "https://registry.npmjs.org/postcss/-/postcss-8.4.21.tgz"
-  integrity sha512-tP7u/Sn/dVxK2NnruI4H9BG+x+Wxz6oeZ1cJ8P6G/PZY0IKk4k/63TDsQf2kQq3+qoJeLm2kIBUNlZe3zgb4Zg==
+"postcss@^7 || ^8", postcss@^8.4.27:
+  version "8.4.40"
+  resolved "https://registry.npmjs.org/postcss/-/postcss-8.4.40.tgz"
+  integrity sha512-YF2kKIUzAofPMpfH6hOi2cGnv/HrUlfucspc7pDyvv7kGdqXrfj8SCl/t8owkEgKEuu8ZcRjSOxFxVLqwChZ2Q==
   dependencies:
-    nanoid "^3.3.4"
-    picocolors "^1.0.0"
-    source-map-js "^1.0.2"
+    nanoid "^3.3.7"
+    picocolors "^1.0.1"
+    source-map-js "^1.2.0"
 
 queue-microtask@^1.2.2:
   version "1.2.3"
@@ -482,15 +473,6 @@ resolve-from@^4.0.0:
   resolved "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz"
   integrity sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==
 
-resolve@^1.22.1:
-  version "1.22.1"
-  resolved "https://registry.npmjs.org/resolve/-/resolve-1.22.1.tgz"
-  integrity sha512-nBpuuYuY5jFsli/JIs1oldw6fOQCBioohqWZg/2hiaOybXOft4lonv85uDOKXdf8rhyK159cxU5cDcK/NKk8zw==
-  dependencies:
-    is-core-module "^2.9.0"
-    path-parse "^1.0.7"
-    supports-preserve-symlinks-flag "^1.0.0"
-
 reusify@^1.0.4:
   version "1.0.4"
   resolved "https://registry.npmjs.org/reusify/-/reusify-1.0.4.tgz"
@@ -503,10 +485,10 @@ rimraf@^2.5.2:
   dependencies:
     glob "^7.1.3"
 
-rollup@^3.10.0:
-  version "3.18.0"
-  resolved "https://registry.npmjs.org/rollup/-/rollup-3.18.0.tgz"
-  integrity sha512-J8C6VfEBjkvYPESMQYxKHxNOh4A5a3FlP+0BETGo34HEcE4eTlgCrO2+eWzlu2a/sHs2QUkZco+wscH7jhhgWg==
+rollup@^3.27.1:
+  version "3.29.4"
+  resolved "https://registry.npmjs.org/rollup/-/rollup-3.29.4.tgz"
+  integrity sha512-oWzmBZwvYrU0iJHtDmhsm662rC15FRXmcjCk1xD771dFDx5jJ02ufAQQTn0etB2emNk4J9EZg/yWKpsn9BWGRw==
   optionalDependencies:
     fsevents "~2.3.2"
 
@@ -553,10 +535,10 @@ sorcery@^0.11.0:
     minimist "^1.2.0"
     sander "^0.5.0"
 
-source-map-js@^1.0.2, "source-map-js@>=0.6.2 <2.0.0":
-  version "1.0.2"
-  resolved "https://registry.npmjs.org/source-map-js/-/source-map-js-1.0.2.tgz"
-  integrity sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==
+source-map-js@^1.2.0, "source-map-js@>=0.6.2 <2.0.0":
+  version "1.2.0"
+  resolved "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.0.tgz"
+  integrity sha512-itJW8lvSA0TXEphiRoawsCksnlf8SyvmFzIhltqAHluXd88pkCd+cXJVHTDwdCr0IzwptSm035IHQktUu1QUMg==
 
 strip-indent@^3.0.0:
   version "3.0.0"
@@ -564,11 +546,6 @@ strip-indent@^3.0.0:
   integrity sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ==
   dependencies:
     min-indent "^1.0.0"
-
-supports-preserve-symlinks-flag@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz"
-  integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
 
 svelte-check@^3.0.0:
   version "3.0.4"
@@ -623,15 +600,14 @@ tslib@^2.4.1:
   resolved "https://registry.npmjs.org/typescript/-/typescript-4.9.5.tgz"
   integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
 
-"vite@^3.0.0 || ^4.0.0", vite@^4.0.0:
-  version "4.1.4"
-  resolved "https://registry.npmjs.org/vite/-/vite-4.1.4.tgz"
-  integrity sha512-3knk/HsbSTKEin43zHu7jTwYWv81f8kgAL99G5NWBcA1LKvtvcVAC4JjBH1arBunO9kQka+1oGbrMKOjk4ZrBg==
+"vite@^3.0.0 || ^4.0.0", vite@^4.0.0, vite@^4.5.3:
+  version "4.5.3"
+  resolved "https://registry.npmjs.org/vite/-/vite-4.5.3.tgz"
+  integrity sha512-kQL23kMeX92v3ph7IauVkXkikdDRsYMGTVl5KY2E9OY4ONLvkHf04MDTbnfo6NKxZiDLWzVpP5oTa8hQD8U3dg==
   dependencies:
-    esbuild "^0.16.14"
-    postcss "^8.4.21"
-    resolve "^1.22.1"
-    rollup "^3.10.0"
+    esbuild "^0.18.10"
+    postcss "^8.4.27"
+    rollup "^3.27.1"
   optionalDependencies:
     fsevents "~2.3.2"
 

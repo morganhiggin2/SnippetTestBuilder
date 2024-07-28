@@ -3,6 +3,13 @@
     import TestDesignArea from "./test_design_area.svelte";
 
     let sessions = [];
+
+    // logging
+    let trigger_logging_;
+
+    export const trigger_logging = (stream_i) => {
+        trigger_logging_(stream_i);
+    }
 </script>
 
 <div class="body">
@@ -12,7 +19,7 @@
             <TabBar/>
         </div>-->
         <div class="design-area">
-            <TestDesignArea/>
+            <TestDesignArea bind:trigger_logging={trigger_logging_}/>
         </div>
     </div>
 </div>

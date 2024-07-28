@@ -1,8 +1,16 @@
 <script>
     import { onMount } from "svelte";
     import PropertiesArea from "./properties_area.svelte";
+    import LoggingArea from "./logging_area.svelte";
     import TestCreationArea from "./test_creation_area.svelte";
     import { invoke } from "@tauri-apps/api";
+
+    // logging
+    let trigger_logging_;
+
+    export const trigger_logging = (stream_i) => {
+        trigger_logging_(stream_i);
+    }
 
     let window_height = 0;
     let window_session_id = 0;
@@ -26,7 +34,7 @@
             <TestCreationArea {window_session_id}/>
         </div>
         <div class="properties-view">
-            <PropertiesArea {window_session_id}/>
+            <LoggingArea {window_session_id} bind:trigger_logging={trigger_logging_}/>
         </div>
     </div>
 </div>
