@@ -33,8 +33,6 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
         logging_stream_instance.append_log(format!("Finished successfully intializing all snippets"));
     }
         
-    logging_stream_instance.append_log(format!("Another message"));
-    
     // close the log
     let app_handle = logging_stream_instance.close_log();
 
