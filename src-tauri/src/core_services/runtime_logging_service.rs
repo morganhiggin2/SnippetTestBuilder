@@ -5,6 +5,8 @@ use std::{borrow::BorrowMut, cell::RefCell, collections::HashSet, env, io::Write
 
 use tauri::{api, AppHandle, Manager};
 
+use crate::utils::sequential_id_generator::Uuid;
+
 static BASE_LOG_PATH: &str = "/logging";
 
 //TODO global list of taken streaming numbers, can be added to and taken away from
@@ -176,6 +178,9 @@ pub struct LoggingStreamManager (
     Arc::<Mutex::<LoggingStreamCoordinator>>
 );
 
+//TODO add uuids
+// OR remove uuids from other things like this where it does not matter
+
 struct LoggingStreamCoordinator {
     active_stream: Option<u32> 
 }
@@ -201,7 +206,7 @@ impl Default for LoggingStreamCoordinator {
 impl LoggingStreamManager {
     /// Create a new stream.
     /// returns error if stream could not be created successfully
-    pub fn create_new_stream(&mut self, app_handle: tauri::AppHandle) -> Result<LoggingStreamInstance, String> {
+    pub fn create_new_stream(&mut self, app_handle: tauri::AppHandle, window_session_uuid: Uuid) -> Result<LoggingStreamInstance, String> {
         // get logging stream coordinator
         let mut logging_stream_coordinator_lock = self.0.lock().unwrap();
         let logging_stream_coordinator = logging_stream_coordinator_lock.borrow_mut();
@@ -211,7 +216,7 @@ impl LoggingStreamManager {
             return Err("Due to pending parallel workflow processing, parallel log streaming will not be allowed".to_string());
         }
 
-        let stream_i = 1; 
+        let stream_i = window_session_uuid; 
 
         // create log stream instance
         let logging_stream_instance = LoggingStreamInstance::new(Arc::clone(&self.0), stream_i, app_handle)?; 

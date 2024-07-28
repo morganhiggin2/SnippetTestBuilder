@@ -2,7 +2,7 @@ use std::{ops::DerefMut, sync::{Arc, MutexGuard}};
 
 use tauri::Manager;
 
-use crate::{core_services::{concurrent_processes::spawn_initialize_directory_event, directory_manager::{self, DirectoryManager}, visual_directory_component_manager::FrontDirectoryContent}, state_management::{external_snippet_manager::ExternalSnippetManager, ApplicationState, SharedApplicationState}};
+use crate::{core_services::{concurrent_processes::spawn_initialize_directory_event, directory_manager::{self, DirectoryManager}, visual_directory_component_manager::FrontDirectoryContent}, state_management::{external_snippet_manager::ExternalSnippetManager, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
 #[tauri::command] 
 pub fn get_snippet_directory_details(application_state: tauri::State<SharedApplicationState>) -> Vec<FrontDirectoryContent> {
     // get the state
@@ -17,15 +17,16 @@ pub fn get_snippet_directory_details(application_state: tauri::State<SharedAppli
 }
 
 #[tauri::command]
-pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle) -> u32 {
+pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle, window_session_uuid: Uuid) -> u32 {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
 
     print!("before logging instance");
 
-    // create log file, get stream id
-    let logging_instance = state.logging_manager.create_new_stream(app_handle).unwrap();
+    // create log file and stream from window uuid
+    // that way the log instance is specific to the window uuid
+    let logging_instance = state.logging_manager.create_new_stream(app_handle, window_session_uuid).unwrap();
     let stream_i = logging_instance.get_stream_i();
 
     print!("after logging instance");
