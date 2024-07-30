@@ -286,3 +286,26 @@ impl LoggingStreamInstance {
         return self.app_handle;
     }
 }
+
+/*
+#[cfg(test)]
+mod tests {
+    use tauri::Manager;
+
+    #[test]
+    fn test_log_streaming() {
+        // create tauri app handle
+        // create logging stream coordinator
+
+        // create logging stream instance
+
+        // append to log on this instance
+
+        // try to create another logging stream instance, fail
+
+        // drop logging stream instance
+
+        // create another logging stream instance successfully
+    }
+}
+*/

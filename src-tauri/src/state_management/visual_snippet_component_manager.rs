@@ -6,7 +6,8 @@ use crate::utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid};
 pub struct VisualSnippetComponentManager {
     pipeline_front_to_pipeline: BiHashMap<Uuid, Uuid>,
     pipeline_connector_front_to_pipeline_connector: BiHashMap<Uuid, Uuid>,
-    snippet_front_to_snippet: BiHashMap<Uuid, Uuid>
+    snippet_front_to_snippet: BiHashMap<Uuid, Uuid>,
+    parameter_front_to_parameter: BiHashMap<Uuid, Uuid>
 }
 
 //struct for the json serialization for snippet
@@ -35,7 +36,8 @@ impl Default for VisualSnippetComponentManager {
         return VisualSnippetComponentManager { 
             pipeline_front_to_pipeline: BiHashMap::new(),
             pipeline_connector_front_to_pipeline_connector: BiHashMap::new(),
-            snippet_front_to_snippet: BiHashMap::new()
+            snippet_front_to_snippet: BiHashMap::new(),
+            parameter_front_to_parameter: BiHashMap::new()
         };
     }
 }

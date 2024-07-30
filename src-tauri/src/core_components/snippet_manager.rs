@@ -15,6 +15,7 @@ pub struct SnippetManager {
     //mapping for pipeline connects to pipeline components
     pipeline_connector_to_pipeline: HashMap<Uuid, Uuid>,
     pipeline_connectors_to_snippet: HashMap<Uuid, Uuid>,
+    parameter_to_snippet: HashMap<Uuid, Uuid>,
 
     // graph for keeping track of cycles
     // where the weight of the node is the uuid of the snippet it represents
@@ -37,7 +38,7 @@ pub struct SnippetComponent {
     graph_uuid: petgraph::graph::NodeIndex,
     name: String,
     external_snippet_uuid: Uuid,
-    pipeline_connectors: Vec<PipelineConnectorComponent> 
+    pipeline_connectors: Vec<PipelineConnectorComponent>
 }
 
 pub struct PipelineConnectorComponent {
@@ -54,6 +55,12 @@ pub struct PipelineComponent {
     to_pipeline_connector_uuid: Uuid
 }
 
+//TODO this holds the values of the parameters, as well as the type
+// can use a trait to get the original type
+pub enum SnippetParameterComponent {
+
+}
+
 impl Default for SnippetManager {
     fn default() -> Self {
         return SnippetManager {
@@ -61,6 +68,7 @@ impl Default for SnippetManager {
             pipelines: HashMap::with_capacity(12),
             pipeline_connector_to_pipeline: HashMap::with_capacity(24),
             pipeline_connectors_to_snippet: HashMap::with_capacity(24),
+            parameter_to_snippet: HashMap::new(),
             snippet_graph: petgraph::Graph::new()
         };
     }
@@ -70,6 +78,7 @@ impl SnippetManager {
     /// create a new snippet
     pub fn new_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &ExternalSnippet) -> Uuid {
         let pipeline_connectors = external_snippet.create_pipeline_connectors_for_io_points(sequential_id_generator);
+        let parameters = external_snippet.
 
         //call handler method, return value
         //return uuid of snippet
@@ -140,6 +149,25 @@ impl SnippetManager {
                 Some(_) => (),
                 None => {
                     return Err("pipeline connector does not exist in mapping in snippet manager");
+                }
+            };
+        }
+
+        // get parameter uuids
+        let parameter_uuids : Vec<Uuid> = (&snippet_component.pipeline_connectors)
+            .into_iter()
+            .map(|pc| -> Uuid {
+                pc.uuid
+            }
+        )
+            .collect();
+        
+        //remove snippet from pipeline connector mapping
+        for parameter_uuid in parameter_uuids.into_iter() {
+            match self.parameter_to_snippet.remove(&parameter_uuid) {
+                Some(_) => (),
+                None => {
+                    return Err("parameter does not exist in mapping in snippet manager");
                 }
             };
         }
@@ -643,7 +671,7 @@ impl PipelineConnectorComponent {
         return PipelineConnectorComponent {
             uuid: sequential_id_generator.get_id(),
             external_pipeline_connector_uuid: external_pipeline_connector_uuid,
-            name: name.clone().to_string(),
+            name: name.to_string(),
             input: input
         }
     }

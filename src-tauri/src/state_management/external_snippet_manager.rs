@@ -1,7 +1,8 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, str::FromStr};
 use bimap::BiHashMap;
+use strum_macros::EnumString;
 
-use crate::{core_components::snippet_manager::PipelineConnectorComponent, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
@@ -15,7 +16,8 @@ pub struct ExternalSnippet {
     uuid: Uuid,
     sub_directory: String,
     name: String,
-    io_points: HashMap<Uuid, ExternalSnippetIOPoint>
+    io_points: HashMap<Uuid, ExternalSnippetIOPoint>,
+    parameters: HashMap<Uuid, ExternalSnippetParameter>
 }
 
 #[derive(Debug)]
@@ -34,6 +36,22 @@ pub struct ExternalSnippetIOPoint {
     //if it is an input node
     input: bool
 }
+
+pub struct ExternalSnippetParameter {
+    uuid: Uuid,
+    name: String,
+    p_type: ExternalSnippetParameterType
+}
+
+// supported list of parameter types
+#[derive(EnumString)]
+#[derive(PartialEq)]
+#[derive(Debug)]
+pub enum ExternalSnippetParameterType {
+    SingleLineText
+}
+
+// impl way to get type from parameter type
 
 impl Default for ExternalSnippetManager {
     fn default() -> Self {
@@ -64,7 +82,7 @@ impl ExternalSnippetManager {
 
         // create external snippets from python snippet builders
         for python_snippet_information in python_snippet_builder.get_build_information() {
-            self.create_snippet_from_python_build_information(python_snippet_information, sequential_id_generator);
+            self.create_snippet_from_python_build_information(python_snippet_information, sequential_id_generator)?;
         }
 
         return Ok(());
@@ -96,7 +114,7 @@ impl ExternalSnippetManager {
         return Ok(());
     }
     
-    pub fn create_snippet_from_python_build_information(&mut self, python_build_information: &PythonSnippetBuilderWrapper, sequential_id_generator: &mut SequentialIdGenerator) -> Uuid {
+    pub fn create_snippet_from_python_build_information(&mut self, python_build_information: &PythonSnippetBuilderWrapper, sequential_id_generator: &mut SequentialIdGenerator) -> Result<Uuid, String> {
         // Get io points from schema 
 
         // create external snippet
@@ -105,11 +123,15 @@ impl ExternalSnippetManager {
         // add io (input and output) points
         //TODO pass errors to client
         for input in python_build_information.get_inputs() {
-            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, input.to_owned(), "".to_string(), true);
+            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, input.to_owned(), "".to_string(), true)?;
         }
 
         for output in python_build_information.get_outputs() {
-            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, output.to_owned(), "".to_string(), false);
+            self.add_io_point_provided_external_snippet(sequential_id_generator, &mut external_snippet, output.to_owned(), "".to_string(), false)?;
+        }
+
+        for parameter in python_build_information.get_parameters() {
+            self.add_parameter(sequential_id_generator, &mut external_snippet, parameter.0.to_owned(), parameter.1.to_owned())?;
         }
 
         // get uuid of external snippet
@@ -121,7 +143,7 @@ impl ExternalSnippetManager {
         //add it to manager
         self.external_snippets.push(external_snippet);
 
-        return uuid;
+        return Ok(uuid);
     }
 
     /*
@@ -279,6 +301,22 @@ impl ExternalSnippetManager {
         return Ok(uuid);
     }
 
+    pub fn add_parameter(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &mut ExternalSnippet, parameter_name: String, parameter_type: String) -> Result<Uuid, &'static str> {
+        // get as parameter type
+        let parameter_type_proper = ExternalSnippetParameterType::from_str(&parameter_type).unwrap();
+
+        // create external snippet parameter
+        let external_snippet_parameter = ExternalSnippetParameter::new(sequential_id_generator, parameter_name, parameter_type_proper);
+
+        // get uuid of snippet parameter
+        let uuid = external_snippet_parameter.uuid;
+
+        // add to list of parameters
+        external_snippet.parameters.insert(external_snippet_parameter.uuid, external_snippet_parameter);
+
+        return Ok(uuid);
+    }
+
     /// find mutable reference external snippet from within the external snippet manager
     /// 
     /// # Arguments
@@ -341,7 +379,8 @@ impl ExternalSnippet {
             uuid: uuid,
             name: name.clone().to_owned(),
             sub_directory: String::new(),
-            io_points: HashMap::with_capacity(2)
+            io_points: HashMap::with_capacity(2),
+            parameters: HashMap::new()
         };
 
         return external_snippet;
@@ -351,10 +390,17 @@ impl ExternalSnippet {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the io point in question
-    fn find_io_point(&mut self, external_snippet: &mut ExternalSnippet, uuid: Uuid) -> Result<&mut ExternalSnippetIOPoint, &str>{
+    fn find_io_point(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippetIOPoint, &str> {
         match self.io_points.get_mut(&uuid) {
             Some(result) => return Ok(result),
             None => return Err("snippet io point could not be found with uuid {uuid}")
+        };
+    }
+
+    fn find_parameter(&mut self, uuid: Uuid) -> Result<&mut ExternalSnippetParameter, &str> {
+        match self.parameters.get_mut(&uuid) {
+            Some(result) => return Ok(result),
+            None => return Err("snippet parameter could not be found with uuid {uuid}")
         };
     }
 
@@ -379,6 +425,11 @@ impl ExternalSnippet {
         }
 
         return pipeline_connectors;
+    }
+
+    /// get parameters as parameter types that can hold values
+    pub fn create_parameter_components_for_parameters(&self, sequential_id_generator: &mut SequentialIdGenerator) -> Vec<SnippetParameterComponent> {
+
     }
 }
 
@@ -408,11 +459,23 @@ impl ExternalSnippetIOPoint {
     }
 }
 
+impl ExternalSnippetParameter {
+    pub fn new(sequential_id_generator: &mut SequentialIdGenerator, name: String, p_type: ExternalSnippetParameterType) -> Self {
+        let snippet_parameter = ExternalSnippetParameter {
+            uuid: sequential_id_generator.get_id(),
+            name: name,
+            p_type: p_type
+        };
+
+        return snippet_parameter
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
 
-    use crate::{core_services::directory_manager::{self, DirectoryManager}, state_management::external_snippet_manager::ExternalSnippetIOPoint, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+    use crate::{core_services::directory_manager::{self, DirectoryManager}, state_management::external_snippet_manager::{ExternalSnippetCategory, ExternalSnippetIOPoint, ExternalSnippetParameter, ExternalSnippetParameterType}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 
     use super::{ExternalSnippet, ExternalSnippetManager};
 
@@ -722,7 +785,59 @@ mod test {
 
             assert_eq!(io_point.schema, "".to_string());
         }
+        
+        {
+            let external_snippet = match snippet_map.get("str_param") {
+                Some(snippet) => snippet,
+                None => {
+                    assert!(false);
+
+                    return
+                },
+            };
+
+            // lookup io points in external snippet manager
+            
+
+            // create map for io points based on name and input, output
+            let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
+                return ((element.name.to_owned(), element.input.to_owned()), element);
+            })
+            .collect();
+
+            // search for each one
+            let io_point = match io_map.get(&("str".to_string(), false)) {
+                Some(io_point) => io_point,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(io_point.schema, "".to_string());
+            
+            // create map for params based on name and input, output
+            let param_map: HashMap<String, &ExternalSnippetParameter> = external_snippet.parameters.iter().map(|element| -> ((String), &ExternalSnippetParameter) {
+                return (element.name.to_owned(), &element);
+            })
+            .collect();
+
+            // search for each one
+            let param = match param_map.get(&"original_str".to_string()) {
+                Some(param) => param,
+                None => {
+                    assert!(false);
+
+                    return;
+                },
+            };
+
+            assert_eq!(param.p_type, ExternalSnippetParameterType::SingleLineText);
+        
+        //TODO tests for parameters
         //TODO map them to correct directory entries, so look to see if we can get them, and if that directory entry has the right name
+        }
     }
 }
 

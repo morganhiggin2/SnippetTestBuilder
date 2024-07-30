@@ -29,7 +29,7 @@
 </script>
 
 <div class="body">
-    <textarea bind:value={log_text} class="logging_area" readonly wrap="hard"/>
+    <textarea bind:value={log_text} class="logging-area" readonly wrap="hard"/>
 </div>
 
 <style>
@@ -40,7 +40,7 @@
         border-top: 2px solid lightgrey;
         overflow-y: auto;
     }
-    .logging_area {
+    .logging-area {
         width: 100%;
         height: 100%;
         overflow-y: scroll;

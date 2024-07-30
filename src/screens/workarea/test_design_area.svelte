@@ -24,7 +24,7 @@
         <div class="test-creation-area">
             <TestCreationArea {window_session_id}/>
         </div>
-        <div class="properties-view">
+        <div class="logging-view">
             <LoggingArea {window_session_id} bind:trigger_logging={trigger_logging_}/>
         </div>
     </div>
@@ -45,7 +45,13 @@
         grid-row: 1 / span 1;
     }
 
-    .properties-view {
+    .logging-view {
         grid-row: 2 / span 1;
+    }
+    
+    .logging-view.border {
+        grid-column: 3 / span 1;
+        background-color: lightgrey;
+        cursor: col-resize;
     }
 </style>

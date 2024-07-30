@@ -3,6 +3,8 @@
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
+use strum_macros::EnumString;
+use std::str::FromStr;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::{prelude::*, GILPool, PyClass};
@@ -11,6 +13,7 @@ use pyo3::types::*;
 use tauri::utils::config::BuildConfig;
 
 use crate::core_services::directory_manager::{self, DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet};
+use crate::state_management::external_snippet_manager::ExternalSnippetParameterType;
 use crate::utils::sequential_id_generator::Uuid;
 
 // Initialized builder, containing all the information to build the snippets
@@ -43,7 +46,9 @@ pub struct PythonSnippetBuilder {
     #[pyo3(get)]
     inputs: Vec::<String>,
     #[pyo3(get)]
-    outputs: Vec::<String>
+    outputs: Vec::<String>,
+    #[pyo3(get)]
+    parameters: Vec::<(String, String)>
 }
 
 impl InitializedPythonSnippetInitializerBuilder {
@@ -187,6 +192,10 @@ impl PythonSnippetBuilderWrapper {
     pub fn get_outputs(&self) -> &Vec<String> {
         &self.python_snippet_builder.outputs
     }
+
+    pub fn get_parameters(&self) -> &Vec<(String, String)> {
+        &self.python_snippet_builder.parameters
+    }
 }    
 impl PythonSnippetBuildInformation {
     /// create new python build information for a snippet to be built 
@@ -216,7 +225,12 @@ impl PythonSnippetBuilder {
     #[new]
     fn new(name: String) -> Self {
         // placeholder for directory entry uuid as we are going to set this later
-        PythonSnippetBuilder { name: name, inputs: Vec::<String>::new(), outputs: Vec::<String>::new()}
+        PythonSnippetBuilder { 
+            name: name, 
+            inputs: Vec::<String>::new(), 
+            outputs: Vec::<String>::new(), 
+            parameters: Vec::<(String, String)>::new()
+        }
     }
 
     /*#[classmethod]
@@ -256,10 +270,27 @@ impl PythonSnippetBuilder {
         return Ok(());
     }
 
-    /// callable method from python
-    /// finishes the snippet creation
-    /// adds snippet information to external snippet manager
-    fn finish(&self) -> PyResult<()> {
+    /// add parameter to snippet. Name must be in the list of supported types
+    /// each parameter has it's own schema (TODO be supported).
+    /// parameters are considered inputs
+    #[pyo3(text_signature = "$self, name")]
+    fn add_parameter(&mut self, parameter_name: String, parameter_type: String) -> PyResult<()> {
+        // if inputs is already in output, raise error to python
+        if self.parameters.iter().map(|element| &element.0).filter(|val| **val == parameter_name).collect::<Vec::<&String>>().len() > 0 {
+            return Err(PyValueError::new_err(format!("Cannot insert {} into snippet {}, already exists as parameter", parameter_name, self.name)));
+        }
+
+        // needs to be of a supported parameter type
+        match ExternalSnippetParameterType::from_str(&parameter_type) {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(PyValueError::new_err(format!("parameter type {} is not of a valid type", parameter_type)));
+            },
+        };
+
+        // insert parameter 
+        self.parameters.push((parameter_name, parameter_type));
+
         return Ok(());
     }
 }
@@ -269,7 +300,8 @@ impl Default for PythonSnippetBuilder {
         return PythonSnippetBuilder { 
             name: String::new(),
             inputs: Vec::<String>::new(),
-            outputs: Vec::<String>::new() 
+            outputs: Vec::<String>::new(),
+            parameters: Vec::<(String, String)>::new()
         }
     }
 }
