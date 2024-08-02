@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt, str::FromStr};
 use bimap::BiHashMap;
 use strum_macros::EnumString;
 
-use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorageType, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
@@ -49,6 +49,26 @@ pub struct ExternalSnippetParameter {
 #[derive(Debug)]
 pub enum ExternalSnippetParameterType {
     SingleLineText
+}
+
+pub struct SnippetParameterBaseStorage {
+    content: SnippetParameterBaseStorageType
+}
+
+// trait to define the conversion of parameter type into base storage type
+pub trait IntoStorageType {
+    fn into_storage_type(external_snippet_parameter_type: &ExternalSnippetParameterType) -> SnippetParameterBaseStorage;
+}
+
+// TODO make it usable for self
+impl IntoStorageType for ExternalSnippetParameterType {
+    fn into_storage_type(external_snippet_parameter_type: &Self) -> SnippetParameterBaseStorage {
+        SnippetParameterBaseStorage{ 
+            content: match external_snippet_parameter_type {
+                ExternalSnippetParameterType::SingleLineText => SnippetParameterBaseStorageType::String(String::default()),
+            }
+        }
+    }
 }
 
 // impl way to get type from parameter type
@@ -200,10 +220,10 @@ impl ExternalSnippetManager {
             let snippet_io_point: ExternalSnippetIOPoint = ExternalSnippetIOPoint::new(sequential_id_generator, io_point.0, io_point.1, io_point.2);
 
             match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
-                Some(_) => (),
-                None => {
+                Some(_) => {
                     return Err("duplicate snippet io point inserted into external snippet");
-                }
+                },
+                None => ()
             };
         }
         
@@ -234,10 +254,10 @@ impl ExternalSnippetManager {
         let uuid = snippet_io_point.uuid;
         
         match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
-            Some(_) => (),
-            None => {
+            Some(_) => {
                 return Err("duplicate snippet io point inserted into external snippet");
-            }
+            },
+            None => ()
         };
 
         //return good result
@@ -258,12 +278,12 @@ impl ExternalSnippetManager {
 
         //add point
         let uuid = snippet_io_point.uuid;
-        
+
         match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
-            Some(_) => (),
-            None => {
+            Some(_) => {
                 return Err("duplicate snippet io point inserted into external snippet".to_string());
-            }
+            },
+            None => ()
         };
 
         //return good result
@@ -291,10 +311,10 @@ impl ExternalSnippetManager {
         let uuid = snippet_io_point.uuid;
         
         match external_snippet.io_points.insert(snippet_io_point.uuid, snippet_io_point) {
-            Some(_) => (),
-            None => {
+            Some(_) => {
                 return Err("duplicate snippet io point inserted into external snippet");
-            }
+            },
+            None => ()
         };
 
         //return good result
@@ -429,7 +449,19 @@ impl ExternalSnippet {
 
     /// get parameters as parameter types that can hold values
     pub fn create_parameter_components_for_parameters(&self, sequential_id_generator: &mut SequentialIdGenerator) -> Vec<SnippetParameterComponent> {
+        let mut parameter_components = Vec::<SnippetParameterComponent>::new();
 
+        for parameter in &self.parameters {
+            // get parameter type as new parameter storeage
+            let parameter_storage = ExternalSnippetParameterType::into_storage_type(&parameter.1.p_type);
+
+            // create parameter component
+            let parameter_component = SnippetParameterComponent::new(parameter_storage, parameter.1.name.to_owned(), sequential_id_generator);
+
+            parameter_components.push(parameter_component);
+        }
+
+        return parameter_components;
     }
 }
 
@@ -497,7 +529,7 @@ mod test {
         let mut external_snippet_manager = ExternalSnippetManager::default();
         external_snippet_manager.create_external_snippets_from_directory(&directory_manager, &mut sequential_id_generator).unwrap();
 
-        assert_eq!(external_snippet_manager.external_snippets.len(), 5);
+        assert_eq!(external_snippet_manager.external_snippets.len(), 6);
 
         // test for external snippet manager state
         let snippet_map: HashMap<String, &ExternalSnippet> = external_snippet_manager.external_snippets.iter().map(|element| -> (String, &ExternalSnippet) {
@@ -663,7 +695,7 @@ mod test {
         }
 
         {
-            let external_snippet = match snippet_map.get("multiply") {
+            let external_snippet = match snippet_map.get("mul") {
                 Some(snippet) => snippet,
                 None => {
                     assert!(false);
@@ -819,12 +851,12 @@ mod test {
             
             // create map for params based on name and input, output
             let param_map: HashMap<String, &ExternalSnippetParameter> = external_snippet.parameters.iter().map(|element| -> ((String), &ExternalSnippetParameter) {
-                return (element.name.to_owned(), &element);
+                return (element.1.name.to_owned(), &element.1);
             })
             .collect();
 
             // search for each one
-            let param = match param_map.get(&"original_str".to_string()) {
+            let param = match param_map.get(&"str_input".to_string()) {
                 Some(param) => param,
                 None => {
                     assert!(false);

@@ -1,7 +1,7 @@
 use bimap::BiHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid};
+use crate::{core_services::visual_directory_component_manager, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 pub struct VisualSnippetComponentManager {
     pipeline_front_to_pipeline: BiHashMap<Uuid, Uuid>,
@@ -15,7 +15,8 @@ pub struct VisualSnippetComponentManager {
 pub struct FrontSnippetContent {
     id: Uuid,
     name: String,
-    pipeline_connectors: Vec<FrontPipelineConnectorContent>
+    pipeline_connectors: Vec<FrontPipelineConnectorContent>,
+    parameters: Vec<FrontParameterContent>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +30,12 @@ pub struct FrontPipelineConnectorContent {
 #[derive(Serialize, Deserialize)]
 pub struct FrontPipelineContent {
     id: Uuid,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FrontParameterContent {
+    id: Uuid,
+    name: String
 }
 
 impl Default for VisualSnippetComponentManager {
@@ -187,25 +194,26 @@ impl VisualSnippetComponentManager {
         };
     }
 
-    /// creates pipeline front
-    pub fn create_pipeline_front(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_uuid: Uuid) -> FrontPipelineContent {
-        // Create front pipeline content
-        let front_pipeline_content = FrontPipelineContent::new(self, sequential_id_generator.get_id(), external_uuid);
+    /// put parameter frontinto parameter
+    pub fn put_parameter(&mut self, front_uuid: Uuid, parameter_uuid: Uuid) {
+        self.parameter_front_to_parameter.insert(front_uuid, parameter_uuid);
+    } 
 
-        self.put_pipeline(front_pipeline_content.get_uuid(), external_uuid);
-
-        return front_pipeline_content;
+    /// get snippet uuid from parameter
+    pub fn find_parameter_uuid_from_parameter_front(&self, parameter_front_uuid: Uuid) -> Option<Uuid> {
+        return self.parameter_front_to_parameter.get_by_left(&parameter_front_uuid).copied();
     }
 
     // TODO put create methods for front here
 }
 
 impl FrontSnippetContent {
-    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>) -> Self {
+    pub fn new(visual_snippet_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, name: String, internal_id: Uuid, pipeline_connectors: Vec<FrontPipelineConnectorContent>, parameters: Vec<FrontParameterContent>) -> Self {
         let front_content = FrontSnippetContent {
             id: uuid,
             name: name,
-            pipeline_connectors: pipeline_connectors 
+            pipeline_connectors: pipeline_connectors,
+            parameters: parameters 
         };
 
         //add front content to visual component manager
@@ -236,7 +244,7 @@ impl FrontPipelineContent {
             id: uuid,
         };
 
-        //add front content to visual compoennt manager
+        //add front content to visual component manager
         visual_snippet_component_manager.put_pipeline(uuid, pipeline_uuid);
 
         return front_content;
@@ -244,5 +252,19 @@ impl FrontPipelineContent {
 
     pub fn get_uuid(&self) -> Uuid {
         return self.id;
+    }
+}
+
+impl FrontParameterContent {
+    pub fn new(visual_directory_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, parameter_uuid: Uuid, name: String) -> Self {
+        let front_content = FrontParameterContent {
+            id: uuid,
+            name: name
+        };
+
+        // add front content to visual component manager
+        visual_directory_component_manager.put_parameter(uuid, parameter_uuid);
+
+        return front_content;
     }
 }

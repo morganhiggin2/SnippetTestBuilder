@@ -434,7 +434,7 @@ mod tests {
         };
 
         // if a category has no snippet children, is it not a snippet category
-        assert_eq!(main_content.children.len(), 3);
+        assert_eq!(main_content.children.len(), 4);
 
         let children_map: HashMap<String, SnippetDirectoryEntry> = main_content.children.into_iter().map(|element| -> (String, SnippetDirectoryEntry) {
             return (element.name.to_owned(), element);
@@ -519,12 +519,12 @@ mod tests {
         
         assert_eq!(child_three_content.children.len(), 3);
 
-        let children_map: HashMap<String, &SnippetDirectoryEntry> = child_three_content.children.iter().map(|element| -> (String, &SnippetDirectoryEntry) {
-            return (element.name.to_owned(), element);
-        })
-        .collect();
-
         {
+            let children_map: HashMap<String, &SnippetDirectoryEntry> = child_three_content.children.iter().map(|element| -> (String, &SnippetDirectoryEntry) {
+                return (element.name.to_owned(), element);
+            })
+            .collect();
+
             let child_three_child_one  = match children_map.get("add") {
                 Some(entity) => entity,
                 None => {
@@ -563,7 +563,7 @@ mod tests {
                 SnippetDirectoryType::Snippet(snippet) => snippet,
             }; 
             
-            let child_three_child_three  = match children_map.get("multiply") {
+            let child_three_child_three  = match children_map.get("mul") {
                 Some(entity) => entity,
                 None => {
                     assert!(false);
@@ -582,5 +582,41 @@ mod tests {
                 SnippetDirectoryType::Snippet(snippet) => snippet,
             };
         }
+
+        // get fourth child
+        let child_four = match children_map.get("params") {
+            Some(entity) => entity,
+            None => {
+                assert!(false);
+
+                return
+            },
+        };
+
+        // assert first child is a category 
+        let child_four_content = match &child_four.content {
+            SnippetDirectoryType::Category(category) => category,
+            SnippetDirectoryType::Snippet(_) => {
+                assert!(false);
+
+                return
+            },
+        };
+
+        // child two has only one child 
+        assert_eq!(child_four_content.children.len(), 1);
+        
+        // child two's child
+        let child_four_child_only = child_four_content.children.get(0).unwrap();
+
+        assert_eq!(child_four_child_only.name, "str_param");
+
+        // get inner snippet, check if it is snippet
+        let child_four_child_only_content = match child_two_child_only.content {
+            SnippetDirectoryType::Category(_) => assert!(false),
+            SnippetDirectoryType::Snippet(_) => {
+
+            },
+        };
     }
 }

@@ -1,4 +1,4 @@
-use crate::{state_management::{ApplicationState, window_manager::WindowSession, external_snippet_manager::{ExternalSnippet}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, self}};
+use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType, SnippetParameterBaseStorage}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
 use std::{collections::HashMap, ops::Add, sync::MutexGuard};
 use crate::utils::sequential_id_generator::Uuid;
@@ -38,7 +38,8 @@ pub struct SnippetComponent {
     graph_uuid: petgraph::graph::NodeIndex,
     name: String,
     external_snippet_uuid: Uuid,
-    pipeline_connectors: Vec<PipelineConnectorComponent>
+    pipeline_connectors: Vec<PipelineConnectorComponent>,
+    parameters: Vec<SnippetParameterComponent>
 }
 
 pub struct PipelineConnectorComponent {
@@ -55,10 +56,14 @@ pub struct PipelineComponent {
     to_pipeline_connector_uuid: Uuid
 }
 
-//TODO this holds the values of the parameters, as well as the type
-// can use a trait to get the original type
-pub enum SnippetParameterComponent {
+pub struct SnippetParameterComponent {
+    uuid: Uuid,
+    name: String,
+    content: SnippetParameterBaseStorage
+}
 
+pub enum SnippetParameterBaseStorageType {
+    String(String)
 }
 
 impl Default for SnippetManager {
@@ -78,14 +83,15 @@ impl SnippetManager {
     /// create a new snippet
     pub fn new_snippet(&mut self, sequential_id_generator: &mut SequentialIdGenerator, external_snippet: &ExternalSnippet) -> Uuid {
         let pipeline_connectors = external_snippet.create_pipeline_connectors_for_io_points(sequential_id_generator);
-        let parameters = external_snippet.
+        // create parameter components
+        let parameters= external_snippet.create_parameter_components_for_parameters(sequential_id_generator);
 
         //call handler method, return value
         //return uuid of snippet
-        return self.new_snippet_handler(sequential_id_generator, pipeline_connectors, external_snippet.get_uuid(), external_snippet.get_name());
+        return self.new_snippet_handler(sequential_id_generator, pipeline_connectors, parameters, external_snippet.get_uuid(), external_snippet.get_name());
     }
 
-    fn new_snippet_handler(&mut self, sequential_id_generator: &mut SequentialIdGenerator, pipeline_connectors: Vec<PipelineConnectorComponent>, external_snippet_uuid: Uuid, external_snippet_name: String) -> Uuid {
+    fn new_snippet_handler(&mut self, sequential_id_generator: &mut SequentialIdGenerator, pipeline_connectors: Vec<PipelineConnectorComponent>, parameters: Vec::<SnippetParameterComponent>, external_snippet_uuid: Uuid, external_snippet_name: String) -> Uuid {
          //add snippet to graph
         let graph_uuid = self.snippet_graph.add_node(());
 
@@ -109,6 +115,15 @@ impl SnippetManager {
 
         //move pipeline connectors to snippet component
         snippet_component.pipeline_connectors = pipeline_connectors;
+
+        //add parameters to parameter to snippet mapping
+        for parameter in parameters.iter() {
+            self.parameter_to_snippet.insert(parameter.uuid, snippet_uuid);
+        }
+
+        //add parameters
+        snippet_component.parameters = parameters;
+
 
         //add to snippets list in snippet manager
         self.snippets.insert(snippet_uuid, snippet_component);
@@ -143,6 +158,15 @@ impl SnippetManager {
         )
             .collect();
 
+        // get parameter uuids
+        let parameter_uuids : Vec<Uuid> = (&snippet_component.parameters)
+            .into_iter()
+            .map(|pc| -> Uuid {
+                pc.uuid
+            }
+        )
+            .collect();
+
         //remove snippet from pipeline connector mapping
         for pipeline_connector_uuid in pipeline_connectors_uuid.into_iter() {
             match self.pipeline_connectors_to_snippet.remove(&pipeline_connector_uuid) {
@@ -152,15 +176,6 @@ impl SnippetManager {
                 }
             };
         }
-
-        // get parameter uuids
-        let parameter_uuids : Vec<Uuid> = (&snippet_component.pipeline_connectors)
-            .into_iter()
-            .map(|pc| -> Uuid {
-                pc.uuid
-            }
-        )
-            .collect();
         
         //remove snippet from pipeline connector mapping
         for parameter_uuid in parameter_uuids.into_iter() {
@@ -586,7 +601,8 @@ impl SnippetComponent {
             graph_uuid: graph_uuid,
             name: String::new(),
             external_snippet_uuid: 0,
-            pipeline_connectors: Vec::new()
+            pipeline_connectors: Vec::new(),
+            parameters: Vec::new()
         }
     }
 
@@ -621,13 +637,17 @@ impl SnippetComponent {
         //get pipeline connectors as front pipeline connectors
         let front_pipeline_connectors = self.get_pipeline_connectors_as_pipeline_connector_content(visual_snippet_component_manager, sequential_id_generator);
 
+        //get parameters as front
+        let front_parameters = self.get_parameters_as_parameter_content(visual_snippet_component_manager, sequential_id_generator);
+
         //create front snippet
         let front_snippet = FrontSnippetContent::new(
             visual_snippet_component_manager,
             sequential_id_generator.get_id(),
             self.get_name(),
             self.get_uuid(),
-            front_pipeline_connectors
+            front_pipeline_connectors,
+            front_parameters
         );
 
         return front_snippet;
@@ -650,7 +670,25 @@ impl SnippetComponent {
                     pipeline_connector.name.clone(),
                     pipeline_connector.input
                 )
-            )
+            );
+        }
+
+        return contents;
+    }
+
+    fn get_parameters_as_parameter_content(&self, visual_snippet_component_manager: &mut VisualSnippetComponentManager, sequential_id_generator: &mut SequentialIdGenerator) -> Vec<FrontParameterContent> {
+        let mut contents: Vec<FrontParameterContent> = Vec::with_capacity(self.parameters.len());
+
+        // build parameter fronts from parameters
+        for parameter in self.parameters.iter() {
+            contents.push(
+                FrontParameterContent::new(
+                    visual_snippet_component_manager,
+                   sequential_id_generator.get_id(),
+                   parameter.uuid,
+                   parameter.name.to_owned() 
+                )
+            );
         }
 
         return contents;
@@ -723,6 +761,16 @@ impl PipelineComponent {
         return self.to_pipeline_connector_uuid;
     }
 }
+
+impl SnippetParameterComponent {
+    pub fn new(storage: SnippetParameterBaseStorage, name: String, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
+        return SnippetParameterComponent {
+            uuid: sequential_id_generator.get_id(),
+            name: name,
+            content: storage,
+        };
+    }
+}
 //map: pipeline_connectors->parent
 
 //could store parent uuid for connector inside connector or mapping
@@ -742,6 +790,7 @@ impl PipelineComponent {
 #[cfg(test)]
 mod tests {
     use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::SequentialIdGenerator};
+    use crate::state_management::external_snippet_manager::IntoStorageType;
 
     use super::*;
 
@@ -752,13 +801,19 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
 
         // temp variable
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_pipeline_connector_one", true));
 
+        let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter_uuid = parameter.uuid;
+        parameters.push(parameter); 
+
         let external_snippet_uuid = sequential_id_generator.get_id();
-        let snippet_id = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, external_snippet_uuid, "testing_snippet".to_string());
+        let snippet_id = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, external_snippet_uuid, "testing_snippet".to_string());
 
         // assert that the state of the snippet manager was changed in the correct way
         // assert that the snippet was added by the correct id
@@ -803,6 +858,14 @@ mod tests {
         assert_eq!(snippet.pipeline_connectors.get(0).unwrap().input, true);
         // assert that the name is the same
         assert_eq!(snippet.pipeline_connectors.get(0).unwrap().name, "input_pipeline_connector_one");
+        
+        // assert parmeters were inserted correctly
+        assert_eq!(snippet.parameters.len(), 1);
+        assert_eq!(snippet.parameters.get(0).unwrap().name, "param_one");
+        assert_eq!(snippet.parameters.get(0).unwrap().uuid, parameter_uuid);
+        /*match snippet.parameters.get(0).unwrap().content {
+
+        }*/
     }
 
     #[test]
@@ -811,6 +874,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -818,28 +882,36 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let first_external_snippet_uuid = sequential_id_generator.get_id();
-        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, first_external_snippet_uuid, "testing_snippet_one".to_string());
 
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
 
         let second_external_snippet_uuid = sequential_id_generator.get_id();
-        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, second_external_snippet_uuid, "testing_snippet_two".to_string());
 
 
         // create third snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
+        let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter_uuid = parameter.uuid;
+        parameters.push(parameter); 
+
         let third_external_snippet_uuid = sequential_id_generator.get_id();
-        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
 
         // delete third snippet
         snippet_manager.delete_snippet(&third_snippet_uuid).unwrap();
@@ -875,6 +947,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -882,28 +955,34 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let first_external_snippet_uuid = sequential_id_generator.get_id();
-        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, first_external_snippet_uuid, "testing_snippet_one".to_string());
 
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
 
         let second_external_snippet_uuid = sequential_id_generator.get_id();
-        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
-
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, second_external_snippet_uuid, "testing_snippet_two".to_string());
 
         // create third snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
+        let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter_uuid = parameter.uuid;
+        parameters.push(parameter); 
+
         let third_external_snippet_uuid = sequential_id_generator.get_id();
-        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, third_external_snippet_uuid, "testing_snippet_one".to_string());
 
         // connect one to three
         snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
@@ -920,11 +999,12 @@ mod tests {
         assert_eq!(snippet_manager.snippets.len(), 3);
         assert_eq!(snippet_manager.snippets.contains_key(&4), true);
         assert_eq!(snippet_manager.snippets.contains_key(&10), true);
-        assert_eq!(snippet_manager.snippets.contains_key(&16), true);
+        assert_eq!(snippet_manager.snippets.contains_key(&17), true);
 
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 4);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 8);
+        assert_eq!(snippet_manager.parameter_to_snippet.len(), 1);
 
         // assert 3 nodes
         assert_eq!(snippet_manager.snippet_graph.node_count(), 3);
@@ -932,7 +1012,7 @@ mod tests {
         // get snippet's graph uuid
         let snippet_one_graph_uuid = snippet_manager.find_snippet(&4).unwrap().graph_uuid;
         let snippet_two_graph_uuid = snippet_manager.find_snippet(&10).unwrap().graph_uuid;
-        let snippet_three_graph_uuid = snippet_manager.find_snippet(&16).unwrap().graph_uuid;
+        let snippet_three_graph_uuid = snippet_manager.find_snippet(&17).unwrap().graph_uuid;
 
         // asssert only two edges 
         assert_eq!(snippet_manager.snippet_graph.edge_count(), 2);
@@ -971,7 +1051,6 @@ mod tests {
             },
             None => false,
         });
-
     }
 
     #[test]
@@ -980,6 +1059,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -987,28 +1067,36 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let first_external_snippet_uuid = sequential_id_generator.get_id();
-        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, first_external_snippet_uuid, "testing_snippet_one".to_string());
 
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
 
         let second_external_snippet_uuid = sequential_id_generator.get_id();
-        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, second_external_snippet_uuid, "testing_snippet_two".to_string());
 
 
         // create third snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
+        let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter_uuid = parameter.uuid;
+        parameters.push(parameter); 
+
         let third_external_snippet_uuid = sequential_id_generator.get_id();
-        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
 
         // connect one to three
         snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
@@ -1017,7 +1105,7 @@ mod tests {
         snippet_manager.create_pipeline(&mut sequential_id_generator, 7, 13).unwrap();
         
         // delete the pipeline going from one to three
-        snippet_manager.delete_pipeline(&17).unwrap();
+        snippet_manager.delete_pipeline(&18).unwrap();
 
         // check that pipelines exists
         assert_eq!(snippet_manager.pipelines.contains_key(&15), false);
@@ -1027,11 +1115,12 @@ mod tests {
         assert_eq!(snippet_manager.snippets.len(), 3);
         assert_eq!(snippet_manager.snippets.contains_key(&4), true);
         assert_eq!(snippet_manager.snippets.contains_key(&10), true);
-        assert_eq!(snippet_manager.snippets.contains_key(&16), true);
+        assert_eq!(snippet_manager.snippets.contains_key(&17), true);
 
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 2);
         assert_eq!(snippet_manager.pipeline_connectors_to_snippet.len(), 8);
+        assert_eq!(snippet_manager.parameter_to_snippet.len(), 1);
 
         // assert 3 nodes
         assert_eq!(snippet_manager.snippet_graph.node_count(), 3);
@@ -1039,7 +1128,7 @@ mod tests {
         // get snippet's graph uuid
         let snippet_one_graph_uuid = snippet_manager.find_snippet(&4).unwrap().graph_uuid;
         let snippet_two_graph_uuid = snippet_manager.find_snippet(&10).unwrap().graph_uuid;
-        let snippet_three_graph_uuid = snippet_manager.find_snippet(&16).unwrap().graph_uuid;
+        let snippet_three_graph_uuid = snippet_manager.find_snippet(&17).unwrap().graph_uuid;
 
         // asssert only one edge 
         assert_eq!(snippet_manager.snippet_graph.edge_count(), 1);
@@ -1074,6 +1163,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -1081,28 +1171,36 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let first_external_snippet_uuid = sequential_id_generator.get_id();
-        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, first_external_snippet_uuid, "testing_snippet_one".to_string());
+        let first_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, first_external_snippet_uuid, "testing_snippet_one".to_string());
 
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
 
         let second_external_snippet_uuid = sequential_id_generator.get_id();
-        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, second_external_snippet_uuid, "testing_snippet_two".to_string());
+        let second_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, second_external_snippet_uuid, "testing_snippet_two".to_string());
 
 
         // create third snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
+        let mut parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_two", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
+        let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter_uuid = parameter.uuid;
+        parameters.push(parameter); 
+
         let third_external_snippet_uuid = sequential_id_generator.get_id();
-        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, third_external_snippet_uuid, "testing_snippet_one".to_string());
+        let third_snippet_uuid = snippet_manager.new_snippet_handler(&mut sequential_id_generator, pipeline_connectors, parameters, third_external_snippet_uuid, "testing_snippet_one".to_string());
+
 
         // connect one to three
         snippet_manager.create_pipeline(&mut sequential_id_generator, 2, 12).unwrap();
