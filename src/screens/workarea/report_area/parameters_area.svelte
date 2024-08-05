@@ -9,6 +9,32 @@
             {parameter.text}
         </div>
     {/each}*/
+
+    // timeed event so that when the user is done typing, it updates the paramter
+    // one event per paramter
+    let parameter_typing_timers = {} 
+    // in miliseconds
+    let typing_interval = 2000;
+
+    // on key up from typing
+    function on_key_up_typing(id) {
+        // clear the timeout for the existing paramter based on paramter id
+        if (id in parameter_typing_timers) {
+            clearTimeout(parameter_typing_timers[id]);
+        }
+
+        // start timeout for that paramter
+        parameter_typing_timers[id] = setTimeout(() => {update_parameter(id)}, typing_interval);
+        
+    }
+
+    function update_parameter(id) {
+        // get parameter text
+        let parameter_text = parameters_state.parameters.filter((param) => param[0] == id)[0][2];
+
+        // update paramter text
+        invoke('update_snippet_parameter_value', {front_uuid: id, value: parameter_text}).then(() => {});
+    }
 </script>
 
 <div class="body">
@@ -19,7 +45,7 @@
                     {parameter[1].name + ":"}
                 </div>
                 <div class="parameter value">
-                    <textarea rows="1"/>
+                    <textarea rows="1" bind:value={parameter[2]}/>
                 </div>
             </div>
         {/if}

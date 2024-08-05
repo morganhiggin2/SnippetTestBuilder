@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt, str::FromStr};
 use bimap::BiHashMap;
 use strum_macros::{EnumString, Display};
 
-use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorageType, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
@@ -53,10 +53,6 @@ pub enum ExternalSnippetParameterType {
     SingleLineText
 }
 
-pub struct SnippetParameterBaseStorage {
-    content: SnippetParameterBaseStorageType
-}
-
 // trait to define the conversion of parameter type into base storage type
 pub trait IntoStorageType {
     fn into_storage_type(external_snippet_parameter_type: &ExternalSnippetParameterType) -> SnippetParameterBaseStorage;
@@ -65,10 +61,8 @@ pub trait IntoStorageType {
 // TODO make it usable for self
 impl IntoStorageType for ExternalSnippetParameterType {
     fn into_storage_type(external_snippet_parameter_type: &Self) -> SnippetParameterBaseStorage {
-        SnippetParameterBaseStorage{ 
-            content: match external_snippet_parameter_type {
-                ExternalSnippetParameterType::SingleLineText => SnippetParameterBaseStorageType::String(String::default()),
-            }
+        match external_snippet_parameter_type {
+            ExternalSnippetParameterType::SingleLineText => SnippetParameterBaseStorage::String(String::default()),
         }
     }
 }

@@ -34,7 +34,8 @@
         let param_state_parameters = parameters_state.parameters;
 
         for (const parameter of parameters) {
-            param_state_parameters.push([snippet_id, parameter]);
+            // [snippet id, paramter information, paramter text content as a string]
+            param_state_parameters.push([snippet_id, parameter, ""]);
         }
 
         parameters_state.param_state_parameters = param_state_parameters;

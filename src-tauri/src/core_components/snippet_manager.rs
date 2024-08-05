@@ -1,4 +1,4 @@
-use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType, SnippetParameterBaseStorage}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
 use std::{collections::HashMap, ops::Add, sync::MutexGuard};
 use crate::utils::sequential_id_generator::Uuid;
@@ -63,7 +63,7 @@ pub struct SnippetParameterComponent {
     p_type: ExternalSnippetParameterType 
 }
 
-pub enum SnippetParameterBaseStorageType {
+pub enum SnippetParameterBaseStorage {
     String(String)
 }
 
@@ -236,6 +236,37 @@ impl SnippetManager {
     pub fn find_pipeline_mut(&mut self, uuid: &Uuid) -> Option<&mut PipelineComponent>{
         //find pipeline in vector
         return self.pipelines.get_mut(uuid);
+    }
+
+    /// find snippet paramaeter component from uuid
+    /// 
+    /// # Arguments
+    /// * 'uuid" - uuid of the parameter component
+    pub fn find_parameter(&mut self, uuid: &Uuid) -> Option<&mut SnippetParameterComponent> {
+        // find snippet from parameter to snippet lookup
+        let snippet_uuid = self.parameter_to_snippet.get(uuid)?.to_owned();
+
+        // get parameter
+        let snippet = self.snippets.get_mut(&snippet_uuid)?;
+
+        // find index of position
+        let mut snippet_index = None;
+
+        for (i, parameter_component) in snippet.parameters.iter().enumerate() {
+            if parameter_component.uuid == *uuid {
+                snippet_index = Some(i);
+            }
+        }
+
+        // if none were found
+        match snippet_index {
+            Some(i) => {
+                return Some(snippet.parameters.get_mut(i).unwrap());
+            }
+            None => {
+                return None;
+            }
+        }
     }
     
     /// find pipeline connector uuid from pipeipe uuid
@@ -773,6 +804,23 @@ impl SnippetParameterComponent {
             content: storage,
             p_type: p_type
         };
+    }
+
+    /// Update value of parameter, value will be given in string format
+    /// and attempt to convert to its base type, failing on failure.
+    pub fn update_value(&mut self, value: String) -> Result<(), &'static str> {
+        self.content = match self.content {
+            SnippetParameterBaseStorage::String(_) => {
+                // attempt to convert to base type, which is string
+                // since we are already a string, no strict conversion needed
+                //TODO delete
+                println!("{}", value);
+
+                SnippetParameterBaseStorage::String(value)
+            }
+        };
+
+        return Ok(());
     }
 }
 //map: pipeline_connectors->parent

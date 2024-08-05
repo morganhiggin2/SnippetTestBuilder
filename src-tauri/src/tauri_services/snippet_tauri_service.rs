@@ -88,7 +88,7 @@ pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State
     };
     
     //borrow split
-    let snippet_manger = &mut window_session.snippet_manager;
+    let snippet_manager = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get pipeline uuid from front uuid
@@ -100,7 +100,7 @@ pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State
     };
 
     //find pipieline
-    let snippet_component = match snippet_manger.find_snippet(&snippet_uuid) {
+    let snippet_component = match snippet_manager.find_snippet(&snippet_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find pipeline from pipeline uuid");
@@ -126,6 +126,57 @@ pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State
 
     return Ok(front_pipeline_connector_uuids);
 }
+
+/// updates the snippet parameter value
+/// including all front and root components 
+/// 
+/// # Arguments 
+/// * 'front_uuid' - uuid of the snippet
+/// * 'value' - value of the parameter in string form
+pub fn update_snippet_parameter_value(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid, value: String) -> Result<(), &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+    
+    //find window session
+    let window_session: &mut WindowSession = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found"); 
+        }
+    };
+    
+    //borrow split
+    let snippet_manager = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    // get the snippet parameter uuid from the front parameter uuid
+    let parameter_uuid = match visual_snippet_component_manager.find_parameter_uuid_from_parameter_front(front_uuid) {
+        Some(some) => some,
+        None => {
+            return Err("could not find parameter front in visual snippet component manager");
+        },
+    };
+
+    // find parameter from parameter uuid
+    let parameter = match snippet_manager.find_parameter(&parameter_uuid) {
+        Some(some) => some,
+        None => {
+            return Err("could not find parameter in snippet manager");
+        }
+    };
+
+    // update value in parameter
+    match parameter.update_value(value) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e);
+        },
+    };
+
+    return Ok(());
+}
+
 /// deletes snippet
 /// including all front and root components 
 /// 
@@ -235,7 +286,7 @@ pub fn new_pipeline(application_state: tauri::State<SharedApplicationState>, win
     //borrow split
     let mut sequential_id_generator = &mut state.sequential_id_generator;
 
-    let snippet_manger = &mut window_session.snippet_manager;
+    let snippet_manager = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get from and to component uuids from front uuids
@@ -255,7 +306,7 @@ pub fn new_pipeline(application_state: tauri::State<SharedApplicationState>, win
 
     //attempt to create pipeline
     //if could not be created, return none
-    let pipeline_uuid: Uuid = match snippet_manger.create_pipeline(&mut sequential_id_generator, from_uuid, to_uuid) {
+    let pipeline_uuid: Uuid = match snippet_manager.create_pipeline(&mut sequential_id_generator, from_uuid, to_uuid) {
         Ok(result) => result,
         Err(err) => {
             return Err(err);
@@ -263,7 +314,7 @@ pub fn new_pipeline(application_state: tauri::State<SharedApplicationState>, win
     };
 
     // get pipelines, can safely unwrap as we just created the pipeline above
-    let pipeline = snippet_manger.find_pipeline(&pipeline_uuid).unwrap();
+    let pipeline = snippet_manager.find_pipeline(&pipeline_uuid).unwrap();
 
     // get pipeline front content and add to virtaul manager
     let pipeline_front = pipeline.create_pipeline_as_front_content(visual_snippet_component_manager, sequential_id_generator); 
@@ -286,7 +337,7 @@ pub fn delete_pipeline(application_state: tauri::State<SharedApplicationState>, 
     };
 
     //borrow split
-    let snippet_manger = &mut window_session.snippet_manager;
+    let snippet_manager = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get pipeline uuid from front uuid
@@ -306,7 +357,7 @@ pub fn delete_pipeline(application_state: tauri::State<SharedApplicationState>, 
     };
 
     //delete from snippet manager and it's internal links
-    match snippet_manger.delete_pipeline(&pipeline_uuid) {
+    match snippet_manager.delete_pipeline(&pipeline_uuid) {
         Ok(_) => (),
         Err(err) => {
             return Err(err);
@@ -481,7 +532,7 @@ pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::Stat
     };
     
     //borrow split
-    let snippet_manger = &mut window_session.snippet_manager;
+    let snippet_manager = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
     //get pipeline uuid from front uuid
@@ -494,7 +545,7 @@ pub fn get_pipeline_connector_uuids_from_pipeline(application_state: tauri::Stat
 
 
     //find pipieline
-    let pipeline_component = match snippet_manger.find_pipeline(&pipeline_uuid) {
+    let pipeline_component = match snippet_manager.find_pipeline(&pipeline_uuid) {
         Some(result) => result,
         None => {
             return Err("could not find pipeline from pipeline uuid");
