@@ -1,12 +1,15 @@
 <script>
     import { invoke, event} from "@tauri-apps/api";
+    import { onMount } from "svelte";
 
     export let window_session_id;
+    export let logging_state;
     
     // logging
     let logging_active;
-    let log_text = "";
 
+    // TODO possible issue: if there are events being emmited and you are switching between these screens,
+    //      is it going to be rendered?
     export const trigger_logging = (stream_i) => {
         var stream_id = "log_" + stream_i;
 
@@ -20,7 +23,7 @@
             }
             else {
                 // append log to logging component
-                log_text += "> " + payload;
+                logging_state.log_text += "> " + payload;
             }
         }).then((unlisten) => {
             logging_active = unlisten; 
@@ -29,7 +32,7 @@
 </script>
 
 <div class="body">
-    <textarea bind:value={log_text} class="logging-area" readonly wrap="hard"/>
+    <textarea bind:value={logging_state.log_text} class="logging-area" readonly wrap="hard"/>
 </div>
 
 <style>

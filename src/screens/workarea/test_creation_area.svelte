@@ -76,6 +76,12 @@
                     windowSessionUuid: window_session_id,
                     directoryFrontUuid: directory_id
                 });
+
+                // get parameters
+                var parameters = snippet_information.parameters;
+
+                // add parameters to parameter screen
+                //TODO function handle that we call 
             } catch (e) {
                 invoke('logln', {text: JSON.stringify(e)});
                 return;

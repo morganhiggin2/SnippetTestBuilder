@@ -3,6 +3,12 @@
 
     export let id;
     export let text;
+    export let active;
+    export let change_active_tab;
+
+    function on_click() {
+        change_active_tab(id);
+    }
 
     /*
     
@@ -24,12 +30,19 @@
 </div>
     */
 </script>
-
-<div class="body">
-    <div class="text">
-        {text}
-    </div>
-</div>
+    {#if active}
+        <div class="body" id="active" on:click={on_click} on:keydown={() => {}}>
+            <div class="text">
+                {text}
+            </div>
+        </div>
+    {:else}
+        <div class="body" id="inactive" on:click={on_click} on:keydown={() => {}}>
+            <div class="text">
+                {text}
+            </div>
+        </div>
+    {/if}
 
 <style>
     .body {
@@ -40,6 +53,7 @@
         border-left: 1px solid lightgrey;
         border-right: 1px solid lightgrey;
         margin-bottom: -2px;
+        cursor: default;
     }
 
     .body:hover {
@@ -48,5 +62,9 @@
 
     .text {
         padding-bottom: 2px;
+    }
+
+    #active {
+        background-color: darkgray;
     }
 </style>
