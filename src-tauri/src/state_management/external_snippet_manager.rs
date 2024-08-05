@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt, str::FromStr};
 use bimap::BiHashMap;
-use strum_macros::EnumString;
+use strum_macros::{EnumString, Display};
 
 use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorageType, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
@@ -47,6 +47,8 @@ pub struct ExternalSnippetParameter {
 #[derive(EnumString)]
 #[derive(PartialEq)]
 #[derive(Debug)]
+#[derive(Display)]
+#[derive(Clone)]
 pub enum ExternalSnippetParameterType {
     SingleLineText
 }
@@ -452,11 +454,13 @@ impl ExternalSnippet {
         let mut parameter_components = Vec::<SnippetParameterComponent>::new();
 
         for parameter in &self.parameters {
+            // get paramter type as string
+            let p_type = parameter.1.p_type.clone();
             // get parameter type as new parameter storeage
             let parameter_storage = ExternalSnippetParameterType::into_storage_type(&parameter.1.p_type);
 
             // create parameter component
-            let parameter_component = SnippetParameterComponent::new(parameter_storage, parameter.1.name.to_owned(), sequential_id_generator);
+            let parameter_component = SnippetParameterComponent::new(parameter_storage, parameter.1.name.to_owned(), p_type, sequential_id_generator);
 
             parameter_components.push(parameter_component);
         }

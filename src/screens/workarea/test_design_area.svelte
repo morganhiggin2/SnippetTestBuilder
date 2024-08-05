@@ -16,15 +16,19 @@
 
     let src = "";
 
+    // parameters methods
+    let add_parameters;
+    let delete_parameters;
+
 </script>
 
 <div class="body">
     <div class="container" style="grid-template-rows: {window_height - 250}px 250px;">
         <div class="test-creation-area">
-            <TestCreationArea {window_session_id}/>
+            <TestCreationArea {window_session_id} add_parameters={add_parameters} delete_parameters={delete_parameters}/>
         </div>
         <div class="logging-view">
-            <ReportArea {window_session_id} bind:trigger_logging={trigger_logging_}/>
+            <ReportArea {window_session_id} bind:trigger_logging={trigger_logging_} bind:add_parameters={add_parameters} bind:delete_parameters={delete_parameters}/>
         </div>
     </div>
 </div>

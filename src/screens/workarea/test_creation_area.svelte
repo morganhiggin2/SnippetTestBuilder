@@ -26,6 +26,10 @@
     //hash map of all visually connected id'd components
     let visualComponents = {};
 
+    // parameters methods
+    export let add_parameters;
+    export let delete_parameters;
+
     onMount(async () =>
     {
         //create stage
@@ -77,11 +81,10 @@
                     directoryFrontUuid: directory_id
                 });
 
-                // get parameters
-                var parameters = snippet_information.parameters;
-
                 // add parameters to parameter screen
-                //TODO function handle that we call 
+                // add parameter to parameters list based on snippet id
+                add_parameters(snippet_information.id, snippet_information.parameters)
+
             } catch (e) {
                 invoke('logln', {text: JSON.stringify(e)});
                 return;
@@ -95,6 +98,7 @@
 
             //create snippet
             //snippetComponents.push({id: snippet_information.id, name: snippet_information.name, internal_id: snippet_id, pipeline_connectors: snippet_information.pipeline_connectors, drawable: snippetDrawable});
+
 
             //draw snippet
             drawSnippet(snippetDrawable);
@@ -178,6 +182,9 @@
 
         //remove snippet from visual components
         delete visualComponents[id];
+
+        // delete snippet parameters 
+        delete_parameters(id); 
 
         //delete snippet in backend
         try {

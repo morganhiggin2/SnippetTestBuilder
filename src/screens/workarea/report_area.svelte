@@ -1,4 +1,5 @@
 <script>
+    import { invoke } from "@tauri-apps/api";
     import LoggingArea from "./report_area/logging_area.svelte";
     import ParametersArea from "./report_area/parameters_area.svelte";
     import ScreenTabBar from "./report_area/screen_tab_bar.svelte";
@@ -24,7 +25,32 @@
     var logging_state = {
         log_text: ""
     }
-    var parameters_state = {}
+    var parameters_state = {
+        parameters: [] 
+    }
+
+    // parameters methods
+    export const add_parameters = (snippet_id, parameters) => {
+        let param_state_parameters = parameters_state.parameters;
+
+        for (const parameter of parameters) {
+            param_state_parameters.push([snippet_id, parameter]);
+        }
+
+        parameters_state.param_state_parameters = param_state_parameters;
+    }
+
+    export const delete_parameters = (snippet_id) => {
+        var param_state_parameters = [];
+
+        for (const parameter of parameters_state.parameters) {
+            if (parameter[0] != snippet_id) {
+                param_state_parameters.push(parameter);
+            }
+        }
+
+        parameters_state.parameters = param_state_parameters;
+    }
 
 </script>
 
@@ -35,7 +61,7 @@
     {#if active_screen == "logging"}
         <LoggingArea {window_session_id} {logging_state} bind:trigger_logging={trigger_logging_}/>
     {:else if active_screen == "parameters"}
-        <ParametersArea {parameters_state}/>
+        <ParametersArea bind:parameters_state={parameters_state}/>
     {/if}
 </div>
 

@@ -35,7 +35,8 @@ pub struct FrontPipelineContent {
 #[derive(Serialize, Deserialize)]
 pub struct FrontParameterContent {
     id: Uuid,
-    name: String
+    name: String,
+    p_type: String 
 }
 
 impl Default for VisualSnippetComponentManager {
@@ -256,10 +257,11 @@ impl FrontPipelineContent {
 }
 
 impl FrontParameterContent {
-    pub fn new(visual_directory_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, parameter_uuid: Uuid, name: String) -> Self {
+    pub fn new(visual_directory_component_manager: &mut VisualSnippetComponentManager, uuid: Uuid, parameter_uuid: Uuid, name: String, p_type: String) -> Self {
         let front_content = FrontParameterContent {
             id: uuid,
-            name: name
+            name: name,
+            p_type: p_type
         };
 
         // add front content to visual component manager

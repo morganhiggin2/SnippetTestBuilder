@@ -59,7 +59,8 @@ pub struct PipelineComponent {
 pub struct SnippetParameterComponent {
     uuid: Uuid,
     name: String,
-    content: SnippetParameterBaseStorage
+    content: SnippetParameterBaseStorage,
+    p_type: ExternalSnippetParameterType 
 }
 
 pub enum SnippetParameterBaseStorageType {
@@ -681,12 +682,14 @@ impl SnippetComponent {
 
         // build parameter fronts from parameters
         for parameter in self.parameters.iter() {
+            // look up snippet parmater in external snippet parameters to get ptype
             contents.push(
                 FrontParameterContent::new(
                     visual_snippet_component_manager,
                    sequential_id_generator.get_id(),
                    parameter.uuid,
-                   parameter.name.to_owned() 
+                   parameter.name.to_owned(),
+                   parameter.p_type.to_string()
                 )
             );
         }
@@ -763,11 +766,12 @@ impl PipelineComponent {
 }
 
 impl SnippetParameterComponent {
-    pub fn new(storage: SnippetParameterBaseStorage, name: String, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
+    pub fn new(storage: SnippetParameterBaseStorage, name: String, p_type: ExternalSnippetParameterType, sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return SnippetParameterComponent {
             uuid: sequential_id_generator.get_id(),
             name: name,
             content: storage,
+            p_type: p_type
         };
     }
 }
@@ -808,7 +812,7 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_pipeline_connector_one", true));
 
         let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
-        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), ExternalSnippetParameterType::SingleLineText, &mut sequential_id_generator);
         let parameter_uuid = parameter.uuid;
         parameters.push(parameter); 
 
@@ -863,6 +867,7 @@ mod tests {
         assert_eq!(snippet.parameters.len(), 1);
         assert_eq!(snippet.parameters.get(0).unwrap().name, "param_one");
         assert_eq!(snippet.parameters.get(0).unwrap().uuid, parameter_uuid);
+        assert_eq!(snippet.parameters.get(0).unwrap().p_type, ExternalSnippetParameterType::SingleLineText);
         /*match snippet.parameters.get(0).unwrap().content {
 
         }*/
@@ -905,7 +910,7 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
-        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), ExternalSnippetParameterType::SingleLineText, &mut sequential_id_generator);
         let parameter_uuid = parameter.uuid;
         parameters.push(parameter); 
 
@@ -977,7 +982,7 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
-        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), ExternalSnippetParameterType::SingleLineText, &mut sequential_id_generator);
         let parameter_uuid = parameter.uuid;
         parameters.push(parameter); 
 
@@ -1090,7 +1095,7 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
-        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), ExternalSnippetParameterType::SingleLineText, &mut sequential_id_generator);
         let parameter_uuid = parameter.uuid;
         parameters.push(parameter); 
 
@@ -1194,7 +1199,7 @@ mod tests {
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
 
         let parameter_storage = ExternalSnippetParameterType::into_storage_type(&ExternalSnippetParameterType::SingleLineText); 
-        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), &mut sequential_id_generator);
+        let parameter = SnippetParameterComponent::new(parameter_storage, "param_one".to_string(), ExternalSnippetParameterType::SingleLineText, &mut sequential_id_generator);
         let parameter_uuid = parameter.uuid;
         parameters.push(parameter); 
 
