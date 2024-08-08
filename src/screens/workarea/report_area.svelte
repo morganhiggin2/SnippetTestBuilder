@@ -62,7 +62,7 @@
     {#if active_screen == "logging"}
         <LoggingArea {window_session_id} {logging_state} bind:trigger_logging={trigger_logging_}/>
     {:else if active_screen == "parameters"}
-        <ParametersArea bind:parameters_state={parameters_state}/>
+        <ParametersArea {window_session_id} bind:parameters_state={parameters_state}/>
     {/if}
 </div>
 

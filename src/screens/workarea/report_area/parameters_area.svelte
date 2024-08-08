@@ -2,6 +2,7 @@
     import { invoke } from "@tauri-apps/api";
 
     export let parameters_state;
+    export let window_session_id;
 
     /*
     {#each parameters_state.parameters as { snippet_id, parameter }, i}
@@ -25,15 +26,14 @@
 
         // start timeout for that paramter
         parameter_typing_timers[id] = setTimeout(() => {update_parameter(id)}, typing_interval);
-        
     }
 
     function update_parameter(id) {
         // get parameter text
-        let parameter_text = parameters_state.parameters.filter((param) => param[0] == id)[0][2];
+        let parameter_text = parameters_state.parameters.filter((param) => param[1]['id'] == id)[0][2];
 
         // update paramter text
-        invoke('update_snippet_parameter_value', {front_uuid: id, value: parameter_text}).then(() => {});
+        invoke('update_snippet_parameter_value', {windowSessionUuid: window_session_id, frontUuid: id, value: parameter_text});
     }
 </script>
 
@@ -44,7 +44,7 @@
                 <div class="parameter name">
                     {parameter[1].name + ":"}
                 </div>
-                <div class="parameter value">
+                <div class="parameter value" on:keyup={() => {on_key_up_typing(parameter[1].id)}}>
                     <textarea rows="1" bind:value={parameter[2]}/>
                 </div>
             </div>

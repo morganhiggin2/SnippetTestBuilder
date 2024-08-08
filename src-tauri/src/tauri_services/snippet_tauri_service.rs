@@ -133,6 +133,7 @@ pub fn get_pipeline_connector_uuids_from_snippet(application_state: tauri::State
 /// # Arguments 
 /// * 'front_uuid' - uuid of the snippet
 /// * 'value' - value of the parameter in string form
+#[tauri::command] 
 pub fn update_snippet_parameter_value(application_state: tauri::State<SharedApplicationState>, window_session_uuid: Uuid, front_uuid: Uuid, value: String) -> Result<(), &str> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();

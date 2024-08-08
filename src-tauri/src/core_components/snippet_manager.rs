@@ -813,9 +813,6 @@ impl SnippetParameterComponent {
             SnippetParameterBaseStorage::String(_) => {
                 // attempt to convert to base type, which is string
                 // since we are already a string, no strict conversion needed
-                //TODO delete
-                println!("{}", value);
-
                 SnippetParameterBaseStorage::String(value)
             }
         };
