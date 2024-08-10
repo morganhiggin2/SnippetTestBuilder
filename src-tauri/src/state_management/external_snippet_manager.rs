@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt, str::FromStr};
 use bimap::BiHashMap;
 use strum_macros::{EnumString, Display};
 
-use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_build_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;

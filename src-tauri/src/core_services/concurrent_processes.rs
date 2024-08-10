@@ -39,3 +39,18 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     // emit event back to front end
     app_handle.emit_all("directory_initialized", "".to_string()).unwrap(); 
 }
+
+pub async fn spawn_run_snippets_event(application_state: Arc::<Mutex::<ApplicationState>>, mut logging_stream_instance: LoggingStreamInstance) {
+    // lock the application state
+    let mut state_guard = application_state.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    // build python modules for each snippet, getting snippet ids and what not in the process
+    //    builds graph from each output of snippet to each input
+
+    // release locks on state
+
+    // process builds 
+    // used bfs for processing snippets, 
+        // if a snippet does not have all of its inputs ready, it gets inserted back into the queue
+}

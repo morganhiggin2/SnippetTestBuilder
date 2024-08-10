@@ -1,8 +1,9 @@
 use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
-use std::{collections::HashMap, ops::Add, sync::MutexGuard};
+use std::{collections::HashMap, hash::Hash, ops::Add, sync::MutexGuard};
 use crate::utils::sequential_id_generator::Uuid;
-use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, visit::{EdgeIndexable, EdgeRef}};
+use bimap::BiHashMap;
+use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, graph::{Node, NodeIndex}, visit::{EdgeIndexable, EdgeRef}};
 
 /// the manager of the snippets, and their links
 pub struct SnippetManager {
@@ -18,9 +19,9 @@ pub struct SnippetManager {
     parameter_to_snippet: HashMap<Uuid, Uuid>,
 
     // graph for keeping track of cycles
-    // where the weight of the node is the uuid of the snippet it represents
-    // and the edge weight is the number of connections (pipelines) form that snippet to the other snippet
-    snippet_graph: petgraph::Graph<(), i16, petgraph::Directed>
+    // where the edge weight is the number of connections (pipelines) form that snippet to the other snippet
+    snippet_graph: petgraph::Graph<(), i16, petgraph::Directed>,
+    snippet_to_node_index: BiHashMap<Uuid, NodeIndex>
 
     //mapping for snippets and pipelines
     //list of uuid of snippets to index in edge adj list
@@ -75,7 +76,8 @@ impl Default for SnippetManager {
             pipeline_connector_to_pipeline: HashMap::with_capacity(24),
             pipeline_connectors_to_snippet: HashMap::with_capacity(24),
             parameter_to_snippet: HashMap::new(),
-            snippet_graph: petgraph::Graph::new()
+            snippet_graph: petgraph::Graph::new(),
+            snippet_to_node_index: BiHashMap::new()
         };
     }
 }
@@ -101,6 +103,9 @@ impl SnippetManager {
 
         //get snippet uuid before borrowed mut
         let snippet_uuid : Uuid = snippet_component.uuid;
+
+        // add to mapping
+        self.snippet_to_node_index.insert(snippet_uuid, graph_uuid);
 
         //get snippet name
         let snippet_name : String = external_snippet_name;
@@ -199,6 +204,9 @@ impl SnippetManager {
         //remove snippet and it's edges from the graph
         self.snippet_graph.remove_node(graph_uuid);
 
+        // remove from mapping
+        self.snippet_to_node_index.remove_by_left(uuid);
+
         return Ok(());
     }
     
@@ -218,6 +226,12 @@ impl SnippetManager {
     pub fn find_snippet_mut(&mut self, uuid: &Uuid) -> Option<&mut SnippetComponent>{
         //find pipeline in vector
         return self.snippets.get_mut(uuid);
+    }
+
+
+    /// get reference to snippets
+    pub fn get_snippets_as_ref(&self) -> Vec<&SnippetComponent> {
+        return self.snippets.values().collect::<Vec<&SnippetComponent>>();
     }
 
     /// find snippet from uuid
@@ -283,6 +297,43 @@ impl SnippetManager {
     /// * 'uuid' - uuid of the pipeline connector 
     pub fn find_snippet_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
         return self.pipeline_connectors_to_snippet.get(uuid).cloned();
+    }
+
+    /// get a deep copy of the internal graph
+    /// with the weight of each node being the uuid of the snippet
+    pub fn get_snippet_graph(&self) -> petgraph::Graph<Uuid, (), petgraph::Directed> {
+        let mut new_graph = petgraph::Graph::<Uuid, (), petgraph::Directed>::new();
+
+        // map of old graph node to new graph node
+        let mut old_to_new_node = HashMap::<NodeIndex, NodeIndex>::new();
+
+        // for each node
+        for node_index in self.snippet_graph.node_indices() {
+            // get snippet uuid of node
+            // if this unwrap fails, there is a critical logic error in the code
+            let snippet_uuid = self.snippet_to_node_index.get_by_right(&node_index).unwrap();
+
+            // create new node with node weight as snippet uuid
+            let new_node_index = new_graph.add_node(snippet_uuid.to_owned());
+
+            // insert to mapping
+            old_to_new_node.insert(node_index, new_node_index);
+        }
+
+        // for each edge
+        for edge_index in self.snippet_graph.edge_indices() {
+            // get connecting node indexes
+            let (node_left_index, node_right_index) = self.snippet_graph.edge_endpoints(edge_index).unwrap();
+
+            // get new node indexes
+            let new_node_left_index = old_to_new_node.get(&node_left_index).unwrap().to_owned();
+            let new_node_right_index = old_to_new_node.get(&node_right_index).unwrap().to_owned();
+
+            // create edge in new graph
+            new_graph.add_edge(new_node_left_index, new_node_right_index, ());
+        }
+
+        return new_graph;
     }
 
     /// create pipeline
@@ -662,6 +713,10 @@ impl SnippetComponent {
 
     pub fn get_name(&self) -> String {
         return self.name.clone();
+    }
+
+    pub fn get_external_snippet_id(&self) -> Uuid {
+        return self.external_snippet_uuid;
     }
 
     /// get snippets as front snippet content
