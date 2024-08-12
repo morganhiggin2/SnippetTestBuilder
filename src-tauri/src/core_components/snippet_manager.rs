@@ -972,6 +972,8 @@ mod tests {
         assert_eq!(snippet_manager.snippet_graph.node_count(), 1);
         // asssert no edges
         assert_eq!(snippet_manager.snippet_graph.edge_count(), 0);
+
+        assert_eq!(snippet_manager.snippet_to_node_index.len(), 1);
         
         assert_eq!(snippet.pipeline_connectors.len(), 1);
         
@@ -990,8 +992,6 @@ mod tests {
         /*match snippet.parameters.get(0).unwrap().content {
 
         }*/
-
-        assert_eq!(snippet_manager.snippet_to_node_index.len(), 0);
     }
 
     #[test]
@@ -1065,7 +1065,7 @@ mod tests {
         // asssert no edges 
         assert_eq!(snippet_manager.snippet_graph.edge_count(), 0);
 
-        assert_eq!(snippet_manager.snippet_to_node_index.len(), 0);
+        assert_eq!(snippet_manager.snippet_to_node_index.len(), 2);
     }
 
     #[test]

@@ -28,25 +28,6 @@ impl Default for PythonSnippetBuildInformation {
     }
 }
 
-/*
-// the build information for each snippet
-pub struct PythonSnippetBuildInformation {
-    snippet_uuid: snippet_uuid,
-    // visual uuid too? for emits?
-    name: String,
-    path: PathBuf
-}
-
-// the state of the builder once the snippets have been built
-pub struct FinalizedPythonSnipppetInitializerBuilder {
-    
-}
-
-pub struct PythonSnippetBuilderWrapper {
-    directory_entry_uuid: Uuid,
-    python_snippet_builder: PythonSnippetBuilder,
-}*/
-
 impl InitializedPythonSnippetRunnerBuilder {
     fn new (build_information: Vec::<PythonSnippetBuildInformation>, graph: petgraph::Graph<Uuid, (), petgraph::Directed>) -> Self {
         return InitializedPythonSnippetRunnerBuilder {
@@ -55,6 +36,7 @@ impl InitializedPythonSnippetRunnerBuilder {
         };
     }
 
+    /// Build the intialized python snippet runner
     pub fn build(snippet_manager: &SnippetManager, external_snippet_manager: &ExternalSnippetManager, directory_manager: &DirectoryManager, visual_snippet_component_manager: &VisualSnippetComponentManager,sequential_id_generator: &mut SequentialIdGenerator) -> Result<Self, String> {
         // create information necessary to 
         // a. run the necessary python code

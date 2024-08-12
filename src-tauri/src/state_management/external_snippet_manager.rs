@@ -136,21 +136,19 @@ impl ExternalSnippetManager {
         let name = directory_entry.get_name();
         let path = directory_entry.get_path();
         let directory_uuid = directory_entry.get_uuid();
-        package_path.add(name.to_owned());
         
         match directory_entry.get_inner_as_ref() {
             SnippetDirectoryType::Category(entry) => {
                 // if category, traverse children 
                 for child_entry in entry.get_children() {
-                    self.directory_walker(child_entry, python_snippet_builder, sequential_id_generator, package_path.to_owned())?;
+                    // add child entry to package path
+                    let mut child_package_path = package_path.to_owned();
+                    child_package_path.add(child_entry.get_name());
+
+                    self.directory_walker(child_entry, python_snippet_builder, sequential_id_generator, child_package_path)?;
                 }
             }
-            SnippetDirectoryType::Snippet(entry) => {
-                // create external snippet
-                //self.create_empty_snippet(sequential_id_generator, &name);
-
-                // path along the directory tree for the package name
-                let snippet_package_path = 
+            SnippetDirectoryType::Snippet(_entry) => {
                 // add snippet information for python building
                 python_snippet_builder.add_snippet(name, path, directory_uuid, package_path);
             }
@@ -606,7 +604,7 @@ mod test {
             };
 
             // test package path
-            assert_eq!(external_snippet.package_path.to_string(), "".to_string());
+            assert_eq!(external_snippet.package_path.to_string(), "main.basic_one_snippet".to_string());
 
             // lookup io points in external snippet manager
             
@@ -653,8 +651,8 @@ mod test {
                 },
             };
 
-            // lookup io points in external snippet manager
-            
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "main.math.add".to_string());
 
             // create map for io points based on name and input, output
             let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
@@ -709,8 +707,8 @@ mod test {
                 },
             };
 
-            // lookup io points in external snippet manager
-            
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "main.math.subtract".to_string());
 
             // create map for io points based on name and input, output
             let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
@@ -765,8 +763,8 @@ mod test {
                 },
             };
 
-            // lookup io points in external snippet manager
-            
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "main.math.mul".to_string());
 
             // create map for io points based on name and input, output
             let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
@@ -821,8 +819,8 @@ mod test {
                 },
             };
 
-            // lookup io points in external snippet manager
-            
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "main.string_operations.remove_index_in_str".to_string());
 
             // create map for io points based on name and input, output
             let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
@@ -889,8 +887,8 @@ mod test {
                 },
             };
 
-            // lookup io points in external snippet manager
-            
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "main.params.str_param".to_string());
 
             // create map for io points based on name and input, output
             let io_map: HashMap<(String, bool), &ExternalSnippetIOPoint> = external_snippet.io_points.values().map(|element| -> ((String, bool), &ExternalSnippetIOPoint) {
@@ -934,6 +932,7 @@ mod test {
     }
 
     // Test package path iterator
+    #[test]
     fn test_package_path_iterator() {
         // create package path iterator with sample sub1.sub2.sub3.child
 

@@ -165,22 +165,8 @@ impl SnippetDirectory {
             SnippetDirectoryType::Snippet(_) => panic!(),
         };
 
-        // becausse we know the root is of type Some, we can safely unwrap
-        //let root = self.root.as_mut().unwrap();
-        //let root = root.get_as_category().unwrap();
-
         // walk directory recurrsivly
         SnippetDirectory::directory_walker(&mut placeholder_parent_category, &snippets_directory, sequential_id_generator)?;
-
-        /*match self.root {
-            Some(_) => (), 
-            None => {
-                // create root category
-                //let root_category = SnippetDirectoryEntry::new_category("root".to_owned(), snippets_directory.to_owned(), sequential_id_generator); 
-
-                self.root = Some(root_category);
-            }
-        };*/
 
         let mut roots: Vec<SnippetDirectoryEntry> = placeholder_parent_category.children.into_iter().filter(|child| -> bool {
             if child.get_name().eq(&"root".to_string()) {
