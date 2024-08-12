@@ -6,7 +6,7 @@ use std::env;
 use pathdiff;
 use std::path::Path;
 
-use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager, PackagePath}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 use super::{visual_directory_component_manager::{FrontDirectoryContent, FrontDirectoryContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}};
 
@@ -79,6 +79,36 @@ impl DirectoryManager {
         self.visual_component_manager.get_directory_as_front(&self.snippet_directory, sequential_id_generator)
     }
 
+    /// find directory entry from package path
+    pub fn find_directory_entry(&self, package_path: PackagePath) -> Option<&SnippetDirectoryEntry> {
+        let mut directory_entry = self.snippet_directory.get_root_directory_entry()?;
+
+        for package in package_path.into_iter() {
+            // get directory entry type
+            match directory_entry.get_inner_as_ref() {
+                SnippetDirectoryType::Category(category) => {
+                    // search for matching child
+                    for child in &category.children {
+                        if child.get_name() == package {
+                            // if found, exit inner loop and continue with next package
+                            directory_entry = child;
+                            break;
+                        }
+                    }
+
+                    // else, we did not find, exit
+                    return None;
+                },
+                // nothing else to search
+                SnippetDirectoryType::Snippet(_snippet) => (),
+            }
+
+            return Some(directory_entry);
+        }
+
+        return None;
+    }
+
     /// return true if the directory manager is initialized, false otherwise
     pub fn is_initialized(&self) -> bool {
         return self.snippet_directory.is_initialized();
@@ -101,7 +131,8 @@ impl SnippetDirectory {
         
         return Ok(());
     }
-     ///reads snippet directory, reads all snippet files,
+
+    /// reads snippet directory, reads all snippet files,
     /// and compiles all snippet category, file inforation,
     /// as well as assembles external snippets, existing snippets will not be overriden
     /// and new snippets will be inserted
@@ -355,6 +386,44 @@ impl SnippetDirectoryEntry {
 
     pub fn get_path(&self) -> PathBuf {
         return self.path.to_owned();
+    }
+
+    /// get the runnable python file for the directory manager
+    pub fn get_python_file(&self) -> Result<PathBuf, String> {
+        if self.path.is_dir() {
+            let dir_entries = match fs::read_dir(self.path.to_owned()) {
+                Ok(some) => some,
+                Err(e) => {
+                    return Err(format!("Could not get directory entry for a given directory path in is_directory_snippet call: {}", e.to_string()));
+                }
+            };
+
+            // walk dir
+            for directory_entry in dir_entries {
+                let entry = match directory_entry {
+                    Ok(some) => some,
+                    Err(e) => {
+                        return Err(format!("Could not get entry from directory entry in is_directory_snippet: {}", e.to_string()));
+                    }
+                };
+
+                // check if this is a .py file
+                if let Some(file_extension) = entry.path().extension(){
+                    // get file name
+                    let file_name = entry.path().file_stem().unwrap_or_default().to_owned();
+
+                    // if this is a app.py file, this is a snippet
+                    if file_extension.eq(OsStr::new("py")) && file_name.eq(OsStr::new("app")) {
+                        //create unitilized snippet, then to be initialized after directory walking
+                        return Ok(entry.path());
+                    }    
+                }
+            }
+
+            return Err(format!("app.py file not found for snippet {}, must have been deleted or is hidden", self.get_name()));
+        }
+
+        return Err(format!("Snippet {} path is a file, not a directory", self.get_name()));
     }
 }
 

@@ -57,6 +57,7 @@ pub struct PipelineComponent {
     to_pipeline_connector_uuid: Uuid
 }
 
+#[derive(Clone)]
 pub struct SnippetParameterComponent {
     uuid: Uuid,
     name: String,
@@ -64,6 +65,7 @@ pub struct SnippetParameterComponent {
     p_type: ExternalSnippetParameterType 
 }
 
+#[derive(Clone)]
 pub enum SnippetParameterBaseStorage {
     String(String)
 }
@@ -707,6 +709,11 @@ impl SnippetComponent {
         return self.pipeline_connectors.iter_mut().find(|pipe: &&mut PipelineConnectorComponent| pipe.uuid == uuid);
     }
 
+    /// create deep copy of parameters
+    pub fn get_parameters_as_copy(&self) -> Vec<SnippetParameterComponent> {
+        return self.parameters.clone();
+    }
+
     pub fn get_uuid(&self) -> Uuid {
         return self.uuid;
     }
@@ -874,6 +881,18 @@ impl SnippetParameterComponent {
 
         return Ok(());
     }
+    
+    pub fn get_name(&self) -> String {
+        return self.name.to_owned();
+    }
+
+    pub fn get_storage(&self) -> &SnippetParameterBaseStorage {
+        return &self.content;
+    }
+
+    pub fn get_p_type(&self) -> ExternalSnippetParameterType {
+        return self.p_type.clone();
+    }
 }
 //map: pipeline_connectors->parent
 
@@ -971,6 +990,8 @@ mod tests {
         /*match snippet.parameters.get(0).unwrap().content {
 
         }*/
+
+        assert_eq!(snippet_manager.snippet_to_node_index.len(), 0);
     }
 
     #[test]
@@ -1043,7 +1064,8 @@ mod tests {
         assert_eq!(snippet_manager.snippet_graph.node_count(), 2);
         // asssert no edges 
         assert_eq!(snippet_manager.snippet_graph.edge_count(), 0);
-        // assert that 
+
+        assert_eq!(snippet_manager.snippet_to_node_index.len(), 0);
     }
 
     #[test]

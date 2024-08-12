@@ -16,6 +16,7 @@ pub struct ExternalSnippet {
     uuid: Uuid,
     sub_directory: String,
     name: String,
+    package_path: PackagePath,
     io_points: HashMap<Uuid, ExternalSnippetIOPoint>,
     parameters: HashMap<Uuid, ExternalSnippetParameter>
 }
@@ -41,6 +42,11 @@ pub struct ExternalSnippetParameter {
     uuid: Uuid,
     name: String,
     p_type: ExternalSnippetParameterType
+}
+
+#[derive(Clone)]
+pub struct PackagePath {
+    path: String
 }
 
 // supported list of parameter types
@@ -78,6 +84,25 @@ impl Default for ExternalSnippetManager {
     }
 }
 
+impl Default for PackagePath {
+    fn default() -> Self {
+        return PackagePath {
+            path: String::default()
+        } 
+    }
+}
+
+impl IntoIterator for PackagePath {
+    type Item = String;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let packages: std::vec::Vec<Self::Item> = self.path.split('.').map(|s| s.to_string()).collect();
+
+        return packages.into_iter();
+    }
+}
+
 impl ExternalSnippetManager {
     /// Create the exernal snippets from the directory manager
     pub fn create_external_snippets_from_directory(&mut self, directory_manager: &DirectoryManager, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
@@ -87,11 +112,12 @@ impl ExternalSnippetManager {
                 return Err("Directory Manager has not been initialized".to_string());
             }
         };
+        let root_package = PackagePath::default();
 
         // Create python snippet builder
         let mut python_snippet_builder = InitializedPythonSnippetInitializerBuilder::new();
 
-        self.directory_walker(root_directory_entry, &mut python_snippet_builder, sequential_id_generator)?;
+        self.directory_walker(root_directory_entry, &mut python_snippet_builder, sequential_id_generator, root_package)?;
 
         // Build python snippet builder
         let python_snippet_builder: FinalizedPythonSnipppetInitializerBuilder = python_snippet_builder.build()?;
@@ -105,25 +131,28 @@ impl ExternalSnippetManager {
     }
 
     /// Walk though the directory, creating snippets as we go
-    fn directory_walker(&self, directory_entry: &SnippetDirectoryEntry, python_snippet_builder: &mut InitializedPythonSnippetInitializerBuilder, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
+    fn directory_walker(&self, directory_entry: &SnippetDirectoryEntry, python_snippet_builder: &mut InitializedPythonSnippetInitializerBuilder, sequential_id_generator: &mut SequentialIdGenerator, mut package_path: PackagePath) -> Result<(), String> {
         // get name
         let name = directory_entry.get_name();
         let path = directory_entry.get_path();
         let directory_uuid = directory_entry.get_uuid();
+        package_path.add(name.to_owned());
         
         match directory_entry.get_inner_as_ref() {
             SnippetDirectoryType::Category(entry) => {
                 // if category, traverse children 
                 for child_entry in entry.get_children() {
-                    self.directory_walker(child_entry, python_snippet_builder, sequential_id_generator)?;
+                    self.directory_walker(child_entry, python_snippet_builder, sequential_id_generator, package_path.to_owned())?;
                 }
             }
             SnippetDirectoryType::Snippet(entry) => {
                 // create external snippet
                 //self.create_empty_snippet(sequential_id_generator, &name);
 
+                // path along the directory tree for the package name
+                let snippet_package_path = 
                 // add snippet information for python building
-                python_snippet_builder.add_snippet(name, path, directory_uuid);
+                python_snippet_builder.add_snippet(name, path, directory_uuid, package_path);
             }
         };
 
@@ -134,7 +163,7 @@ impl ExternalSnippetManager {
         // Get io points from schema 
 
         // create external snippet
-        let mut external_snippet = ExternalSnippet::empty(sequential_id_generator, &python_build_information.get_name());
+        let mut external_snippet = ExternalSnippet::empty(sequential_id_generator, &python_build_information.get_name(), python_build_information.get_package_path());
 
         // add io (input and output) points
         //TODO pass errors to client
@@ -357,6 +386,10 @@ impl ExternalSnippetManager {
         return self.find_external_snippet(external_snippet_uuid);
     }
 
+    pub fn find_directory_uuid_from_external_snippet(&self, uuid: Uuid) -> Option<Uuid> {
+        return self.external_snippets_to_directory_entries.get_by_left(&uuid).copied();
+    } 
+
     pub fn find_external_snippet_mut_from_directory_uuid(&mut self, uuid: Uuid) -> Option<&mut ExternalSnippet> {
         let external_snippet_uuid = self.external_snippets_to_directory_entries.get_by_right(&uuid)?.to_owned();
 
@@ -386,7 +419,7 @@ impl ExternalSnippetManager {
 
 impl ExternalSnippet {
     //TODO new with name, inputs, outputs ready to go
-    fn empty(sequential_id_generator: &mut SequentialIdGenerator, name: &str) -> Self {
+    fn empty(sequential_id_generator: &mut SequentialIdGenerator, name: &str, package_path: PackagePath) -> Self {
         //create uuid for external snippet
         let uuid = sequential_id_generator.get_id();
 
@@ -394,6 +427,7 @@ impl ExternalSnippet {
         let external_snippet = ExternalSnippet {
             uuid: uuid,
             name: name.clone().to_owned(),
+            package_path: package_path, 
             sub_directory: String::new(),
             io_points: HashMap::with_capacity(2),
             parameters: HashMap::new()
@@ -427,6 +461,10 @@ impl ExternalSnippet {
 
     pub fn get_name(&self) -> String {
         return self.name.clone();
+    }
+
+    pub fn get_package_path(&self) -> PackagePath {
+        return self.package_path.to_owned();
     }
     
     /// get the io points as pipeline connectors
@@ -501,13 +539,35 @@ impl ExternalSnippetParameter {
     }
 }
 
+impl PackagePath {
+    /// Add package to package path
+    /// 
+    /// # Arguments
+    /// * 'package' - package to add
+    pub fn add(&mut self, package: String) {
+        if self.path.len() == 0 {
+            self.path = package;
+        }
+        else {
+            self.path.push_str(&".".to_string());
+            self.path.push_str(&package);
+        }
+    }
+}
+
+impl ToString for PackagePath {
+    fn to_string(&self) -> String {
+        return self.path.to_owned();
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
 
     use crate::{core_services::directory_manager::{self, DirectoryManager}, state_management::external_snippet_manager::{ExternalSnippetCategory, ExternalSnippetIOPoint, ExternalSnippetParameter, ExternalSnippetParameterType}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 
-    use super::{ExternalSnippet, ExternalSnippetManager};
+    use super::{ExternalSnippet, ExternalSnippetManager, PackagePath};
 
     #[test]
     /// Testing creating the external snippet manager from the directory manager.
@@ -544,6 +604,9 @@ mod test {
                     return
                 },
             };
+
+            // test package path
+            assert_eq!(external_snippet.package_path.to_string(), "".to_string());
 
             // lookup io points in external snippet manager
             
@@ -868,6 +931,25 @@ mod test {
         //TODO tests for parameters
         //TODO map them to correct directory entries, so look to see if we can get them, and if that directory entry has the right name
         }
+    }
+
+    // Test package path iterator
+    fn test_package_path_iterator() {
+        // create package path iterator with sample sub1.sub2.sub3.child
+
+        let mut package_path = PackagePath::default();
+
+        package_path.add("sub1".to_string());
+        package_path.add("sub2".to_string());
+        package_path.add("sub3".to_string());
+        package_path.add("child".to_string());
+
+        let mut package_path_iter = package_path.into_iter(); 
+
+        assert_eq!(package_path_iter.next().unwrap(), "sub1".to_string());
+        assert_eq!(package_path_iter.next().unwrap(), "sub2".to_string());
+        assert_eq!(package_path_iter.next().unwrap(), "sub3".to_string());
+        assert_eq!(package_path_iter.next().unwrap(), "child".to_string());
     }
 }
 

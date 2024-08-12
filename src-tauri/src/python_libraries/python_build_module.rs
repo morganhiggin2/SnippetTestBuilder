@@ -13,7 +13,7 @@ use pyo3::types::*;
 use tauri::utils::config::BuildConfig;
 
 use crate::core_services::directory_manager::{self, DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet};
-use crate::state_management::external_snippet_manager::ExternalSnippetParameterType;
+use crate::state_management::external_snippet_manager::{ExternalSnippetParameterType, PackagePath};
 use crate::utils::sequential_id_generator::Uuid;
 
 // Initialized builder, containing all the information to build the snippets
@@ -25,7 +25,8 @@ pub struct InitializedPythonSnippetInitializerBuilder {
 pub struct PythonSnippetBuildInformation {
     directory_uuid: Uuid,
     name: String,
-    path: PathBuf
+    path: PathBuf,
+    package_path: PackagePath
 }
 
 // the state of the builder once the snippets have been built
@@ -33,9 +34,11 @@ pub struct FinalizedPythonSnipppetInitializerBuilder {
     built_snippets: Vec<PythonSnippetBuilderWrapper>
 }
 
+// containing the state of the python builder after building
 pub struct PythonSnippetBuilderWrapper {
     directory_entry_uuid: Uuid,
     python_snippet_builder: PythonSnippetBuilder,
+    package_path: PackagePath
 }
 
 #[pyclass]
@@ -60,8 +63,8 @@ impl InitializedPythonSnippetInitializerBuilder {
     }
      
     /// add a new snippet information to the python builder
-    pub fn add_snippet(&mut self, name: String, path: PathBuf, directory_uuid: Uuid) {
-        let snippet_build_information = PythonSnippetBuildInformation::new(name, path, directory_uuid);
+    pub fn add_snippet(&mut self, name: String, path: PathBuf, directory_uuid: Uuid, package_path: PackagePath) {
+        let snippet_build_information = PythonSnippetBuildInformation::new(name, path, directory_uuid, package_path);
 
         self.build_information.push(snippet_build_information); 
     }
@@ -158,7 +161,7 @@ impl InitializedPythonSnippetInitializerBuilder {
                 };
 
                 // Create wrapper contianing extra necessary information
-                let python_return_wrapper = PythonSnippetBuilderWrapper::new(python_build_information.directory_uuid, init_python_return);
+                let python_return_wrapper = PythonSnippetBuilderWrapper::new(python_build_information.directory_uuid, python_build_information.package_path, init_python_return);
 
                 python_snippet_builders.push(python_return_wrapper);
             }
@@ -170,9 +173,10 @@ impl InitializedPythonSnippetInitializerBuilder {
     }}
 
 impl PythonSnippetBuilderWrapper {
-    pub fn new(directory_entry_uuid: Uuid, python_snippet_builder: PythonSnippetBuilder) -> Self {
+    pub fn new(directory_entry_uuid: Uuid, package_path: PackagePath, python_snippet_builder: PythonSnippetBuilder) -> Self {
         return PythonSnippetBuilderWrapper {
             directory_entry_uuid: directory_entry_uuid,
+            package_path: package_path,
             python_snippet_builder: python_snippet_builder
         }
     }
@@ -196,14 +200,19 @@ impl PythonSnippetBuilderWrapper {
     pub fn get_parameters(&self) -> &Vec<(String, String)> {
         &self.python_snippet_builder.parameters
     }
+
+    pub fn get_package_path(&self) -> PackagePath {
+        return self.package_path.to_owned();
+    }
 }    
 impl PythonSnippetBuildInformation {
     /// create new python build information for a snippet to be built 
-    pub fn new(name: String, path: PathBuf, directory_uuid: Uuid) -> Self {
+    pub fn new(name: String, path: PathBuf, directory_uuid: Uuid, package_path: PackagePath) -> Self {
         return PythonSnippetBuildInformation {
             directory_uuid: directory_uuid,
             name: name,
-            path: path
+            path: path,
+            package_path: package_path 
         };
     }
 }
