@@ -1,20 +1,26 @@
-use std::path::PathBuf;
+use std::{collections::VecDeque, fs::File, io::{self, Read}, path::PathBuf};
+
+use pyo3::{types::PyModule, PyResult, Python};
 
 use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
+use super::python_build_module::FinalizedPythonSnipppetInitializerBuilder;
+
+// location of the python runner library
+const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "../python_api/snippet_runner";
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetRunnerBuilder {
     build_information: Vec<PythonSnippetBuildInformation>,
     graph: petgraph::Graph<Uuid, (), petgraph::Directed>
-    //graph
-    //bi hash map of build information to graph node
-
 }
 
 pub struct PythonSnippetBuildInformation {
     visual_snippet_uuid: Uuid,
     parameters: Vec<SnippetParameterComponent>,
+    // names of inputs and outputs
+    inputs: Vec<String>,
+    outputs: Vec<String>,
     python_file: PathBuf
 }
 
@@ -23,6 +29,8 @@ impl Default for PythonSnippetBuildInformation {
         return PythonSnippetBuildInformation {
             visual_snippet_uuid: Uuid::default(),
             parameters: Vec::default(),
+            inputs: Vec::<String>::default(),
+            outputs: Vec::<String>::default(),
             python_file: PathBuf::default()
         }
     }
@@ -41,6 +49,11 @@ impl InitializedPythonSnippetRunnerBuilder {
         // create information necessary to 
         // a. run the necessary python code
         // b. call the front visual components
+
+        // first make sure if it is even in a valid build state
+        if !snippet_manager.validate_for_run() {
+            return Err("Snippet project is not in a valid runstate, check for any inputs that are not assigned".to_string());
+        }
 
         // build information
         let build_information = Vec::<PythonSnippetBuildInformation>::new();
@@ -77,5 +90,88 @@ impl InitializedPythonSnippetRunnerBuilder {
         }
 
         return Ok(Self::new(build_information, runtime_graph));
+    }
+
+    // run the python snippet runnere
+    pub fn run(self) -> Result<(), String> {
+        // inputs: reference to lock on the app handler
+        
+        //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
+        //    BUT what else is going to want the lock? as are single threaded single project
+
+        // aquire GI
+        Python::with_gil(|py| -> Result<(), String> {
+            // import python module for calling snippets (the wrapper function)
+            let python_runner_wrapper_path: PathBuf = PYTHON_RUNNER_WRAPPER_LOCATION.into();
+            let mut file = match File::open(python_runner_wrapper_path) {
+                Ok(file) => file,
+                Err(e) => {
+                    return Err(format!("Could not open python runner wrapper: {}", e));
+                }
+            };
+
+            // read the file 
+            let mut contents = String::new();
+            match file.read_to_string(&mut contents) {
+                io::Result::Ok(_) => (),
+                io::Result::Err(e) => {
+                    //TODO return error
+                    return Err(format!("Could not read the contents of the python runner wrapper file: {}", e)); 
+                }
+            };
+
+            // import wrapper
+            let python_wrapper = match PyModule::from_code_bound(
+                py,
+                &contents,
+                "snippet_runner.py",
+                "snippet_runner"
+            ) {
+                PyResult::Ok(some) => some,
+                PyResult::Err(e) => {
+                    return Err(format!("Could not create python runner wrapper code from main python file: {}", e.to_string()));
+                }
+            };
+
+            // queue for BFS
+            let run_queue = VecDeque::<String>::new();
+
+            /*
+            Current mapping overview: 
+            - graph: directed graph representing the flow of the build from one snippet to another snippet based on the io points
+                the weights of each node are the corresponding snippet id
+            - io mapping: maps 
+                for each snippet id, maps it's input by input name (since names are unique based on io type (input or output) and snippet id)
+                    to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too  
+             */
+
+            // TODO need a mapping of input snippets to the snippet io maps, where it maps the input name to the output name (snippet_id) -> [(input_snippet_name, output_snippet_name, output_snippet_id), ...]
+            //   we then insert these into the hashmap, where the receiving snippet can query for them from the hashmap by snippet_id
+
+            // hashmap for outputs, key is , value is PyAny
+            
+            // add root node of graph to queue
+
+            // while queue is not empty:
+                // pop item (which is next snippet to run) from queue
+
+                // grab input parameters from hash map
+
+                    // if we are missing any parameters, then we are still waiting on a child to run, 
+                    //   so reinsert into the queue and continue
+
+                // call snippet with input parameters with wrapper python module
+
+                // get returns
+
+                // insert returns into hashmap for outputs
+
+                // add child dependencies to queue
+
+
+            return Ok(());
+        })?;
+
+        return Ok(());
     }
 }
