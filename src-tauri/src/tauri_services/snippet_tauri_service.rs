@@ -455,7 +455,7 @@ pub fn get_snippet_pipelines(application_state: tauri::State<SharedApplicationSt
 
     for pipeline_connector_uuid in pipeline_connector_uuids {
         //get pipeline component uuid
-        let pipeline_component_uuid = match snippet_manager.find_pipeline_uuid_from_pipeline_connector(&pipeline_connector_uuid) {
+        let pipeline_component_uuids = match snippet_manager.find_pipeline_uuids_from_pipeline_connector(&pipeline_connector_uuid) {
             Some(result) => result,
             None => {
                 //there are no pipelines associated with this pipeline connector

@@ -1,6 +1,6 @@
 use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
-use std::{collections::HashMap, hash::Hash, ops::Add, sync::MutexGuard};
+use std::{collections::{HashMap, HashSet}, hash::Hash, ops::Add, sync::MutexGuard};
 use crate::utils::sequential_id_generator::Uuid;
 use bimap::BiHashMap;
 use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, graph::{Node, NodeIndex}, visit::{EdgeIndexable, EdgeRef}};
@@ -18,9 +18,21 @@ pub struct SnippetManager {
     
     //what we need is a bi searchable structure that allows us to get multiple results when calling pipeline connector to pipeline
     // and pipieline to pipeline connector
-    pipeline_connector_to_pipeline: eftBiHashMap<Uuid, Uuid>,
-    pipline_connector_to_snippet: HashMap<Uuid, Uuid>,
+    pipeline_connector_to_pipeline: HashMap<Uuid, HashSet<Uuid>>,
+    pipeline_connector_to_snippet: HashMap<Uuid, Uuid>,
     parameter_to_snippet: HashMap<Uuid, Uuid>,
+    
+    //TODO delete these thoughts
+    // we use it to 
+    // a) get pipeline from pipeline connector
+    // b) get snippet from pipeline connector
+    // now for the building of a map
+    // c) we need to get all pipeline connectors for each pipeline
+    // b) get each snippet for each pipeline connector
+    // the problem is there can exists multiple pipeline connectors for each snippet, and multiple pipelines connectors for each pipeline
+    //
+    // we can do c in an efficient O(n) iterative processs
+    // b needs to change to allow multiple pipelines for a pipeline connector
 
     // graph for keeping track of cycles
     // where the edge weight is the number of connections (pipelines) form that snippet to the other snippet
@@ -79,8 +91,8 @@ impl Default for SnippetManager {
         return SnippetManager {
             snippets: HashMap::with_capacity(12),
             pipelines: HashMap::with_capacity(12),
-            pipeline_connector_to_pipeline: BiHashMap::with_capacity(24),
-            pipline_connector_to_snippet: BiHashMap::with_capacity(24),
+            pipeline_connector_to_pipeline: HashMap::with_capacity(24),
+            pipeline_connector_to_snippet: HashMap::with_capacity(24),
             parameter_to_snippet: HashMap::new(),
             snippet_graph: petgraph::Graph::new(),
             snippet_to_node_index: BiHashMap::new()
@@ -122,7 +134,7 @@ impl SnippetManager {
 
         //add pipeline connector uuid to snippet mapping
         for pipeline_connector in pipeline_connectors.iter() {
-            self.pipline_connector_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
+            self.pipeline_connector_to_snippet.insert(pipeline_connector.get_uuid(), snippet_uuid);
         }
 
         //move pipeline connectors to snippet component
@@ -181,7 +193,7 @@ impl SnippetManager {
 
         //remove snippet from pipeline connector mapping
         for pipeline_connector_uuid in pipeline_connectors_uuid.into_iter() {
-            match self.pipline_connector_to_snippet.remove_by_left(&pipeline_connector_uuid) {
+            match self.pipeline_connector_to_snippet.remove(&pipeline_connector_uuid) {
                 Some(_) => (),
                 None => {
                     return Err("pipeline connector does not exist in mapping in snippet manager");
@@ -293,16 +305,19 @@ impl SnippetManager {
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector coming out of pipeline
-    pub fn find_pipeline_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
+    pub fn find_pipeline_uuids_from_pipeline_connector(&self, uuid: &Uuid) -> Vec<Uuid> {
         //find uuid of pipeline connector
-        return self.pipeline_connector_to_pipeline.get_by_left(uuid).cloned(); 
+        return match self.pipeline_connector_to_pipeline.get(uuid) {
+            Some(some) => some.to_owned().into_iter().collect(),
+            None => Vec::new(),
+        };
     }
     /// find snippet uuid from pipeline uuid
     /// 
     /// # Arguments
     /// * 'uuid' - uuid of the pipeline connector 
     pub fn find_snippet_uuid_from_pipeline_connector(&self, uuid: &Uuid) -> Option<Uuid> {
-        return self.pipline_connector_to_snippet.get_by_left(uuid).cloned();
+        return self.pipeline_connector_to_snippet.get(uuid).cloned();
     }
 
     /// get a deep copy of the internal graph
@@ -342,6 +357,7 @@ impl SnippetManager {
         return new_graph;
     }
 
+    //TODO tests check for multiple pipielines to connect
     /// create pipeline
     /// 
     /// # Arguments
@@ -471,8 +487,37 @@ impl SnippetManager {
         let pipeline_uuid = pipeline_component.get_uuid();
 
         //add pipeline connecting values to snippet manager
-        self.pipeline_connector_to_pipeline.insert(from_uuid, pipeline_uuid);
-        self.pipeline_connector_to_pipeline.insert(to_uuid, pipeline_uuid);
+        // append to list if inserting, else, create new
+        match self.pipeline_connector_to_pipeline.get_mut(&from_uuid) {
+            Some(uuids) => {
+                // if it already contains it
+                if uuids.contains(&pipeline_uuid) {
+                    return Err("pipeline uuid already in pipeline connector to pipeline mapping");
+                }
+
+                uuids.insert(pipeline_uuid);
+            },
+            None => {
+                let mut uuids = HashSet::<Uuid>::from([pipeline_uuid]);
+
+                self.pipeline_connector_to_pipeline.insert(from_uuid, uuids);
+            }
+        }
+        match self.pipeline_connector_to_pipeline.get_mut(&to_uuid) {
+            Some(uuids) => {
+                // if it already contains it
+                if uuids.contains(&pipeline_uuid) {
+                    return Err("pipeline uuid already in pipeline connector to pipeline mapping");
+                }
+
+                uuids.insert(pipeline_uuid);
+            },
+            None => {
+                let mut uuids = HashSet::<Uuid>::from([pipeline_uuid]);
+
+                self.pipeline_connector_to_pipeline.insert(to_uuid, uuids);
+            }
+        }
 
         //add to snippet manager
         self.pipelines.insert(pipeline_uuid, pipeline_component);
@@ -519,21 +564,56 @@ impl SnippetManager {
             self.snippet_graph.remove_edge(graph_uuid_container.unwrap());
         }
 
+        // whether to delete the entry
+        let mut delete_entry = false;
+
         //delete front from pipeline connector to pipeline relationship 
-        match self.pipeline_connector_to_pipeline.remove_by_left(&from_pipeline_connector_uuid) {
-            Some(_) => (),
+        match self.pipeline_connector_to_pipeline.get_mut(&from_pipeline_connector_uuid) {
+            Some(uuids) => {
+                // if uuids contains the pipeline connector, remove it
+                let contained = uuids.remove(&uuid);
+
+                // if it did not contain it
+                if !contained {
+                    return Err("pipeline uuid does not exist in the from pipeline connector to pipeline relationship inner set");
+                }
+
+                if uuids.len() == 0 {
+                    delete_entry = true;
+                }
+            },
             None => {
                 return Err("front from pipeline connector does not exist in pipeline connector to pipeline relationship");
             }
         };
- 
-        //delete front to pipeline connector to pipeline relationship 
-        match self.pipeline_connector_to_pipeline.remove_by_left(&to_pipeline_connector_uuid) {
-            Some(_) => (),
+
+        // whether to delete the entry
+        let mut delete_entry = false;
+
+        //delete front from pipeline connector to pipeline relationship 
+        match self.pipeline_connector_to_pipeline.get_mut(&to_pipeline_connector_uuid) {
+            Some(uuids) => {
+                // if uuids contains the pipeline connector, remove it
+                let contained = uuids.remove(&uuid);
+
+                // if it did not contain it
+                if !contained {
+                    return Err("pipeline uuid does not exist in to pipeline connector to pipeline relationship inner set");
+                }
+
+                if uuids.len() == 0 {
+                    delete_entry = true;
+                }
+            },
             None => {
-                return Err("front to pipeline connector does not exist in pipeline connector to pipeline relationship");
+                return Err("to pipeline connector does not exist in pipeline connector to pipeline relationship");
             }
-        };       
+        };
+
+        // if there are no more elements in the inner set of the mapping, delete it
+        if delete_entry {
+            self.pipeline_connector_to_pipeline.remove(&to_pipeline_connector_uuid);
+        }
 
         //delete pipeline in snippet manager
         match self.pipelines.remove(uuid) {
@@ -604,15 +684,10 @@ impl SnippetManager {
 
         {
             //verify that a connection between the two same does not already exist
-            let from_result = match self.find_pipeline_uuid_from_pipeline_connector(&from_uuid) {
-                Some(_) => true,
-                None => false
-            };
+            //TODO allow mulitple pipelines
+            let from_result = self.find_pipeline_uuids_from_pipeline_connector(&from_uuid).len() > 0;
 
-            let to_result = match self.find_pipeline_uuid_from_pipeline_connector(&to_uuid) {
-                Some(_) => true,
-                None => false
-            };
+            let to_result = self.find_pipeline_uuids_from_pipeline_connector(&to_uuid).len() > 0;
 
             if from_result || to_result {
                 return Ok(false);
@@ -674,12 +749,11 @@ impl SnippetManager {
     }
 
 
+    /// check if we cannot accept any more pipeline connectors
     pub fn check_pipeline_connector_capacity_full(&self, pipeline_connector_uuid: &Uuid) -> bool {
         //check if in pipeline connector map
-        return match self.find_pipeline_uuid_from_pipeline_connector(pipeline_connector_uuid) {
-            Some(_) => true,
-            None => false 
-        };
+        // TODO allow multiple
+        return self.find_pipeline_uuids_from_pipeline_connector(pipeline_connector_uuid).len() > 0;
     }
 
     /// Validate if the current snippet configuration is ready being being ran 
@@ -690,26 +764,56 @@ impl SnippetManager {
         todo!();
     }
 
-    /// Generate mapping of each snippet output -> snippet input
+    /// Generate mapping of each from (snippet_uuid, output_name) -> [(snippet_uuid, input_name), ...]
+    /// according to the pipeline connections 
     pub fn generate_snippet_io_point_mappings(&self) -> HashMap<(Uuid, String), Vec<(Uuid, String)>> {
-        let map: HashMap<(Uuid, String), Vec<(Uuid, String)>> = HashMap::new();
+        let mut map: HashMap<(Uuid, String), Vec<(Uuid, String)>> = HashMap::new();
 
         // for each pipeline component
-        for (pipeline_component_uuid, pipeline_component) in self.pipelines.iter() {
+        for (_pipeline_component_uuid, pipeline_component) in self.pipelines.iter() {
+            // insert ((from_snippet_id, out_name), (to_snippet_id, input_nama) append this last one to the list)
             // get from connector uuid and to connector uuid
-            self.pipeline_connector_to_pipeline.get_by_right
-            // get from connector and to connector
-            // get from name and to name
-            // get from snippet uuid
-            // get to snippet uuid
-             
+            let from_pipeline_connector_uuid = pipeline_component.from_pipeline_connector_uuid.clone();
+
+            // get snippet
+            // can unwrap safely here, if it fails, there is a critical code logic error
+            let snippet_component_uuid = self.pipeline_connector_to_snippet.get(&from_pipeline_connector_uuid).unwrap();
+            let snippet_component = self.snippets.get(snippet_component_uuid).unwrap();
+
+            // set as from snippet uuid
+            let from_snippet_uuid = snippet_component_uuid.clone();
+            // from snippets pipeline connectors, find the from pipeline connector
+
+            // get name
+            let from_name = snippet_component.get_name();
+
+            // get from connector uuid and to connector uuid
+            let to_pipeline_connector_uuid = pipeline_component.to_pipeline_connector_uuid.clone();
+
+            // get snippet
+            // can unwrap safely here, if it fails, there is a critical code logic error
+            let snippet_component_uuid = self.pipeline_connector_to_snippet.get(&to_pipeline_connector_uuid).unwrap();
+            let snippet_component = self.snippets.get(snippet_component_uuid).unwrap();
+
+            // set as from snippet uuid
+            let to_snippet_uuid = snippet_component_uuid.clone();
+            // from snippets pipeline connectors, find the from pipeline connector
+
+            // get name
+            let to_name = snippet_component.get_name();
+
             // if snippet uuid, from connector name exists
-                // append (to snippet uuid, to connector name)
-            // else 
-                // new vec with size one, containing (to snippet uuid, to connector name)
-                // for key (to snippet uuid, to connector name)
-
-
+            match map.get_mut(&(from_snippet_uuid.to_owned(), from_name.to_owned())) {
+                Some(outputs) => {
+                    // append (to snippet uuid, to connector name)
+                    outputs.push((to_snippet_uuid, to_name));
+                },
+                None => {
+                    // new vec with size one, containing (to snippet uuid, to connector name)
+                    // for key (to snippet uuid, to connector name)
+                    map.insert((from_snippet_uuid, from_name), Vec::from([(to_snippet_uuid, to_name)]));
+                },
+            }
         }
         
         return map;
@@ -1087,15 +1191,15 @@ mod tests {
         assert_eq!(snippet_manager.snippets.len(), 2);
 
         // check that there are the same number of pipeline connectors, minus the ones from three
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.len(), 5);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.len(), 5);
 
         // make sure the pipeline connectors from the third one are 
         //TODO insert rest
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.contains_key(&1), true);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.contains_key(&2), true);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.contains_key(&6), true);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.contains_key(&7), true);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.contains_key(&8), true);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&1), true);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&2), true);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&6), true);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&7), true);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&8), true);
 
         // assert only two nodes in graph
         assert_eq!(snippet_manager.snippet_graph.node_count(), 2);
@@ -1167,7 +1271,7 @@ mod tests {
 
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 4);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.len(), 8);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.len(), 8);
         assert_eq!(snippet_manager.parameter_to_snippet.len(), 1);
 
         // assert 3 nodes
@@ -1283,7 +1387,7 @@ mod tests {
 
         // check that pipeline connects are good
         assert_eq!(snippet_manager.pipeline_connector_to_pipeline.len(), 2);
-        assert_eq!(snippet_manager.pipline_connector_to_snippet.len(), 8);
+        assert_eq!(snippet_manager.pipeline_connector_to_snippet.len(), 8);
         assert_eq!(snippet_manager.parameter_to_snippet.len(), 1);
 
         // assert 3 nodes

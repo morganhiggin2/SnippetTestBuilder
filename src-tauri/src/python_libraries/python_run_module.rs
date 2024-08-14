@@ -147,6 +147,8 @@ impl InitializedPythonSnippetRunnerBuilder {
 
             // TODO need a mapping of input snippets to the snippet io maps, where it maps the input name to the output name (snippet_id) -> [(input_snippet_name, output_snippet_name, output_snippet_id), ...]
             //   we then insert these into the hashmap, where the receiving snippet can query for them from the hashmap by snippet_id
+            // when execution is complete, we need to get the next input snippet ids from the outputs 
+            // ok, but once it completes, how do we know? well, we know because we a) have the snippet id in the node and b) the name
 
             // hashmap for outputs, key is , value is PyAny
             
