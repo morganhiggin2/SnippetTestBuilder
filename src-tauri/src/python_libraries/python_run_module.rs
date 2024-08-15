@@ -1,6 +1,7 @@
-use std::{collections::VecDeque, fs::File, io::{self, Read}, path::PathBuf};
+use std::{collections::{HashMap, VecDeque}, fs::File, io::{self, Read}, path::PathBuf};
 
-use pyo3::{types::PyModule, PyResult, Python};
+use petgraph::graph::NodeIndex;
+use pyo3::{types::PyModule, PyAny, PyResult, Python};
 
 use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
@@ -11,8 +12,10 @@ const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "../python_api/snippet_runner";
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetRunnerBuilder {
-    build_information: Vec<PythonSnippetBuildInformation>,
-    graph: petgraph::Graph<Uuid, (), petgraph::Directed>
+    // a map of each snippet id in the snippet manager to a snippet build information
+    build_information: HashMap<Uuid, PythonSnippetBuildInformation>,
+    graph: petgraph::Graph<Uuid, (), petgraph::Directed>,
+    snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>>
 }
 
 pub struct PythonSnippetBuildInformation {
@@ -37,10 +40,11 @@ impl Default for PythonSnippetBuildInformation {
 }
 
 impl InitializedPythonSnippetRunnerBuilder {
-    fn new (build_information: Vec::<PythonSnippetBuildInformation>, graph: petgraph::Graph<Uuid, (), petgraph::Directed>) -> Self {
+    fn new (build_information: HashMap::<Uuid, PythonSnippetBuildInformation>, graph: petgraph::Graph<Uuid, (), petgraph::Directed>, snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>> ) -> Self {
         return InitializedPythonSnippetRunnerBuilder {
             build_information: build_information,
-            graph: graph
+            graph: graph,
+            snippet_io_points_map: snippet_io_points_map
         };
     }
 
@@ -56,10 +60,13 @@ impl InitializedPythonSnippetRunnerBuilder {
         }
 
         // build information
-        let build_information = Vec::<PythonSnippetBuildInformation>::new();
+        let mut build_information = HashMap::<Uuid, PythonSnippetBuildInformation>::new();
 
         // get graph of connecting snippets, with each node weight being the snippet uuid
         let runtime_graph = snippet_manager.get_snippet_graph();
+
+        // mapping of snippet inputs to outputs as dictated by pipelines 
+        let snippet_io_points_map = snippet_manager.generate_snippet_io_point_mappings();
 
         // iterate over all the snippets
         for snippet in snippet_manager.get_snippets_as_ref() {
@@ -87,13 +94,16 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // get runnable python file path
                 python_snippet_build_information.python_file = snippet_directory_entry.get_python_file()?;
             }
+
+            // insert into build information
+            build_information.insert(snippet.get_uuid(), python_snippet_build_information);
         }
 
-        return Ok(Self::new(build_information, runtime_graph));
+        return Ok(Self::new(build_information, runtime_graph, snippet_io_points_map));
     }
 
     // run the python snippet runnere
-    pub fn run(self) -> Result<(), String> {
+    pub fn run(mut self) -> Result<(), String> {
         // inputs: reference to lock on the app handler
         
         //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
@@ -134,7 +144,7 @@ impl InitializedPythonSnippetRunnerBuilder {
             };
 
             // queue for BFS
-            let run_queue = VecDeque::<String>::new();
+            let mut run_queue = VecDeque::<NodeIndex>::new();
 
             /*
             Current mapping overview: 
@@ -144,29 +154,83 @@ impl InitializedPythonSnippetRunnerBuilder {
                 for each snippet id, maps it's input by input name (since names are unique based on io type (input or output) and snippet id)
                     to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too  
              */
+            // contains the mapping of the next input, and the pyany value to be inserted
+            let input_cache = HashMap::<(Uuid, String), PyAny>::new();
 
-            // TODO need a mapping of input snippets to the snippet io maps, where it maps the input name to the output name (snippet_id) -> [(input_snippet_name, output_snippet_name, output_snippet_id), ...]
-            //   we then insert these into the hashmap, where the receiving snippet can query for them from the hashmap by snippet_id
-            // when execution is complete, we need to get the next input snippet ids from the outputs 
-            // ok, but once it completes, how do we know? well, we know because we a) have the snippet id in the node and b) the name
-
-            // hashmap for outputs, key is , value is PyAny
-            
-            // add root node of graph to queue
+            // add all nodes which have no inputs 
+            for node in self.graph.node_indices() {
+                // if node has no edges in
+                if self.graph.edges_directed(node, petgraph::Direction::Incoming).count() == 0 {
+                    // if no neighbors
+                    // add to run queue
+                    run_queue.push_back(node);
+                }
+            }
 
             // while queue is not empty:
+            loop {
                 // pop item (which is next snippet to run) from queue
+                let run_node = match run_queue.pop_front() {
+                    Some(some) => some,
+                    None => {
+                        // if there is no run node, we are done; exit loop
+                        break;
+                    }
+                };
+
+                // get snippet id of the node to run
+                // we can safely assume the node exists since we grabed it from the graph and the graph is not being modified
+                let snippet_id = self.graph.node_weight(run_node).unwrap().to_owned();
+
+                // get inputs for snippet
+                // if this fails, there is a critical logic error in the code
+                let snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
 
                 // grab input parameters from hash map
+                // this maps each snippets output to the next snippet input id and name
+                let mut output_mapping = HashMap::<String, (Uuid, String)>::new();
+
+                //for each output
+                for output in snippet_python_build_information.outputs {
+                    match self.snippet_io_points_map.get(&(snippet_id, output.to_owned())) {
+                        // if it exists in mapping, insert all into cache
+                        Some(other_inputs) => {
+                            for other_input in other_inputs {
+                                // for each designated output
+                                output_mapping.insert(output.to_owned(), other_input.to_owned());
+                            }
+                        }
+                        // no mapping, then nothing to do
+                        None => ()
+                    }
+                }     
+
+                let input_mapping = HashMap::<String, PyAny>::new();
+                // fetch inputs for input mapping
+                for input in snippet_python_build_information.inputs {
+
+                }
+
+                // convert input mapping to pythin
+
+                // reinsert snippet python build information
+                self.build_information.insert(snippet_id, snippet_python_build_information);
+            }
+
 
                     // if we are missing any parameters, then we are still waiting on a child to run, 
                     //   so reinsert into the queue and continue
 
-                // call snippet with input parameters with wrapper python module
+                // call snippet with HashMap<output_name, i32 number of copies) 
 
-                // get returns
+                // get mapping entry of outputs to inputs, include this in the wrapper module
+                // note that not every output is assigned an input, so we want to check for the number of copies we need of each
 
-                // insert returns into hashmap for outputs
+                // get return
+                // parse return into HashMap<string, Vec<PyAny>> from PyAny
+                // this is the output name, and the copies of pyany
+
+                // use the mapping and reducing to insert into input cache accordingly
 
                 // add child dependencies to queue
 
