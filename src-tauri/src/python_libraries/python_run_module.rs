@@ -155,7 +155,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                     to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too  
              */
             // contains the mapping of the next input, and the pyany value to be inserted
-            let input_cache = HashMap::<(Uuid, String), PyAny>::new();
+            let mut input_cache = HashMap::<(Uuid, String), PyAny>::new();
 
             // add all nodes which have no inputs 
             for node in self.graph.node_indices() {
@@ -184,7 +184,7 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 // get inputs for snippet
                 // if this fails, there is a critical logic error in the code
-                let snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
+                let mut snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
 
                 // grab input parameters from hash map
                 // this maps each snippets output to the next snippet input id and name
@@ -205,13 +205,31 @@ impl InitializedPythonSnippetRunnerBuilder {
                     }
                 }     
 
-                let input_mapping = HashMap::<String, PyAny>::new();
+                let mut input_mapping = HashMap::<String, PyAny>::new();
+
                 // fetch inputs for input mapping
                 for input in snippet_python_build_information.inputs {
+                    // can unwrap safely as this logic is enforced by the pipelines
+                    let value = input_cache.remove(&(snippet_id.to_owned(), input.to_owned())).unwrap();
 
+                    // insert into input mapping
+                    input_mapping.insert(input, value);
                 }
 
-                // convert input mapping to pythin
+                let parameter_mapping = HashMap::<String, PyAny>::new();
+
+                // get parameters
+                for parameter in snippet_python_build_information.parameters.into_iter() {
+                    let parameter_storage = parameter.get_storage();
+
+                    // convert into pytype
+                }
+
+                // convert input mapping to python
+
+                // convert output mapping to python
+
+                // convert parameter mapping to python
 
                 // reinsert snippet python build information
                 self.build_information.insert(snippet_id, snippet_python_build_information);
