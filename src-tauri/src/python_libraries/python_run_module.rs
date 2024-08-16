@@ -8,7 +8,7 @@ use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterB
 use super::python_build_module::FinalizedPythonSnipppetInitializerBuilder;
 
 // location of the python runner library
-const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "../python_api/snippet_runner";
+const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "../runables/snippet_runner.py";
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetRunnerBuilder {
@@ -87,7 +87,6 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // look up external snippet
                 //TODO handle when external snippet is removed while snippet is still in project
                 let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_id).unwrap();
-
                 let snippet_directory_entry = directory_manager.find_directory_entry(external_snippet.get_package_path()).unwrap();
                 
                 // get runnable python file path
@@ -103,13 +102,16 @@ impl InitializedPythonSnippetRunnerBuilder {
 
     // run the python snippet runnere
     pub fn run(mut self) -> Result<(), String> {
+        println!("place 0");
         // inputs: reference to lock on the app handler
         
         //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
         //    BUT what else is going to want the lock? as are single threaded single project
 
+
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
+            println!("place 1");
             // import python module for calling snippets (the wrapper function)
             let python_runner_wrapper_path: PathBuf = PYTHON_RUNNER_WRAPPER_LOCATION.into();
             let mut file = match File::open(python_runner_wrapper_path) {
@@ -129,6 +131,8 @@ impl InitializedPythonSnippetRunnerBuilder {
                 }
             };
 
+            println!("place 2");
+
             // import wrapper
             let python_wrapper = match PyModule::from_code_bound(
                 py,
@@ -141,6 +145,8 @@ impl InitializedPythonSnippetRunnerBuilder {
                     return Err(format!("Could not create python runner wrapper code from main python file: {}", e.to_string()));
                 }
             };
+
+            println!("place 3");
 
             // queue for BFS
             let mut run_queue = VecDeque::<NodeIndex>::new();
@@ -251,10 +257,30 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 let mut kwargs = PyDict::new_bound(py);
 
-                kwargs.set_item("snippet_path", py_path.to_owned().into_py(py));
-                kwargs.set_item("function_inputs", py_input_mapping);
-                kwargs.set_item("input_mappings", py_output_mapping);
-                kwargs.set_item("parameter_values", py_parameter_mapping);
+                match kwargs.set_item("snippet_path", py_path.to_owned().into_py(py)) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                    }
+                };
+                match kwargs.set_item("function_inputs", py_input_mapping) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                    }
+                };
+                match kwargs.set_item("input_mappings", py_output_mapping) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                    }
+                };
+                match kwargs.set_item("parameter_values", py_parameter_mapping) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                    }
+                };
                 
                 // execute pywrapper
                 let run_result = match python_wrapper.call((), Some(&kwargs)) {

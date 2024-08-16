@@ -98,6 +98,9 @@
         // TODO if we return the stream id, but are using the window session id, then why are we using it?
         invoke("spawn_run_snippets", {windowSessionUuid: window_session_id}).then((stream_id) => {
 
+        })
+        .catch((e) => {
+            invoke('logln', {text: JSON.stringify(e)});
         });
     }
 </script>

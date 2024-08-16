@@ -87,17 +87,22 @@ impl DirectoryManager {
             // get directory entry type
             match directory_entry.get_inner_as_ref() {
                 SnippetDirectoryType::Category(category) => {
+                    let mut found_package = false;
+
                     // search for matching child
                     for child in &category.children {
-                        if child.get_name() == package {
+                        if child.get_name().eq(&package) {
                             // if found, exit inner loop and continue with next package
                             directory_entry = child;
+                            found_package = true;
                             break;
                         }
                     }
 
                     // else, we did not find, exit
-                    return None;
+                    if !found_package {
+                        return None;
+                    }
                 },
                 // nothing else to search
                 SnippetDirectoryType::Snippet(_snippet) => (),
