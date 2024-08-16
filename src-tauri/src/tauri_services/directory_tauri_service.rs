@@ -16,6 +16,7 @@ pub fn get_snippet_directory_details(application_state: tauri::State<SharedAppli
     return directory_manager.get_as_front(sequential_id_generator);
 }
 
+/// spawn initialize snippet directory, returning log stream id
 #[tauri::command]
 pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle, window_session_uuid: Uuid) -> u32 {
     // get the state

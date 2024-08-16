@@ -2,7 +2,7 @@ use std::{borrow::{Borrow, BorrowMut}, ops::DerefMut, sync::{Arc, Mutex}};
 
 use tauri::Manager;
 
-use crate::{state_management::{external_snippet_manager, ApplicationState}, utils::sequential_id_generator};
+use crate::{python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::{external_snippet_manager, visual_snippet_component_manager, ApplicationState}, utils::sequential_id_generator::{self, Uuid}};
 
 use super::{directory_manager, runtime_logging_service::LoggingStreamInstance};
 
@@ -40,17 +40,19 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     app_handle.emit_all("directory_initialized", "".to_string()).unwrap(); 
 }
 
-pub async fn spawn_run_snippets_event(application_state: Arc::<Mutex::<ApplicationState>>, mut logging_stream_instance: LoggingStreamInstance) {
-    // lock the application state
-    let mut state_guard = application_state.lock().unwrap();
-    let state = state_guard.deref_mut();
+pub async fn spawn_run_snippets_event(build_state: InitializedPythonSnippetRunnerBuilder, mut logging_stream_instance: LoggingStreamInstance) {
+    // run the build state
+    match build_state.run() {
+        Ok(_) => (),
+        Err(e) => {
+            //TODO log error
+            logging_stream_instance.append_log(e);
+        }
+    };
 
-    // build python modules for each snippet, getting snippet ids and what not in the process
-    //    builds graph from each output of snippet to each input
+    // close the log
+    let app_handle = logging_stream_instance.close_log();
 
-    // release locks on state
-
-    // process builds 
-    // used bfs for processing snippets, 
-        // if a snippet does not have all of its inputs ready, it gets inserted back into the queue
+    // emit event back to front end
+    app_handle.emit_all("snippets_ran", "".to_string()).unwrap(); 
 }

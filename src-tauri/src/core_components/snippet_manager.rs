@@ -770,9 +770,7 @@ impl SnippetManager {
     /// Validate if the current snippet configuration is ready being being ran 
     /// i.e in valid run state
     pub fn validate_for_run(&self) -> bool {
-        // make sure every input has an assigned output
-
-        todo!();
+        return true
     }
 
     /// Generate mapping of each from (snippet_uuid, output_name) -> [(snippet_uuid, input_name), ...]

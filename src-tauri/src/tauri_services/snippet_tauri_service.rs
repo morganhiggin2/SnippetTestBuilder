@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use crate::{core_services::directory_manager, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
-use std::sync::MutexGuard;
+use crate::{core_services::{concurrent_processes::spawn_run_snippets_event, directory_manager}, python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
+use std::sync::{Arc, MutexGuard};
 use std::ops::DerefMut;
 
 /// create a new snippet
@@ -453,31 +453,30 @@ pub fn get_snippet_pipelines(application_state: tauri::State<SharedApplicationSt
     //list of front pipeline uuids soon to be filled
     let mut front_pipelines_uuid: Vec<Uuid> = Vec::with_capacity(pipeline_connector_uuids.len());
 
+    // because no one pipeline can occupy more than one connector on a snippet, we are guanteed they are all different pipelines
     for pipeline_connector_uuid in pipeline_connector_uuids {
         //get pipeline component uuid
-        let pipeline_component_uuids = match snippet_manager.find_pipeline_uuids_from_pipeline_connector(&pipeline_connector_uuid) {
-            Some(result) => result,
-            None => {
-                //there are no pipelines associated with this pipeline connector
-                continue; 
-            }
-        };
+        let pipeline_component_uuids = snippet_manager.find_pipeline_uuids_from_pipeline_connector(&pipeline_connector_uuid);       
 
-        //get pipeline front uuid
-        let pipeline_front_uuid = match visual_snippet_component_manager.find_pipeline_front_uuid(&pipeline_component_uuid) {
-            Some(result) => result,
-            None => {
-                return Err("could not find pipeline connector in visual manager");
-            }
-        };
+        // for each 
+        for pipeline_component_uuid in pipeline_component_uuids.iter() {
+            //get pipeline front uuid
+            let pipeline_front_uuid = match visual_snippet_component_manager.find_pipeline_front_uuid(&pipeline_component_uuid) {
+                Some(result) => result,
+                None => {
+                    return Err("could not find pipeline connector in visual manager");
+                }
+            };
 
-        //add to list of front uuids
-        front_pipelines_uuid.push(pipeline_front_uuid);
+            //add to list of front uuids
+            front_pipelines_uuid.push(pipeline_front_uuid);
+        };
     }
 
     //return 
     return Ok(front_pipelines_uuid);
 }
+
 /// check if pipeline connector is already involved in pipeline
 /// TODO when connectors can take more than one, this will evolve to handle that
 #[tauri::command] 
@@ -594,4 +593,52 @@ pub fn get_id(application_state: tauri::State<SharedApplicationState>) -> Uuid {
     let id = sequential_id_generator.get_id();
     
     return id;
+}
+
+/// spawn run snippets
+#[tauri::command]
+pub fn spawn_run_snippets(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle, window_session_uuid: Uuid) -> Result<u32, String> {
+    // get the state
+    let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    // create log file and stream from window uuid
+    // that way the log instance is specific to the window uuid
+    let logging_instance = state.logging_manager.create_new_stream(app_handle, window_session_uuid).unwrap();
+    let stream_i = logging_instance.get_stream_i();
+
+    // get shared reference to state 
+    // note this is a custom clone implementation utilizing on arc::clone
+    //let application_state_ref : SharedApplicationState = SharedApplicationState(Arc::clone(&application_state.0));
+
+    // lock the application state
+
+    let external_snippet_manager = &mut state.external_snippet_manager;
+    let sequential_id_generator = &mut state.sequential_id_generator;
+    let directory_manager = &mut state.directory_manager;
+    //find window session
+    let window_session = match state.window_manager.find_window_session_mut(window_session_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found".to_string()); 
+        }
+    };
+
+    let snippet_manager = &mut window_session.snippet_manager;
+    let visual_snippet_component_manager = &mut window_session.visual_component_manager;
+
+    // create build initialized state
+    let build_state = match InitializedPythonSnippetRunnerBuilder::build(snippet_manager, external_snippet_manager, directory_manager, visual_snippet_component_manager, sequential_id_generator) {
+        Ok(some) => some,
+        Err(e) => {
+            return Err(format!("Failed to initialize run state: {}", e));
+        }
+    };
+
+    // spawn process, passing ownership of shared application state
+    tauri::async_runtime::spawn(async move {
+        spawn_run_snippets_event(build_state, logging_instance).await;     
+    });
+
+    return Ok(stream_i);
 }

@@ -4,7 +4,7 @@
     import SectionSidebar from './sidebar/section_sidebar.svelte';
     import SnippetDisplay from './sidebar/snippet_display.svelte';
     import Workarea from './workarea/work_area.svelte';
-    import { invoke } from '@tauri-apps/api';
+    import { invoke, window } from '@tauri-apps/api';
 
     // for window uuid
     let window_session_id = 0;
@@ -56,20 +56,23 @@
     });
 </script>
 
-<div class="container" style="grid-template-columns: 50px {secondary_sidebar_width}px 2px 100%;" on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}>
+<div>
     <div class="navigation-bar">
-        <NavigationBar/> 
+        <NavigationBar window_session_id={window_session_id} on:triggerLogging={trigger_logging}/> 
     </div>
-    <div class="body sidebar" id="primary">
-        <SectionSidebar/>
+    <div class="container" style="grid-template-columns: 50px {secondary_sidebar_width}px 2px 100%;" on:mousemove={handleMouseMove} on:mouseup={handleMouseUp}>
+        <div class="body sidebar" id="primary">
+            <SectionSidebar/>
+        </div>
+        <div class="body sidebar" id="secondary">
+            <SnippetDisplay window_session_id={window_session_id} on:triggerLogging={trigger_logging}/>
+        </div>
+        <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
+        <div class="body work-area">
+            <Workarea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/> 
+        </div>
     </div>
-    <div class="body sidebar" id="secondary">
-        <SnippetDisplay window_session_id={window_session_id} on:triggerLogging={trigger_logging}/>
-    </div>
-    <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
-    <div class="body work-area">
-        <Workarea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/> 
-    </div>
+
 </div>
 
 <style>

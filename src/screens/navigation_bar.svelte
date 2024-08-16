@@ -76,6 +76,32 @@
     }
 </style>
 -->
+<script>
+    import { createEventDispatcher } from "svelte";
+    import { invoke, event } from "@tauri-apps/api";
+
+    export let window_session_id;
+
+    let logging_dispatch = createEventDispatcher();
+
+    function handleRunClick(e) {
+        // wait for done event
+        event.once('snippets ran', (event) => {
+            // nothing?
+        });             
+
+        logging_dispatch('triggerLogging', {
+            log_id: window_session_id 
+        });
+
+        // call run for snippet state
+        // TODO if we return the stream id, but are using the window session id, then why are we using it?
+        invoke("spawn_run_snippets", {windowSessionUuid: window_session_id}).then((stream_id) => {
+
+        });
+    }
+</script>
+
 <div class="body">
     <ul class="navigation-bar">
         <li class="navigation-option" id="plain">File</li>
@@ -91,16 +117,22 @@
             </ul>
         </li> 
     </ul>
+    <ul class="nagivation-bar">
+        <div class="button play" on:click={handleRunClick} on:keydown={() => {}}>
+        </div> 
+    </ul>
 </div>
 
 <style>
     .body {
         background-color: whitesmoke;
         cursor: default;
+        display: flex; 
+        justify-content: space-between;
+        width: 100%;
     }
 
     .navigation-bar { 
-        overflow: hidden;
     }
 
 
@@ -167,5 +199,18 @@
     .dropdown-option {
         padding-left: 2px;
         margin: 4px;
+    }
+
+    .button {
+        background-color: blue;
+        height: 100%;
+        width: 10px;
+    }
+
+    .button.play {
+        border-top: 12px solid whitesmoke;
+        border-bottom: 12px solid whitesmoke;
+        border-left: 20px solid darkgreen;
+        height: 0px;
     }
 </style>

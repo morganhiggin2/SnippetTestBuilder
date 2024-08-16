@@ -32,12 +32,12 @@
             });
         });        
         
-        logging_dispatch('triggerLogging', {
-            log_id: window_session_id 
-        });
+        invoke("logln", {text: JSON.stringify(window_session_id)});
 
         // call the spawn initalize snippet directory
         invoke('spawn_initialize_snippet_directory', {windowSessionUuid: window_session_id}).then((log_id) => {
+            invoke("logln", {text: JSON.stringify(log_id)});
+            invoke("logln", {text: JSON.stringify(window_session_id)});
             //TODO unused log id
         });
 
