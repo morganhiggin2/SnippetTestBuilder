@@ -2,7 +2,11 @@ import importlib
 import copy
 
 def run_snippet(*args, **kwargs):
-    snippet_path, function_inputs: dict[str, any], input_mappings: dict[str, (int, str)], parameter_values: dict[(int, str), any]
+    snippet_path = kwargs["snippet_path"]
+    function_inputs: dict[str, any] = kwargs["function_inputs"]
+    input_mappings: dict[str, (int, str)] = kwargs["input_mappings"] 
+    parameter_values: dict[(int, str), any] = kwargs["parameter_values"]
+
     '''
     run...
     :param module_path: path of the module relative to this file

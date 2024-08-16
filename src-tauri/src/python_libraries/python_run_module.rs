@@ -1,7 +1,7 @@
-use std::{collections::{HashMap, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
+use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
 
-use petgraph::graph::NodeIndex;
-use pyo3::{types::{PyAnyMethods, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python};
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
+use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python};
 
 use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
@@ -88,7 +88,6 @@ impl InitializedPythonSnippetRunnerBuilder {
                 //TODO handle when external snippet is removed while snippet is still in project
                 let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_id).unwrap();
 
-                //TODO get file location, which means finding the snippet directory entry from the directory manager
                 let snippet_directory_entry = directory_manager.find_directory_entry(external_snippet.get_package_path()).unwrap();
                 
                 // get runnable python file path
@@ -145,6 +144,8 @@ impl InitializedPythonSnippetRunnerBuilder {
 
             // queue for BFS
             let mut run_queue = VecDeque::<NodeIndex>::new();
+            // set of nodes which we already ran
+            let mut run_set = HashSet::<NodeIndex>::new();
 
             /*
             Current mapping overview: 
@@ -177,6 +178,12 @@ impl InitializedPythonSnippetRunnerBuilder {
                         break;
                     }
                 };
+
+                // if this had already been ran
+                if run_set.contains(&run_node) {
+                    // skip running this node again, continue
+                    continue;
+                }
 
                 // get snippet id of the node to run
                 // we can safely assume the node exists since we grabed it from the graph and the graph is not being modified
@@ -242,23 +249,43 @@ impl InitializedPythonSnippetRunnerBuilder {
                 let py_path = file_path_to_py_path(snippet_python_build_information.python_file);
 
 
-                let mut kwargs = HashMap::<&str, Py<PyAny>>::new();
+                let mut kwargs = PyDict::new_bound(py);
 
-                kwargs.insert("snippet_path", py_path.into_py(py));
-                kwargs.insert("function_inputs", py_input_mapping);
-                kwargs.insert("input_mappings", py_output_mapping);
-                kwargs.insert("parameter_values", py_parameter_mapping);
-
+                kwargs.set_item("snippet_path", py_path.to_owned().into_py(py));
+                kwargs.set_item("function_inputs", py_input_mapping);
+                kwargs.set_item("input_mappings", py_output_mapping);
+                kwargs.set_item("parameter_values", py_parameter_mapping);
+                
                 // execute pywrapper
-                let returns = match python_wrapper.call((), Some(Bound::from_owned_ptr(py,&kwargs.into_py(py)))) {
+                let run_result = match python_wrapper.call((), Some(&kwargs)) {
                     Ok(output) => output,
                     Err(e) => {
                         return Err(format!("Execution of snippet {} failed with error {}", py_path.to_owned(), e.to_string()));
                     },
                 };
 
-                // reinsert snippet python build information
-                self.build_information.insert(snippet_id, snippet_python_build_information);
+                // convert result into HashMap<(Uuid, String), Py<PyAny>>
+                let output_results: HashMap::<(Uuid, String), Py<PyAny>> = match run_result.extract() {
+                    Ok(some) => some, 
+                    Err(e) => {
+                        return Err(format!("Could not convert output type into HashMap::<(Uuid, String), Py<PyAny>> for snippet {}: {}", snippet_id, e.to_string()));
+                    },
+                }; 
+
+                // for each output result
+                for output_result in output_results.into_iter() {
+                    // insert into input cache
+                    input_cache.insert(output_result.0, output_result.1);
+                }
+
+                // inlude node in run set
+                run_set.insert(run_node);
+
+                // get children of node, insert into run queue 
+                for edge in self.graph.edges_directed(run_node, petgraph::Direction::Outgoing) {
+                    let child_node = edge.target();
+                    run_queue.push_back(child_node);
+                }
             }
 
 
