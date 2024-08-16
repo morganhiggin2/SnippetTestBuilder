@@ -4,6 +4,7 @@ use std::{collections::{HashMap, HashSet}, hash::Hash, ops::Add, sync::MutexGuar
 use crate::utils::sequential_id_generator::Uuid;
 use bimap::BiHashMap;
 use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, graph::{Node, NodeIndex}, visit::{EdgeIndexable, EdgeRef}};
+use pyo3::{IntoPy, Py, PyAny};
 
 /// the manager of the snippets, and their links
 pub struct SnippetManager {
@@ -84,6 +85,16 @@ pub struct SnippetParameterComponent {
 #[derive(Clone)]
 pub enum SnippetParameterBaseStorage {
     String(String)
+}
+
+impl IntoPy<Py::<PyAny>> for SnippetParameterBaseStorage {
+    fn into_py(self, py: pyo3::Python<'_>) -> Py::<PyAny> {
+        match self {
+            SnippetParameterBaseStorage::String(val) => {
+                return val.into_py(py);
+            },
+        }
+    }
 }
 
 impl Default for SnippetManager {

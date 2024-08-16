@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # Temporary data for testing
-data
+runnables/snippets

@@ -1,7 +1,8 @@
 import importlib
 import copy
 
-def run_snippet(snippet_path, function_inputs: dict[str, any], input_mappings: dict[str, (int, str)], parameter_values: dict[(int, str), any]):
+def run_snippet(*args, **kwargs):
+    snippet_path, function_inputs: dict[str, any], input_mappings: dict[str, (int, str)], parameter_values: dict[(int, str), any]
     '''
     run...
     :param module_path: path of the module relative to this file
@@ -17,7 +18,7 @@ def run_snippet(snippet_path, function_inputs: dict[str, any], input_mappings: d
     py_snippet = importlib.import_module(snippet_path)
 
     #call run function from snippet
-    outputs = py_snippet(function_inputs, parameter_values)
+    outputs = py_snippet.run(function_inputs, parameter_values)
 
     #check types with type parser
     '''for output_name, output_value in outputs: 

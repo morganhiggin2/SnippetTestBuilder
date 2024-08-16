@@ -1,7 +1,7 @@
-use std::{collections::{HashMap, VecDeque}, fs::File, io::{self, Read}, path::PathBuf};
+use std::{collections::{HashMap, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
 
 use petgraph::graph::NodeIndex;
-use pyo3::{types::PyModule, PyAny, PyResult, Python};
+use pyo3::{types::{PyAnyMethods, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python};
 
 use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
@@ -155,7 +155,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                     to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too  
              */
             // contains the mapping of the next input, and the pyany value to be inserted
-            let mut input_cache = HashMap::<(Uuid, String), PyAny>::new();
+            let mut input_cache = HashMap::<(Uuid, String), Py<PyAny>>::new();
 
             // add all nodes which have no inputs 
             for node in self.graph.node_indices() {
@@ -205,7 +205,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                     }
                 }     
 
-                let mut input_mapping = HashMap::<String, PyAny>::new();
+                let mut input_mapping = HashMap::<String, Py<PyAny>>::new();
 
                 // fetch inputs for input mapping
                 for input in snippet_python_build_information.inputs {
@@ -216,20 +216,46 @@ impl InitializedPythonSnippetRunnerBuilder {
                     input_mapping.insert(input, value);
                 }
 
-                let parameter_mapping = HashMap::<String, PyAny>::new();
+                let mut parameter_mapping = HashMap::<String, Py::<PyAny>>::new();
 
                 // get parameters
                 for parameter in snippet_python_build_information.parameters.into_iter() {
                     let parameter_storage = parameter.get_storage();
 
                     // convert into pytype
+                    let parameter_value_to_py = parameter_storage.to_owned().into_py(py);
+
+                    // insert into parameter mapping 
+                    parameter_mapping.insert(parameter.get_name(), parameter_value_to_py);
                 }
 
                 // convert input mapping to python
+                let py_input_mapping = input_mapping.into_py(py);
 
                 // convert output mapping to python
+                let py_output_mapping = output_mapping.into_py(py);
 
                 // convert parameter mapping to python
+                let py_parameter_mapping = parameter_mapping.into_py(py);
+
+                // convert file path to python module 
+                let py_path = file_path_to_py_path(snippet_python_build_information.python_file);
+
+
+                let mut kwargs = HashMap::<&str, Py<PyAny>>::new();
+
+                kwargs.insert("snippet_path", py_path.into_py(py));
+                kwargs.insert("function_inputs", py_input_mapping);
+                kwargs.insert("input_mappings", py_output_mapping);
+                kwargs.insert("parameter_values", py_parameter_mapping);
+
+                // execute pywrapper
+                let returns = match python_wrapper.call((), Some(Bound::from_owned_ptr(py,&kwargs.into_py(py)))) {
+                    Ok(output) => output,
+                    Err(e) => {
+                        return Err(format!("Execution of snippet {} failed with error {}", py_path.to_owned(), e.to_string()));
+                    },
+                };
 
                 // reinsert snippet python build information
                 self.build_information.insert(snippet_id, snippet_python_build_information);
@@ -255,7 +281,46 @@ impl InitializedPythonSnippetRunnerBuilder {
 
             return Ok(());
         })?;
-
+        
         return Ok(());
+    }
+}
+
+fn file_path_to_py_path(path: PathBuf) -> String {
+    // get working directory
+    let working_directory = env::current_dir().expect("Failed to get current directory");
+
+    // get path relative to working directory
+    let relative_directory = path.strip_prefix(&working_directory).unwrap_or(&path);
+
+    let mut py_path = String::new();
+
+    // build python path
+    for component in relative_directory.iter() {
+        let component_str = component.to_str().unwrap();
+        py_path.push_str(component_str);
+        py_path.push('.');
+    }
+
+    // remove any .
+    py_path.remove(py_path.len() - 1);
+
+    return py_path;
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use crate::python_libraries::python_run_module::{file_path_to_py_path, InitializedPythonSnippetRunnerBuilder};
+
+    #[test]
+    fn test_file_path_to_py_path() {
+        // create path buf
+        let path = PathBuf::from("one/two/three/four");
+
+        let py_path = file_path_to_py_path(path);
+
+        assert_eq!(py_path, "one.two.three.four");
     }
 }
