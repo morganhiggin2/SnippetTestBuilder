@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
 
-use petgraph::{graph::NodeIndex, visit::EdgeRef};
+use petgraph::{graph::NodeIndex, visit::{EdgeRef, NodeRef}};
 use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python, ToPyObject};
 use pathdiff::diff_paths;
 
@@ -304,11 +304,12 @@ impl InitializedPythonSnippetRunnerBuilder {
                 }
 
                 // inlude node in run set
-                run_set.insert(run_node);
+                run_set.insert(run_node.clone());
 
                 // get children of node, insert into run queue 
                 for edge in self.graph.edges_directed(run_node, petgraph::Direction::Outgoing) {
                     let child_node = edge.target();
+                    println!("for snippet {} putting node {}", self.graph.node_weight(run_node).unwrap_or(&0), self.graph.node_weight(child_node).unwrap_or(&0));
                     run_queue.push_back(child_node);
                 }
             }

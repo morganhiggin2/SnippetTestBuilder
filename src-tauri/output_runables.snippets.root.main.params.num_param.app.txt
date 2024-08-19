@@ -1,1 +1,4 @@
-{'num': '4'}{'num': (74, 'b')}{(74, 'b'): '4'}
+{(66, 'writable'): '34'}function inputs: {} 
+outputs: {'num': '34'} 
+input_mappings: {'num': (66, 'writable')} 
+mapped_outputs: {(66, 'writable'): '34'}

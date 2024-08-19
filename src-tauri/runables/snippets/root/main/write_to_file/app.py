@@ -10,7 +10,7 @@ def init(*args, **kargs):
     return snippet;
 
 def run(inputs, params): 
-    writable = inputs['writable']
+    writable = str(inputs['writable'])
 
     f = open('output.txt', 'a')
 

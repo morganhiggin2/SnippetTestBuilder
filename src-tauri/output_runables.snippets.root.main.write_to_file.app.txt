@@ -1,1 +1,4 @@
-{}{}{}
+{}function inputs: {'writable': '34'} 
+outputs: {} 
+input_mappings: {} 
+mapped_outputs: {}

@@ -25,15 +25,15 @@ def run_snippet(*args, **kwargs):
     # TODO set output of std in to something that the program can buffer into the user
     # probably on the os level
 
-    #import snippet from other file
+    # import snippet from other file
+    # reload if it has already been loaded
     py_snippet_runnable = importlib.import_module(snippet_path)
+    importlib.reload(py_snippet_runnable)
 
 
     #call run function from snippet
     outputs = py_snippet_runnable.run(function_inputs, parameter_values)
 
-    f.write(str(outputs))
-    f.write(str(input_mappings))
 
     '''
     #check types with type parser
@@ -54,6 +54,7 @@ def run_snippet(*args, **kwargs):
             mapped_outputs[input_mappings[output_name]] = copy.deepcopy(output_value)
 
     f.write(str(mapped_outputs))
+    f.write(f"function inputs: {function_inputs} \noutputs: {outputs} \ninput_mappings: {input_mappings} \nmapped_outputs: {mapped_outputs}")
 
     return mapped_outputs 
 

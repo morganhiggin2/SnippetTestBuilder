@@ -11,6 +11,6 @@ def run(inputs, params):
     s = params["num_input"]
 
     outputs = {}
-    outputs["num"] = s 
+    outputs["num"] = s + '4'
 
     return outputs

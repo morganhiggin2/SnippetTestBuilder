@@ -43,14 +43,15 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
 pub async fn spawn_run_snippets_event(build_state: InitializedPythonSnippetRunnerBuilder, mut logging_stream_instance: LoggingStreamInstance) {
     // run the build state
     match build_state.run() {
-        Ok(_) => (),
+        Ok(_) => {
+            logging_stream_instance.append_log(format!("Finished successfully running all snippets"));
+        },
         Err(e) => {
             //TODO log error
-            //logging_stream_instance.append_log(e);
+            logging_stream_instance.append_log(e);
         }
     };
 
-    logging_stream_instance.append_log(format!("Finished successfully running all snippets"));
 
     // close the log
     let app_handle = logging_stream_instance.close_log();
