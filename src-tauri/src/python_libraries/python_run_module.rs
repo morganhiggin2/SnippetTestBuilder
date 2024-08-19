@@ -1,14 +1,15 @@
 use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
 
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
-use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python};
+use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python, ToPyObject};
+use pathdiff::diff_paths;
 
 use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 use super::python_build_module::FinalizedPythonSnipppetInitializerBuilder;
 
 // location of the python runner library
-const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "../runables/snippet_runner.py";
+const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "runables/snippet_runner.py";
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetRunnerBuilder {
@@ -78,6 +79,9 @@ impl InitializedPythonSnippetRunnerBuilder {
 
             // create deep copy and set parameter values
             python_snippet_build_information.parameters = snippet.get_parameters_as_copy();
+
+            python_snippet_build_information.inputs = snippet.get_input_names();
+            python_snippet_build_information.outputs = snippet.get_output_names();
            
             // get the runnable python file
             {
@@ -102,7 +106,6 @@ impl InitializedPythonSnippetRunnerBuilder {
 
     // run the python snippet runnere
     pub fn run(mut self) -> Result<(), String> {
-        println!("place 0");
         // inputs: reference to lock on the app handler
         
         //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
@@ -111,7 +114,6 @@ impl InitializedPythonSnippetRunnerBuilder {
 
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
-            println!("place 1");
             // import python module for calling snippets (the wrapper function)
             let python_runner_wrapper_path: PathBuf = PYTHON_RUNNER_WRAPPER_LOCATION.into();
             let mut file = match File::open(python_runner_wrapper_path) {
@@ -131,8 +133,6 @@ impl InitializedPythonSnippetRunnerBuilder {
                 }
             };
 
-            println!("place 2");
-
             // import wrapper
             let python_wrapper = match PyModule::from_code_bound(
                 py,
@@ -144,9 +144,14 @@ impl InitializedPythonSnippetRunnerBuilder {
                 PyResult::Err(e) => {
                     return Err(format!("Could not create python runner wrapper code from main python file: {}", e.to_string()));
                 }
-            };
+            }; 
 
-            println!("place 3");
+            let python_wrapper_run_snippet = match python_wrapper.getattr("run_snippet") {
+                PyResult::Ok(some) => some,
+                PyResult::Err(e) => {
+                    return Err(format!("Could not get run snippet attribute from wrapper python file: {}", e.to_string()));
+                }
+            };
 
             // queue for BFS
             let mut run_queue = VecDeque::<NodeIndex>::new();
@@ -228,19 +233,16 @@ impl InitializedPythonSnippetRunnerBuilder {
                     // insert into input mapping
                     input_mapping.insert(input, value);
                 }
+                
 
-                let mut parameter_mapping = HashMap::<String, Py::<PyAny>>::new();
+                let mut parameter_mapping = HashMap::<String, SnippetParameterBaseStorage>::new();
 
-                // get parameters
-                for parameter in snippet_python_build_information.parameters.into_iter() {
-                    let parameter_storage = parameter.get_storage();
+                for parameter in snippet_python_build_information.parameters {
+                    parameter_mapping.insert(parameter.get_name(), parameter.get_storage().clone());
+                } 
 
-                    // convert into pytype
-                    let parameter_value_to_py = parameter_storage.to_owned().into_py(py);
-
-                    // insert into parameter mapping 
-                    parameter_mapping.insert(parameter.get_name(), parameter_value_to_py);
-                }
+                // convert parameter mapping to python
+                let py_parameter_mapping = parameter_mapping.into_py(py);
 
                 // convert input mapping to python
                 let py_input_mapping = input_mapping.into_py(py);
@@ -248,12 +250,9 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // convert output mapping to python
                 let py_output_mapping = output_mapping.into_py(py);
 
-                // convert parameter mapping to python
-                let py_parameter_mapping = parameter_mapping.into_py(py);
 
-                // convert file path to python module 
-                let py_path = file_path_to_py_path(snippet_python_build_information.python_file);
-
+                // convert to python module 
+                let py_path = file_path_to_py_path(snippet_python_build_information.python_file.to_owned())?;
 
                 let mut kwargs = PyDict::new_bound(py);
 
@@ -281,9 +280,9 @@ impl InitializedPythonSnippetRunnerBuilder {
                         return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
                     }
                 };
-                
+
                 // execute pywrapper
-                let run_result = match python_wrapper.call((), Some(&kwargs)) {
+                let run_result = match python_wrapper_run_snippet.call((), Some(&kwargs)) {
                     Ok(output) => output,
                     Err(e) => {
                         return Err(format!("Execution of snippet {} failed with error {}", py_path.to_owned(), e.to_string()));
@@ -339,17 +338,29 @@ impl InitializedPythonSnippetRunnerBuilder {
     }
 }
 
-fn file_path_to_py_path(path: PathBuf) -> String {
+fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
+    // remove file extension from end of path
+    path.set_extension("");
+
     // get working directory
     let working_directory = env::current_dir().expect("Failed to get current directory");
 
-    // get path relative to working directory
-    let relative_directory = path.strip_prefix(&working_directory).unwrap_or(&path);
+    // build base python runner location
+    let mut base_python_runner_location = working_directory.to_owned();
+    //base_python_runner_location.push(PYTHON_BASE_RUNNER_LOCATION.to_owned());
+
+    // remove relative directory of runner files
+    let runnable_relative_snippet_path = match diff_paths(path.to_owned(), base_python_runner_location.to_owned()) {
+        Some(some) => some,
+        None => {
+            return Err(format!("Could not compute relative paths for path {} and {} in python run module", base_python_runner_location.to_string_lossy(), path.to_owned().to_string_lossy()));
+        }
+    };
 
     let mut py_path = String::new();
 
     // build python path
-    for component in relative_directory.iter() {
+    for component in runnable_relative_snippet_path.iter() {
         let component_str = component.to_str().unwrap();
         py_path.push_str(component_str);
         py_path.push('.');
@@ -358,7 +369,7 @@ fn file_path_to_py_path(path: PathBuf) -> String {
     // remove any .
     py_path.remove(py_path.len() - 1);
 
-    return py_path;
+    return Ok(py_path);
 }
 
 #[cfg(test)]
@@ -370,10 +381,10 @@ mod test {
     #[test]
     fn test_file_path_to_py_path() {
         // create path buf
-        let path = PathBuf::from("one/two/three/four");
+        let path = PathBuf::from("runables/snippets/root/main/basic_one_snippet/app");
 
         let py_path = file_path_to_py_path(path);
 
-        assert_eq!(py_path, "one.two.three.four");
+        assert_eq!(py_path, Ok("snippets.root.main.basic_one_snippet.app".to_string()));
     }
 }

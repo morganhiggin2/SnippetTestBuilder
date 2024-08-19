@@ -1,12 +1,18 @@
 import importlib
 import copy
+import sys
+import os
+
+# add runables path to sys modules
+sys.path.append(os.getcwd())
 
 def run_snippet(*args, **kwargs):
     snippet_path = kwargs["snippet_path"]
     function_inputs: dict[str, any] = kwargs["function_inputs"]
     input_mappings: dict[str, (int, str)] = kwargs["input_mappings"] 
-    parameter_values: dict[(int, str), any] = kwargs["parameter_values"]
+    parameter_values = kwargs["parameter_values"]
 
+    f = open(f'output_{snippet_path}.txt', 'w')
     '''
     run...
     :param module_path: path of the module relative to this file
@@ -19,13 +25,18 @@ def run_snippet(*args, **kwargs):
     # probably on the os level
 
     #import snippet from other file
-    py_snippet = importlib.import_module(snippet_path)
+    py_snippet_runnable = importlib.import_module(snippet_path)
+
 
     #call run function from snippet
-    outputs = py_snippet.run(function_inputs, parameter_values)
+    outputs = py_snippet_runnable.run(function_inputs, parameter_values)
 
+    f.write(str(outputs))
+    f.write(str(input_mappings))
+
+    '''
     #check types with type parser
-    '''for output_name, output_value in outputs: 
+    for output_name, output_value in outputs: 
         #check if output_name exists in function_outputs
         if output_name not in function_outputs.keys():
             #raise some exeption: raise ResourceNotFoundExeption
@@ -36,10 +47,12 @@ def run_snippet(*args, **kwargs):
     mapped_outputs = {} 
 
     # for each output, map it to an output
-    for output_name, output_value in outputs:
+    for output_name, output_value in outputs.items():
         if output_name in input_mappings:
             # create deep copy
-            mapped_outputs[input_mappings[output_name]] = copy.deepcopy(output_value) 
+            mapped_outputs[input_mappings[output_name]] = copy.deepcopy(output_value)
+
+    f.write(str(mapped_outputs))
 
     return mapped_outputs 
 

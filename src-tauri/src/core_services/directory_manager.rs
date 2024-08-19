@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{borrow::Borrow, collections::{HashMap, HashSet}, ffi::OsStr, fs::{self, DirEntry}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
+use std::{borrow::Borrow, collections::{HashMap, HashSet}, ffi::OsStr, fs::{self, DirEntry, File}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
 use enum_as_inner::EnumAsInner;
 use serde::{Serialize, Deserialize};
 use std::env;
@@ -81,6 +81,7 @@ impl DirectoryManager {
 
     /// find directory entry from package path
     pub fn find_directory_entry(&self, package_path: PackagePath) -> Option<&SnippetDirectoryEntry> {
+        println!("{}", package_path.to_string());
         let mut directory_entry = self.snippet_directory.get_root_directory_entry()?;
 
         for package in package_path.into_iter() {
@@ -108,10 +109,9 @@ impl DirectoryManager {
                 SnippetDirectoryType::Snippet(_snippet) => (),
             }
 
-            return Some(directory_entry);
         }
 
-        return None;
+        return Some(directory_entry);
     }
 
     /// return true if the directory manager is initialized, false otherwise
@@ -219,6 +219,11 @@ impl SnippetDirectory {
         };
 
         if is_snippet_directory {
+            // if the path does not contain an __init__.py file, add it in the current path
+            let mut init_file_path = current_path.to_owned();
+            init_file_path.push("__init__.py");
+            let _init_file = File::create(init_file_path);
+
             // create snippet type, add as child 
             let snippet_entry = SnippetDirectoryEntry::new_snippet(dir_name.to_owned(), current_path.to_owned(), sequential_id_generator);
 
@@ -262,6 +267,11 @@ impl SnippetDirectory {
 
             // only if any of the children are snippets, does this qualify as a category
             if is_parent_category_or_snippet {
+                // if the path does not contain an __init__.py file, add it in the current path
+                let mut init_file_path = current_path.to_owned();
+                init_file_path.push("__init__.py");
+                let _init_file = File::create(init_file_path);
+
                 // add as child to parent category
                 parent_directory_category.add_child(snippet_entry);
             }
@@ -381,6 +391,7 @@ impl SnippetDirectoryEntry {
 
     /// get the runnable python file for the directory manager
     pub fn get_python_file(&self) -> Result<PathBuf, String> {
+        println!("{}", self.path.to_owned().to_string_lossy());
         if self.path.is_dir() {
             let dir_entries = match fs::read_dir(self.path.to_owned()) {
                 Ok(some) => some,
@@ -411,7 +422,7 @@ impl SnippetDirectoryEntry {
                 }
             }
 
-            return Err(format!("app.py file not found for snippet {}, must have been deleted or is hidden", self.get_name()));
+            return Err(format!("app.py file not found for snippet {} at {}, must have been deleted or is hidden", self.get_name(), self.get_path().to_string_lossy()));
         }
 
         return Err(format!("Snippet {} path is a file, not a directory", self.get_name()));

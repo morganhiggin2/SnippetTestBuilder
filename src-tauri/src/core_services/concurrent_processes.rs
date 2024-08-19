@@ -20,7 +20,7 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     //TODO reinitialize directory if already initialized
 
     // Initialize directory of snippets
-    directory_manager.initialize(&"../runables/snippets/root".to_string(), sequential_id_generator).unwrap();
+    directory_manager.initialize(&"runables/snippets/root".to_string(), sequential_id_generator).unwrap();
 
     // create external snippets from directory manager
     let result = external_snippet_manager.create_external_snippets_from_directory(directory_manager, sequential_id_generator);
@@ -42,13 +42,14 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
 
 pub async fn spawn_run_snippets_event(build_state: InitializedPythonSnippetRunnerBuilder, mut logging_stream_instance: LoggingStreamInstance) {
     // run the build state
-    match build_state.run() {
+    build_state.run().unwrap();
+    /*match build_state.run() {
         Ok(_) => (),
         Err(e) => {
             //TODO log error
-            logging_stream_instance.append_log(e);
+            //logging_stream_instance.append_log(e);
         }
-    };
+    };*/
 
     logging_stream_instance.append_log(format!("Finished successfully running all snippets"));
 

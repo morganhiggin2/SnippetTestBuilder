@@ -791,10 +791,20 @@ impl SnippetManager {
 
             // set as from snippet uuid
             let from_snippet_uuid = snippet_component_uuid.clone();
-            // from snippets pipeline connectors, find the from pipeline connector
 
-            // get name
-            let from_name = snippet_component.get_name();
+            let mut from_name = None;
+
+            // from snippets pipeline connectors, find the from pipeline connector
+            for pipeline_connector in snippet_component.pipeline_connectors.iter() {
+                if pipeline_connector.get_uuid().eq(&from_pipeline_connector_uuid) {
+                    from_name = Some(pipeline_connector.get_name());
+                }
+            }
+
+            // if we did not find it, we have a logic error
+            if let None = from_name {
+                panic!("Could not find from pipeline connector in corresponding snippet");
+            }
 
             // get from connector uuid and to connector uuid
             let to_pipeline_connector_uuid = pipeline_component.to_pipeline_connector_uuid.clone();
@@ -808,19 +818,30 @@ impl SnippetManager {
             let to_snippet_uuid = snippet_component_uuid.clone();
             // from snippets pipeline connectors, find the from pipeline connector
 
-            // get name
-            let to_name = snippet_component.get_name();
+            let mut to_name = None;
+
+            // from snippets pipeline connectors, find the from pipeline connector
+            for pipeline_connector in snippet_component.pipeline_connectors.iter() {
+                if pipeline_connector.get_uuid().eq(&to_pipeline_connector_uuid) {
+                    to_name = Some(pipeline_connector.get_name());
+                }
+            }
+
+            // if we did not find it, we have a logic error
+            if let None = to_name {
+                panic!("Could not find to pipeline connector in corresponding snippet");
+            }
 
             // if snippet uuid, from connector name exists
-            match map.get_mut(&(from_snippet_uuid.to_owned(), from_name.to_owned())) {
+            match map.get_mut(&(from_snippet_uuid.to_owned(), from_name.to_owned().unwrap())) {
                 Some(outputs) => {
                     // append (to snippet uuid, to connector name)
-                    outputs.push((to_snippet_uuid, to_name));
+                    outputs.push((to_snippet_uuid, to_name.unwrap()));
                 },
                 None => {
                     // new vec with size one, containing (to snippet uuid, to connector name)
                     // for key (to snippet uuid, to connector name)
-                    map.insert((from_snippet_uuid, from_name), Vec::from([(to_snippet_uuid, to_name)]));
+                    map.insert((from_snippet_uuid, from_name.unwrap()), Vec::from([(to_snippet_uuid, to_name.unwrap())]));
                 },
             }
         }
@@ -948,6 +969,13 @@ impl SnippetComponent {
         }).collect();
     }
 
+    pub fn get_input_names(&self) -> Vec<String> {
+        return self.pipeline_connectors.iter().filter(|connector| -> bool {connector.input == true}).map(|connector| -> String {connector.get_name()}).collect();
+    }
+
+    pub fn get_output_names(&self) -> Vec<String> {
+        return self.pipeline_connectors.iter().filter(|connector| -> bool {connector.input == false}).map(|connector| -> String {connector.get_name()}).collect();
+    }
 }
 
 impl PipelineConnectorComponent {
