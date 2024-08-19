@@ -91,5 +91,4 @@ fn logln(text: &str) {
 /*
 BUGS: 
     creating pipieline one way does not work, works the other way
-    script not updated (app.py) after first run (so not being updated after making change in file from first to second run)
 */

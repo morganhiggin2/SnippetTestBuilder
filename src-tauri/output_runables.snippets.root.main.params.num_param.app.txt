@@ -1,4 +1,4 @@
-{(66, 'writable'): '34'}function inputs: {} 
-outputs: {'num': '34'} 
-input_mappings: {'num': (66, 'writable')} 
-mapped_outputs: {(66, 'writable'): '34'}
+{(68, 'b'): 33.0}function inputs: {} 
+outputs: {'num': 33.0} 
+input_mappings: {'num': (68, 'b')} 
+mapped_outputs: {(68, 'b'): 33.0}

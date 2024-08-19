@@ -732,13 +732,13 @@ impl SnippetManager {
         //verify that from is an output and to is an input
         //TODO validate schemas
         {
-            if from_pipeline_connector.get_input() {
+            /*if from_pipeline_connector.get_input() {
                 return Ok(false);
             }
 
             if !to_pipeline_connector.get_input() {
                 return Ok(false);
-            }
+            }*/
         }
 
         //verify that the connection is between different snippets
