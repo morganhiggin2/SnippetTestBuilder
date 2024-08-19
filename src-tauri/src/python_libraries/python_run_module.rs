@@ -15,7 +15,7 @@ const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "runables/snippet_runner.py";
 pub struct InitializedPythonSnippetRunnerBuilder {
     // a map of each snippet id in the snippet manager to a snippet build information
     build_information: HashMap<Uuid, PythonSnippetBuildInformation>,
-    graph: petgraph::Graph<Uuid, (), petgraph::Directed>,
+    graph: petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed>,
     snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>>
 }
 
@@ -41,7 +41,7 @@ impl Default for PythonSnippetBuildInformation {
 }
 
 impl InitializedPythonSnippetRunnerBuilder {
-    fn new (build_information: HashMap::<Uuid, PythonSnippetBuildInformation>, graph: petgraph::Graph<Uuid, (), petgraph::Directed>, snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>> ) -> Self {
+    fn new (build_information: HashMap::<Uuid, PythonSnippetBuildInformation>, graph: petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed>, snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>> ) -> Self {
         return InitializedPythonSnippetRunnerBuilder {
             build_information: build_information,
             graph: graph,

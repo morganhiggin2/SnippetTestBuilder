@@ -11,6 +11,9 @@
     // TODO possible issue: if there are events being emmited and you are switching between these screens,
     //      is it going to be rendered?
     export const trigger_logging = (stream_i) => {
+        // clear text
+        logging_state.log_text = "";
+
         var stream_id = "log_" + stream_i;
 
         event.listen(stream_id, (event) => {

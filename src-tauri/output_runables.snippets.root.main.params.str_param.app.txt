@@ -1,1 +1,1 @@
-{'str': ''}{}{}
+{'str': ''}{'str': (66, 'writable')}{(66, 'writable'): ''}

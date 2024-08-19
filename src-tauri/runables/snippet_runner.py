@@ -13,6 +13,7 @@ def run_snippet(*args, **kwargs):
     parameter_values = kwargs["parameter_values"]
 
     f = open(f'output_{snippet_path}.txt', 'w')
+
     '''
     run...
     :param module_path: path of the module relative to this file

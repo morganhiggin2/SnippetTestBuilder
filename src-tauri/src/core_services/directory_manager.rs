@@ -81,7 +81,6 @@ impl DirectoryManager {
 
     /// find directory entry from package path
     pub fn find_directory_entry(&self, package_path: PackagePath) -> Option<&SnippetDirectoryEntry> {
-        println!("{}", package_path.to_string());
         let mut directory_entry = self.snippet_directory.get_root_directory_entry()?;
 
         for package in package_path.into_iter() {
@@ -391,7 +390,6 @@ impl SnippetDirectoryEntry {
 
     /// get the runnable python file for the directory manager
     pub fn get_python_file(&self) -> Result<PathBuf, String> {
-        println!("{}", self.path.to_owned().to_string_lossy());
         if self.path.is_dir() {
             let dir_entries = match fs::read_dir(self.path.to_owned()) {
                 Ok(some) => some,

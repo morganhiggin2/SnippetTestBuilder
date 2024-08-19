@@ -100,6 +100,7 @@
 
     .name {
         padding-left: 4px;
+        user-select: none;
     }
 
     .expandable_arrow {

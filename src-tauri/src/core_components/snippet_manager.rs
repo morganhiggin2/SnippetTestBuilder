@@ -37,7 +37,7 @@ pub struct SnippetManager {
 
     // graph for keeping track of cycles
     // where the edge weight is the number of connections (pipelines) form that snippet to the other snippet
-    snippet_graph: petgraph::Graph<(), i16, petgraph::Directed>,
+    snippet_graph: petgraph::stable_graph::StableGraph<(), i16, petgraph::Directed>,
     snippet_to_node_index: BiHashMap<Uuid, NodeIndex>
 
     //mapping for snippets and pipelines
@@ -105,7 +105,7 @@ impl Default for SnippetManager {
             pipeline_connector_to_pipeline: HashMap::with_capacity(24),
             pipeline_connector_to_snippet: HashMap::with_capacity(24),
             parameter_to_snippet: HashMap::new(),
-            snippet_graph: petgraph::Graph::new(),
+            snippet_graph: petgraph::stable_graph::StableGraph::new(),
             snippet_to_node_index: BiHashMap::new()
         };
     }
@@ -162,6 +162,8 @@ impl SnippetManager {
 
         //add to snippets list in snippet manager
         self.snippets.insert(snippet_uuid, snippet_component);
+
+        self.print_state();
 
         //return uuid of snippet
         return snippet_uuid;
@@ -235,6 +237,8 @@ impl SnippetManager {
 
         // remove from mapping
         self.snippet_to_node_index.remove_by_left(uuid);
+
+        self.print_state();
 
         return Ok(());
     }
@@ -333,8 +337,8 @@ impl SnippetManager {
 
     /// get a deep copy of the internal graph
     /// with the weight of each node being the uuid of the snippet
-    pub fn get_snippet_graph(&self) -> petgraph::Graph<Uuid, (), petgraph::Directed> {
-        let mut new_graph = petgraph::Graph::<Uuid, (), petgraph::Directed>::new();
+    pub fn get_snippet_graph(&self) -> petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed> {
+        let mut new_graph = petgraph::stable_graph::StableGraph::<Uuid, (), petgraph::Directed>::new();
 
         // map of old graph node to new graph node
         let mut old_to_new_node = HashMap::<NodeIndex, NodeIndex>::new();
@@ -366,6 +370,22 @@ impl SnippetManager {
         }
 
         return new_graph;
+    }
+
+    //TODO delete this method
+    pub fn print_state(&self) {
+        println!("state:");
+
+        println!("graph has {} nodes", self.snippet_graph.node_count());
+        println!("graph has {} edges", self.snippet_graph.edge_count());
+
+        println!("parameter to snippet mapping has {} entries", self.parameter_to_snippet.len());
+        println!("snippet to node index mapping has {} entries", self.snippet_to_node_index.len());
+        println!("pipeline_connector_to_pipeline mapping has {} entries", self.pipeline_connector_to_pipeline.len());
+        println!("pipeline_connector_to_snippet mapping has {} entries", self.pipeline_connector_to_snippet.len());
+
+        println!("{} snippets", self.snippets.len());
+        println!("{} pipelines", self.pipelines.len());
     }
 
     //TODO tests check for multiple pipielines to connect
@@ -533,6 +553,8 @@ impl SnippetManager {
         //add to snippet manager
         self.pipelines.insert(pipeline_uuid, pipeline_component);
 
+        self.print_state();
+
         //return uuid of new pipeline
         return Ok(pipeline_uuid);
     }
@@ -633,6 +655,8 @@ impl SnippetManager {
                 return Err("pipeline does not exist in snippet manager");
             }
         }
+
+        self.print_state();
 
         return Ok(());
     }
