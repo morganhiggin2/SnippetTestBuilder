@@ -1,4 +1,0 @@
-{}function inputs: {'writable': 132.0} 
-outputs: {} 
-input_mappings: {} 
-mapped_outputs: {}

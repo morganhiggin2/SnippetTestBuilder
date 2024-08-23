@@ -3,7 +3,6 @@ use std::{borrow::Borrow, collections::{HashMap, HashSet}, ffi::OsStr, fs::{self
 use enum_as_inner::EnumAsInner;
 use serde::{Serialize, Deserialize};
 use std::env;
-use pathdiff;
 use std::path::Path;
 
 use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager, PackagePath}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};

@@ -1,4 +1,0 @@
-{(80, 'writable'): 132.0}function inputs: {'b': 33.0, 'a': 4.0} 
-outputs: {'c': 132.0} 
-input_mappings: {'c': (80, 'writable')} 
-mapped_outputs: {(80, 'writable'): 132.0}

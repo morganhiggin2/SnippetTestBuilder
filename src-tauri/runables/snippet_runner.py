@@ -12,8 +12,6 @@ def run_snippet(*args, **kwargs):
     input_mappings: dict[str, (int, str)] = kwargs["input_mappings"] 
     parameter_values = kwargs["parameter_values"]
 
-    f = open(f'output_{snippet_path}.txt', 'w')
-
     '''
     run...
     :param module_path: path of the module relative to this file
@@ -30,10 +28,8 @@ def run_snippet(*args, **kwargs):
     py_snippet_runnable = importlib.import_module(snippet_path)
     importlib.reload(py_snippet_runnable)
 
-
     #call run function from snippet
     outputs = py_snippet_runnable.run(function_inputs, parameter_values)
-
 
     '''
     #check types with type parser
@@ -52,9 +48,6 @@ def run_snippet(*args, **kwargs):
         if output_name in input_mappings:
             # create deep copy
             mapped_outputs[input_mappings[output_name]] = copy.deepcopy(output_value)
-
-    f.write(str(mapped_outputs))
-    f.write(f"function inputs: {function_inputs} \noutputs: {outputs} \ninput_mappings: {input_mappings} \nmapped_outputs: {mapped_outputs}")
 
     return mapped_outputs 
 
