@@ -7,7 +7,7 @@ use std::path::Path;
 
 use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager, PackagePath}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
-use super::{visual_directory_component_manager::{FrontDirectoryContent, FrontDirectoryContentType}, visual_directory_component_manager::{self, VisualDirectoryComponentManager}};
+use super::{concurrent_processes::get_working_directory, visual_directory_component_manager::{self, FrontDirectoryContent, FrontDirectoryContentType, VisualDirectoryComponentManager}};
 
 // This here is not ui related
 pub struct DirectoryManager {
@@ -141,12 +141,7 @@ impl SnippetDirectory {
     /// and new snippets will be inserted
     fn scan_and_map_directory(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
         //get current working directory
-        let current_working_directory = match env::current_dir() {
-            Ok(result) => result.as_path().to_owned(),
-            Err(e) => {
-                return Err(e.to_string());
-            }
-        };
+        let current_working_directory = get_working_directory(); 
         //get snippet directory
         let snippets_directory = current_working_directory.join(relative_snippet_directory);
 
@@ -452,6 +447,7 @@ impl SnippetDirectorySnippet {
 mod tests {
     use std::collections::HashMap;
     use std::{env, ffi::OsStr, path::PathBuf};
+    use crate::core_services::concurrent_processes::get_working_directory;
     use crate::core_services::directory_manager::{SnippetDirectoryEntry, SnippetDirectoryType};
     use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::{self, SequentialIdGenerator}};
 
@@ -461,7 +457,7 @@ mod tests {
     fn test_scan_and_map_directory() {
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut snippet_directory = SnippetDirectory::default();
-        let working_directory = env::current_dir().unwrap();
+        let working_directory = get_working_directory();
         
         // We are reading from a sample directory
         snippet_directory.scan_and_map_directory(&"tests/testing_files/sample_directory/data/snippets/root".to_string(), &mut sequential_id_generator).unwrap();

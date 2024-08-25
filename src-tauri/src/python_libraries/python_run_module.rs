@@ -4,7 +4,7 @@ use petgraph::{graph::NodeIndex, visit::{EdgeRef, NodeRef}};
 use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python, ToPyObject};
 use pathdiff::diff_paths;
 
-use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::DirectoryManager, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::get_working_directory, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
 
 use super::python_build_module::FinalizedPythonSnipppetInitializerBuilder;
 
@@ -115,7 +115,8 @@ impl InitializedPythonSnippetRunnerBuilder {
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
             // import python module for calling snippets (the wrapper function)
-            let python_runner_wrapper_path: PathBuf = PYTHON_RUNNER_WRAPPER_LOCATION.into();
+            let python_runner_wrapper_path: PathBuf = get_working_directory().join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
+            
             let mut file = match File::open(python_runner_wrapper_path) {
                 Ok(file) => file,
                 Err(e) => {
@@ -344,7 +345,7 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
     path.set_extension("");
 
     // get working directory
-    let working_directory = env::current_dir().expect("Failed to get current directory");
+    let working_directory = get_working_directory();
 
     // build base python runner location
     let mut base_python_runner_location = working_directory.to_owned();
