@@ -568,7 +568,7 @@
 
 <svelte:window bind:innerWidth={window_width} bind:innerHeight={window_height}/>
 
-<div class="body" on:drop|preventDefault={handleDrop} on:dragenter|preventDefault on:dragleave|preventDefault on:mousemove={handleMouseMovement} bind:this={selfObj}>
+<div class="body" on:drop|preventDefault={handleDrop} on:dragover|preventDefault on:dragenter|preventDefault on:dragleave|preventDefault on:mousemove={handleMouseMovement} bind:this={selfObj}>
     <!--{#each snippets as snippet}
         <p>
             this is a snippet
