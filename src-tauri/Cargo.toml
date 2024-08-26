@@ -1,18 +1,11 @@
-[lib]
-name = "snippet_python_module"
-version = "0.0.0"
-path = "src/python_libraries/lib.rs"
-crate-type = ["cdylib", "rlib"]
-
 [package]
-name = "snippet_test_builder_desktop"
-version = "0.0.1"
+name = "SnippetTestBuilder"
+version = "0.0.0"
 description = "A Tauri App"
-authors = ["Morgan Higginbotham"]
+authors = ["you"]
 license = ""
 repository = ""
 edition = "2021"
-
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,11 +16,12 @@ tauri-build = { version = "1.2", features = [] }
 tauri = { version = "1.2", features = ["shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-bimap = "0.6.3" 
-pyo3 = { version = "0.22.0", features = ["gil-refs", "auto-initialize"] }
-pathdiff = "0.2.1"
+bimap = "0.6.3"
+pyo3 = {version = "0.22.2", features = ["gil-refs", "auto-initialize"] }
+pyo3-build-config = "0.22.2"
 enum-as-inner = "0.6.0"
 petgraph = "0.6.5"
+pathdiff = "0.2.1"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 

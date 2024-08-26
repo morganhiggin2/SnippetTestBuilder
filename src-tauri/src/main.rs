@@ -56,39 +56,11 @@ fn main() {
 fn logln(text: &str) {
     println!("{text}");
 }
-//TODO write test cases
-
-//std::process:Command
 
 //IMPORTAINT 
 //installed libpython3.10-dev
 
-//COULD DO
-// trait NEW that mandiates the seq id generator with a new() function
-
-
-
-/*
-1. be able to delete snippets - done
-2. be able to delete pipelines / io lines - done
-3. prevent cycles (so this must be a dag)
-4. unit tests
-3. snip on grid
-4. visual pipelines are filled in grid spots 
-  - but don't show grid lines, so ontop
-  - can represent as multiple lines
-5. parameter snippets
-  - build in
-  - add to directory structure
-6. ui for parameters
-7. python console output to rust output stream
-  - custom os stream
-  - wrapper for run function that catpures input and errors, and calls rust to output it
-
-
-*/
-
-/*
-BUGS: 
-    creating pipieline one way does not work, works the other way
-*/
+// TODO
+// 1. clean up warnings
+// 2. any more test cases
+// 3. test new changes on linux and mac

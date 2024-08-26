@@ -1,4 +1,4 @@
-use std::{borrow::{Borrow, BorrowMut}, ops::DerefMut, sync::{Arc, Mutex}};
+use std::{borrow::{Borrow, BorrowMut}, ops::DerefMut, path::PathBuf, env, sync::{Arc, Mutex}};
 
 use tauri::Manager;
 
@@ -58,4 +58,19 @@ pub async fn spawn_run_snippets_event(build_state: InitializedPythonSnippetRunne
 
     // emit event back to front end
     app_handle.emit_all("snippets_ran", "".to_string()).unwrap(); 
+}
+
+pub fn get_working_directory() -> PathBuf {
+    // default method of getting directory
+    let mut working_directory = env::current_dir().unwrap();
+
+    // if we are on mac
+    if cfg!(target_os = "macos") {
+        // get current executable location
+        working_directory = env::current_exe().unwrap();
+        // remove the executable name from the path to get the base folder
+        working_directory.pop();
+    }
+
+    return working_directory;
 }

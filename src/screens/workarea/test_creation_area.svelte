@@ -65,12 +65,14 @@
         window_y = boundingRect.top;
 
         //type
-        let type = e.dataTransfer.getData('type');
+        //get data
+        let data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        let type = data['type'];
 
         if (type == 'Snippet') {
             //get snippet information
             //parsing certain values as everything is passed as string
-            let directory_id = JSON.parse(e.dataTransfer.getData('_id'));
+            let directory_id = data['_id'];
 
             //generate snippet in backend, getting new snippet information 
             let snippet_information = null;
@@ -568,7 +570,7 @@
 
 <svelte:window bind:innerWidth={window_width} bind:innerHeight={window_height}/>
 
-<div class="body" on:drop|preventDefault={handleDrop} on:dragover|preventDefault on:mousemove={handleMouseMovement} on:dragenter|preventDefault bind:this={selfObj}>
+<div class="body" on:drop|preventDefault={handleDrop} on:dragover|preventDefault on:dragenter|preventDefault on:dragleave|preventDefault on:mousemove={handleMouseMovement} bind:this={selfObj}>
     <!--{#each snippets as snippet}
         <p>
             this is a snippet

@@ -12,8 +12,12 @@
     export let file_type = "";
 
     function onDragStart(e) {
-        e.dataTransfer.setData('_id', id);
-        e.dataTransfer.setData('type', file_type);
+        var drag_data = {
+            "_id": id,
+            "type": file_type
+        };
+
+        e.dataTransfer.setData('text/plain', JSON.stringify(drag_data));
     }
 
     function onDragEnd(e) {
