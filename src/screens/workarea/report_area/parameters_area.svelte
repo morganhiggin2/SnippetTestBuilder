@@ -40,12 +40,12 @@
 <div class="body">
     {#each parameters_state.parameters as parameter} 
         {#if parameter[1].p_type == "SingleLineText"}
-            <div class="parameter">
+            <div class="parameter tauri-regular">
                 <div class="parameter name">
-                    {parameter[1].name + ":"}
+                    {parameter[1].name}
                 </div>
                 <div class="parameter value" on:keyup={() => {on_key_up_typing(parameter[1].id)}}>
-                    <textarea rows="1" bind:value={parameter[2]}/>
+                    <textarea class="input-element" rows="1" bind:value={parameter[2]}/>
                 </div>
             </div>
         {/if}
@@ -59,12 +59,37 @@
         background-color: white;
         overflow-y: auto;
         border-top: 1px solid lightgrey;
+        padding-left: 4px;
+        padding-top: 2px;
     }
 
     .parameter {
         display: flex;
         justify-content: flex-start;
         align-items: center;
+        margin: 1px;
+    }
+
+    .input-element {
+        border-radius: 4px;
+        border-width: 1px;
+        margin: 1px;
+    }
+
+    .input-element::selection {
+        color: #3776ab;
+    }
+
+    .input-element::-moz-selection {
+        color: #3776ab;
+    }
+
+    .input-element:focus {
+        outline: none;
+        border-color: #3776ab;
+        border-radius: 4px;
+        border-width: 2px;
+        margin: 0px;
     }
 
     .parameter.name {

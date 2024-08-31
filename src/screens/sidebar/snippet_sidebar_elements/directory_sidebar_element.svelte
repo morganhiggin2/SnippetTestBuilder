@@ -91,12 +91,6 @@
         padding-bottom: 2px;
     }
 
-    .tauri-regular {
-        font-family: "Tauri", sans-serif;
-        font-weight: 400;
-        font-style: normal;
-    }
-
     .expandable_arrow {
         float: left;
     }

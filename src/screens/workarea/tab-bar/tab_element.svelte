@@ -31,13 +31,13 @@
     */
 </script>
     {#if active}
-        <div class="body" id="active" on:click={on_click} on:keydown={() => {}}>
+        <div class="body noselect" id="active" on:click={on_click} on:keydown={() => {}}>
             <div class="text tauri-regular">
                 {text}
             </div>
         </div>
     {:else}
-        <div class="body" id="inactive" on:click={on_click} on:keydown={() => {}}>
+        <div class="body noselect" id="inactive" on:click={on_click} on:keydown={() => {}}>
             <div class="text tauri-regular">
                 {text}
             </div>
@@ -67,12 +67,6 @@
 
     #active {
         background-color: white;
-    }
-    
-    .tauri-regular {
-        font-family: "Tauri", sans-serif;
-        font-weight: 400;
-        font-style: normal;
     }
 
 </style>

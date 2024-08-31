@@ -310,7 +310,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // get children of node, insert into run queue 
                 for edge in self.graph.edges_directed(run_node, petgraph::Direction::Outgoing) {
                     let child_node = edge.target();
-                    println!("for snippet {} putting node {}", self.graph.node_weight(run_node).unwrap_or(&0), self.graph.node_weight(child_node).unwrap_or(&0));
+
                     run_queue.push_back(child_node);
                 }
             }

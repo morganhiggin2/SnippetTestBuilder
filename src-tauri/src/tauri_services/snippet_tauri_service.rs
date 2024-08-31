@@ -627,12 +627,10 @@ pub fn spawn_run_snippets(application_state: tauri::State<SharedApplicationState
     let snippet_manager = &mut window_session.snippet_manager;
     let visual_snippet_component_manager = &mut window_session.visual_component_manager;
 
-    println!("build stage");
     // create build initialized state
     let build_state = match InitializedPythonSnippetRunnerBuilder::build(snippet_manager, external_snippet_manager, directory_manager, visual_snippet_component_manager, sequential_id_generator) {
         Ok(some) => some,
         Err(e) => {
-            println!("error stage");
             return Err(format!("Failed to initialize run state: {}", e));
         }
     };

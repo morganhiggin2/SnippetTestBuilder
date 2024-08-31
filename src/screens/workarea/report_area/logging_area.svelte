@@ -55,9 +55,4 @@
         background-color: white;
         padding: 4px;
     }
-    .courier-prime-regular {
-        font-family: "Courier Prime", monospace;
-        font-weight: 400;
-        font-style: normal;
-    }
 </style>
