@@ -13,12 +13,15 @@
 
     let window_height = 0;
     export let window_session_id;
+    export let sidebar_width;
 
     let src = "";
 
     // parameters methods
     let add_parameters;
     let delete_parameters;
+
+
 
 </script>
 
@@ -28,7 +31,7 @@
             <TestCreationArea {window_session_id} add_parameters={add_parameters} delete_parameters={delete_parameters}/>
         </div>
         <div class="logging-view">
-            <ReportArea {window_session_id} bind:trigger_logging={trigger_logging_} bind:add_parameters={add_parameters} bind:delete_parameters={delete_parameters}/>
+            <ReportArea {window_session_id} bind:trigger_logging={trigger_logging_} bind:add_parameters={add_parameters} bind:delete_parameters={delete_parameters} sidebar_width={sidebar_width}/>
         </div>
     </div>
 </div>

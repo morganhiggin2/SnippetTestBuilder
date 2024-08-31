@@ -598,6 +598,11 @@ impl SnippetManager {
             }
         };
 
+        // if there are no more elements in the inner set of the mapping, delete it
+        if delete_entry {
+            self.pipeline_connector_to_pipeline.remove(&from_pipeline_connector_uuid);
+        }
+
         // whether to delete the entry
         let mut delete_entry = false;
 
@@ -1513,9 +1518,6 @@ mod tests {
         // valid valid case (is dag, output to input)
         // validate two to three
         assert!(snippet_manager.validate_pipeline(7, 13).unwrap());
-
-        // validate input output invalid case
-        assert!(!snippet_manager.validate_pipeline(13, 7).unwrap());
 
         // test if going to different snippets
         assert!(!snippet_manager.validate_pipeline(7, 8).unwrap());

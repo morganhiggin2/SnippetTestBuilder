@@ -3,6 +3,7 @@
     import TestDesignArea from "./test_design_area.svelte";
 
     export let window_session_id;    
+    export let sidebar_width;
 
     let sessions = [];
 
@@ -21,7 +22,7 @@
             <TabBar/>
         </div>-->
         <div class="design-area">
-            <TestDesignArea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/>
+            <TestDesignArea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_} sidebar_width={sidebar_width}/>
         </div>
     </div>
 </div>

@@ -5,6 +5,7 @@
     import ScreenTabBar from "./report_area/screen_tab_bar.svelte";
 
     export var window_session_id;
+    export let sidebar_width;
 
     // logging
     let trigger_logging_;
@@ -55,7 +56,7 @@
 
 </script>
 
-<div class="body">
+<div class="body" style="width: calc(100% - {sidebar_width}px);">
     <div class="tab-bar">
         <ScreenTabBar screens={screens} active_screen={active_screen} change_screen={change_screen}/>
     </div>
@@ -69,7 +70,7 @@
 <style>
     .body {
         height: 100%;
-        width: calc(100% - 254px);
+        margin-left: -2px;
     }
     .tab-bar {
         height: 26px;

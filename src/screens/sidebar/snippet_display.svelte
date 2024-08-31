@@ -147,6 +147,7 @@
     .body {
         background-color: whitesmoke;
         height: 100%;
+        width: 100%;
         padding-left: 5px;
         padding-top: 2px;
         border-top: 2px solid lightgrey;

@@ -1,5 +1,0 @@
-- fields:
-  - name: first_number
-    type: integer
-  - name: second_number
-    type: integer

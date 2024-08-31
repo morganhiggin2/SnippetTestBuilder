@@ -69,7 +69,7 @@
         </div>
         <div class="border" id="sidebar-workarea" on:mousedown={secondarySidebarWorkareaResizeStart}/>
         <div class="body work-area">
-            <Workarea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_}/> 
+            <Workarea window_session_id={window_session_id} bind:trigger_logging={trigger_logging_} sidebar_width={50 + secondary_sidebar_width}/> 
         </div>
     </div>
 

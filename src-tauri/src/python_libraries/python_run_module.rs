@@ -378,15 +378,18 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
 mod test {
     use std::path::PathBuf;
 
-    use crate::python_libraries::python_run_module::{file_path_to_py_path, InitializedPythonSnippetRunnerBuilder};
+    use crate::{core_services::concurrent_processes::get_working_directory, python_libraries::python_run_module::{file_path_to_py_path, InitializedPythonSnippetRunnerBuilder}};
 
     #[test]
     fn test_file_path_to_py_path() {
+        // get working directory
+        let working_directory = get_working_directory();
         // create path buf
-        let path = PathBuf::from("runables/snippets/root/main/basic_one_snippet/app");
+        let path = working_directory.join(PathBuf::from("runables/snippets/root/main/basic_one_snippet/app"));
 
         let py_path = file_path_to_py_path(path);
 
-        assert_eq!(py_path, Ok("snippets.root.main.basic_one_snippet.app".to_string()));
+        // this is the path because the python interpreter is running from the location of the executable of the program, not the file it runs 
+        assert_eq!(py_path, Ok("runables.snippets.root.main.basic_one_snippet.app".to_string()));
     }
 }
