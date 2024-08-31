@@ -32,13 +32,13 @@
 </script>
     {#if active}
         <div class="body" id="active" on:click={on_click} on:keydown={() => {}}>
-            <div class="text">
+            <div class="text tauri-regular">
                 {text}
             </div>
         </div>
     {:else}
         <div class="body" id="inactive" on:click={on_click} on:keydown={() => {}}>
-            <div class="text">
+            <div class="text tauri-regular">
                 {text}
             </div>
         </div>
@@ -52,19 +52,27 @@
         padding-right: 8px;
         border-right: 1px solid lightgrey;
         border-bottom: 2px solid whitesmoke;
-        margin-bottom: -2px;
+        margin-bottom: -1px;
         cursor: default;
     }
 
     .body:hover {
-        border-bottom: 2px solid blue;
+        border-bottom: 2px solid gray;
     }    
 
     .text {
         padding-bottom: 2px;
+        font-size: 13px;
     }
 
     #active {
         background-color: white;
     }
+    
+    .tauri-regular {
+        font-family: "Tauri", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+    }
+
 </style>
