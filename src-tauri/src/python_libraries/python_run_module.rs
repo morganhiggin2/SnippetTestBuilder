@@ -228,11 +228,16 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 // fetch inputs for input mapping
                 for input in snippet_python_build_information.inputs {
-                    // can unwrap safely as this logic is enforced by the pipelines
-                    let value = input_cache.remove(&(snippet_id.to_owned(), input.to_owned())).unwrap();
+                    // if there is an input supplied, then input it
+                    // if there is no input, then do not include it
+                    match input_cache.remove(&(snippet_id.to_owned(), input.to_owned())) {
+                        Some(val) => {
+                            // insert into input mapping
+                            input_mapping.insert(input, val);
+                        }
+                        None => ()
+                    };
 
-                    // insert into input mapping
-                    input_mapping.insert(input, value);
                 }
                 
 
