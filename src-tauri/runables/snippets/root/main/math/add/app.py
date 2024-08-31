@@ -1,5 +1,3 @@
-#import snippet_module as spm
-
 def init(*args, **kargs):
     snippet = args[0] 
     snippet.add_input("a")
@@ -16,3 +14,7 @@ def run(inputs, params):
     outputs["c"] = a + b
 
     return outputs
+
+
+
+

@@ -26,7 +26,7 @@
             }
             else {
                 // append log to logging component
-                logging_state.log_text += "> " + payload;
+                logging_state.log_text += payload;
             }
         }).then((unlisten) => {
             logging_active = unlisten; 
@@ -35,20 +35,29 @@
 </script>
 
 <div class="body">
-    <textarea bind:value={logging_state.log_text} class="logging-area" readonly wrap="hard"/>
+    <textarea bind:value={logging_state.log_text} class="logging-area courier-prime-regular" readonly wrap="hard"/>
 </div>
 
 <style>
     .body {
         height: 100%;
         width: 100%;
-        background-color: white;
-        border-top: 2px solid lightgrey;
+        background-color: lightgray;
         overflow-y: auto;
+        font-family: monospace, monospace;
+        border-top: 1px solid lightgrey;
     }
     .logging-area {
         width: 100%;
         height: 100%;
         overflow-y: scroll;
+        border-color: white;
+        background-color: white;
+        padding: 4px;
+    }
+    .courier-prime-regular {
+        font-family: "Courier Prime", monospace;
+        font-weight: 400;
+        font-style: normal;
     }
 </style>

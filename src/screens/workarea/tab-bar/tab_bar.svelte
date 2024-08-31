@@ -6,13 +6,13 @@
     let tabs = [];
 
     onMount(() => {
-        tabs.push({id: 0, text: "main_snippet.snip"});
+        /*tabs.push({id: 0, text: "main_snippet.snip"});
         tabs.push({id: 1, text: "lower.snip"});
         tabs.push({id: 2, text: "rest_-_users.snip"});
         tabs.push({id: 3, text: "rest_users.snip"});
         tabs.push({id: 4, text: "rest_users.snip"});
         tabs.push({id: 5, text: "rest_users.snip"});
-        tabs.push({id: 6, text: "rest_users.snip"});
+        tabs.push({id: 6, text: "rest_users.snip"});*/
 
         tabs = tabs;
 

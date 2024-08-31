@@ -48,10 +48,10 @@
     .body {
         display: inline-block;
         padding: 4px;
-        padding-right: 25px;
-        border-bottom: 2px solid whitesmoke;
-        border-left: 1px solid lightgrey;
+        padding-left: 6px;
+        padding-right: 8px;
         border-right: 1px solid lightgrey;
+        border-bottom: 2px solid whitesmoke;
         margin-bottom: -2px;
         cursor: default;
     }
@@ -65,6 +65,6 @@
     }
 
     #active {
-        background-color: darkgray;
+        background-color: white;
     }
 </style>

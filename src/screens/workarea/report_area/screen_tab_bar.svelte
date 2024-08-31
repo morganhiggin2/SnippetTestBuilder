@@ -53,9 +53,10 @@
 
 <style>
     .body {
-        background-color: white;
-        border-top: 2px solid lightgrey;
+        background-color: whitesmoke;
+        border-top: 1px solid lightgrey;
         overflow: hidden;
+        border-bottom: 1px solid lightgray;
     }
 
     .container {

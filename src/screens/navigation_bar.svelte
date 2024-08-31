@@ -103,8 +103,8 @@
             invoke('logln', {text: JSON.stringify(e)});
         });
     }
-</script>
 
+/*
 <div class="body">
     <ul class="navigation-bar">
         <li class="navigation-option" id="plain">File</li>
@@ -120,6 +120,15 @@
             </ul>
         </li> 
     </ul>
+    <ul class="nagivation-bar">
+        <div class="button play" on:click={handleRunClick} on:keydown={() => {}}>
+        </div> 
+    </ul>
+</div>*/
+</script>
+
+<div class="body">
+    <div/> 
     <ul class="nagivation-bar">
         <div class="button play" on:click={handleRunClick} on:keydown={() => {}}>
         </div> 
@@ -207,13 +216,13 @@
     .button {
         background-color: blue;
         height: 100%;
-        width: 10px;
+        margin: 4px;
     }
 
     .button.play {
-        border-top: 12px solid whitesmoke;
+        border-top: 11px solid whitesmoke;
         border-bottom: 12px solid whitesmoke;
-        border-left: 20px solid darkgreen;
+        border-left: 19px solid #02a667;
         height: 0px;
     }
 </style>

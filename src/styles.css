@@ -113,4 +113,8 @@ button {
 }
     //font-synthesis: none;
 }*/
-
+.courier-prime-regular {
+  font-family: "Courier Prime", monospace;
+  font-weight: 400;
+  font-style: normal;
+}

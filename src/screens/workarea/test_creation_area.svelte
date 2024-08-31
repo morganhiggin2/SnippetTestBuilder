@@ -384,7 +384,7 @@
 
         var pipeline_from_connector = visualComponents[from_pipeline_connector_id];
         var pipeline_to_connector = visualComponents[to_pipeline_connector_id];
-
+        screen
         //change from and to colors back
         pipeline_from_connector.state.color = pipeline_from_connector.state.default_color;
         pipeline_to_connector.state.color = pipeline_to_connector.state.default_color;
@@ -556,6 +556,11 @@
         //pipeline is in creation and stage is clickenent
     }
 
+    function handleScreenResize() {
+        stage.width(window_width);
+        stage.height(window_height);
+    }
+
     //change to when click on, its orange, and then other color changes to orange too when pipe made
     //when snippet is moving, pipes turn into something else, simpler, like partially transparent dotted lines
 
@@ -568,7 +573,7 @@
     //funcationlize / split up code
 </script>
 
-<svelte:window bind:innerWidth={window_width} bind:innerHeight={window_height}/>
+<svelte:window bind:innerWidth={window_width} bind:innerHeight={window_height} on:resize={handleScreenResize}/>
 
 <div class="body" on:drop|preventDefault={handleDrop} on:dragover|preventDefault on:dragenter|preventDefault on:dragleave|preventDefault on:mousemove={handleMouseMovement} bind:this={selfObj}>
     <!--{#each snippets as snippet}
