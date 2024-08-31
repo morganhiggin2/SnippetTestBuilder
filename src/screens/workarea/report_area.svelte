@@ -69,6 +69,7 @@
 <style>
     .body {
         height: 100%;
+        width: calc(100% - 254px);
     }
     .tab-bar {
         height: 26px;
