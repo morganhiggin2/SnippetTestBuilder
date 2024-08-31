@@ -52,7 +52,7 @@
 <!--visual file component with draggable properties-->
 <div 
     id={name}
-    class="body" 
+    class="body noselect" 
     style="--indent: {(level - 1) * 17}px"
     draggable=true
     on:dragstart={onDragStart}

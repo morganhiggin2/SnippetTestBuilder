@@ -119,7 +119,7 @@
     }
 </script>
 
-<div on:contextmenu|preventDefault={onRightClick} class="body">
+<div on:contextmenu|preventDefault={onRightClick} class="body noselect">
     {#each files as file}
         {#if file.showing}
             {#if file.file_type == "Snippet"}

@@ -14,5 +14,7 @@
     }
     .icon {
         color: white;
+        font-size: 46px;
+        margin-left: 2px;
     }
 </style>
