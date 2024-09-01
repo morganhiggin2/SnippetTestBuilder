@@ -1,17 +1,14 @@
-use core::fmt;
-use std::{borrow::Borrow, collections::{HashMap, HashSet}, ffi::OsStr, fs::{self, DirEntry, File}, io::{self, Empty}, path::{Display, PathBuf}, rc::Rc, sync::Arc};
+use std::{ffi::OsStr, fs::{self, File}, path::PathBuf};
 use enum_as_inner::EnumAsInner;
-use serde::{Serialize, Deserialize};
-use std::env;
 use std::path::Path;
 
-use crate::{core_components::snippet_manager, state_management::external_snippet_manager::{ExternalSnippet, ExternalSnippetCategory, ExternalSnippetManager, PackagePath}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{state_management::external_snippet_manager::PackagePath, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::{concurrent_processes::get_working_directory, visual_directory_component_manager::{self, FrontDirectoryContent, FrontDirectoryContentType, VisualDirectoryComponentManager}};
+use super::{concurrent_processes::get_working_directory, visual_directory_component_manager::{FrontDirectoryContent, VisualDirectoryComponentManager}};
 
 // This here is not ui related
 pub struct DirectoryManager {
-    //TODO remove pub
+    //snippet directory
     pub snippet_directory: SnippetDirectory,
     //visual front end components for directory contents
     pub visual_component_manager: VisualDirectoryComponentManager
@@ -446,12 +443,12 @@ impl SnippetDirectorySnippet {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::{env, ffi::OsStr, path::PathBuf};
+    
     use crate::core_services::concurrent_processes::get_working_directory;
     use crate::core_services::directory_manager::{SnippetDirectoryEntry, SnippetDirectoryType};
-    use crate::{core_components::snippet_manager::SnippetManager, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+    use crate::utils::sequential_id_generator::{SequentialIdGenerator};
 
-    use super::{DirectoryManager, SnippetDirectory};
+    use super::SnippetDirectory;
 
     #[test]
     fn test_scan_and_map_directory() {

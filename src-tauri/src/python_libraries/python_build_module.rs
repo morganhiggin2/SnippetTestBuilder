@@ -3,16 +3,12 @@
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
-use strum_macros::EnumString;
 use std::str::FromStr;
 
 use pyo3::exceptions::PyValueError;
-use pyo3::{prelude::*, GILPool, PyClass};
-use pyo3::{wrap_pyfunction, wrap_pymodule};
+use pyo3::prelude::*;
 use pyo3::types::*;
-use tauri::utils::config::BuildConfig;
 
-use crate::core_services::directory_manager::{self, DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet};
 use crate::state_management::external_snippet_manager::{ExternalSnippetParameterType, PackagePath};
 use crate::utils::sequential_id_generator::Uuid;
 
@@ -85,7 +81,6 @@ impl InitializedPythonSnippetInitializerBuilder {
 
             //TODO handle cases
             // misnames python file, how do we communicate this to the end user?
-            // how do we get the python file parsing error to the end user?
 
             for python_build_information in python_build_information_list {
                 // Create file path
@@ -97,7 +92,6 @@ impl InitializedPythonSnippetInitializerBuilder {
                 let mut file = match File::open(full_path) {
                     Ok(file) => file,
                     Err(e) => {
-                        //TODO return error
                         return Err(format!("Could not open file to read python sippet: {}", e.to_string()));
                     }
                 };
@@ -114,7 +108,7 @@ impl InitializedPythonSnippetInitializerBuilder {
                     }
                 };
 
-                // Create new gil pool
+                // TODO Create new gil pool
                 /*let pool = unsafe { py.new_pool() };
                 let py = pool.python();*/
 
@@ -142,7 +136,6 @@ impl InitializedPythonSnippetInitializerBuilder {
                 // Create arguments for init function
                 // which includes a python callable object
                 let obj = Bound::new(py, PythonSnippetBuilder::new(python_build_information.name)).unwrap();
-                //TODO pass it as argument with key 'snippet' in kargs
                 let args = PyTuple::new_bound(py, &[obj]);
 
                 // Define python function call closure

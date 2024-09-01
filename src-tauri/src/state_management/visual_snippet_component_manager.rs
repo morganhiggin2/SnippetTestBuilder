@@ -1,7 +1,7 @@
 use bimap::BiHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{core_services::visual_directory_component_manager, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::utils::sequential_id_generator::{Uuid};
 
 pub struct VisualSnippetComponentManager {
     pipeline_front_to_pipeline: BiHashMap<Uuid, Uuid>,
@@ -204,8 +204,6 @@ impl VisualSnippetComponentManager {
     pub fn find_parameter_uuid_from_parameter_front(&self, parameter_front_uuid: Uuid) -> Option<Uuid> {
         return self.parameter_front_to_parameter.get_by_left(&parameter_front_uuid).copied();
     }
-
-    // TODO put create methods for front here
 }
 
 impl FrontSnippetContent {

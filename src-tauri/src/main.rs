@@ -19,31 +19,8 @@ pub mod core_services;
 pub mod python_libraries;
 
 fn main() {
-    /*match call_init() {
-        Ok(_) => (),
-        Err(e) => {
-            println!("error {}", e);
-        }
-    }*/
     //create application state
     let application_state_guard = SharedApplicationState::default();
-        
-    {
-        let mut guard = application_state_guard.0.lock().unwrap();
-        let app_ref = guard.deref_mut();
-
-        //call init for utils and services first
-
-        //call init for state management system
-        ApplicationState::init(app_ref);
-
-        /*match call_init(&mut app_ref.sequential_id_generator, &mut app_ref.external_snippet_manager) {
-            Ok(_) => (),
-            Err(e) => {
-                println!("error {}", e);
-            }
-        }*/
-    }
 
     tauri::Builder::default()
         .manage(application_state_guard)
@@ -59,8 +36,3 @@ fn logln(text: &str) {
 
 //IMPORTAINT 
 //installed libpython3.10-dev
-
-// TODO
-// 1. clean up warnings
-// 2. any more test cases
-// 3. test new changes on linux and mac

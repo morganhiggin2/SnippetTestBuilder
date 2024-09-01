@@ -1,9 +1,9 @@
 // Create correct log location for purpose
 // buffer, then append to log location
 
-use std::{borrow::BorrowMut, cell::RefCell, collections::HashSet, env, io::Write, ops::Range, path::PathBuf, rc::Rc, sync::{Arc, Mutex}};
+use std::{borrow::BorrowMut, sync::{Arc, Mutex}};
 
-use tauri::{api, AppHandle, Manager};
+use tauri::Manager;
 
 use crate::utils::sequential_id_generator::Uuid;
 

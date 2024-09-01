@@ -21,7 +21,6 @@
 
             // if we receive the close log event
             if (payload == "") {
-                //TODO maybe not actually ending, maybe not timly (i.e. other events queued before this could get called) 
                 logging_active();
             }
             else {

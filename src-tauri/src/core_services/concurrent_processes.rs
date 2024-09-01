@@ -1,10 +1,10 @@
-use std::{borrow::{Borrow, BorrowMut}, ops::DerefMut, path::PathBuf, env, sync::{Arc, Mutex}};
+use std::{ops::DerefMut, path::PathBuf, env, sync::{Arc, Mutex}};
 
 use tauri::Manager;
 
-use crate::{python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::{external_snippet_manager, visual_snippet_component_manager, ApplicationState}, utils::sequential_id_generator::{self, Uuid}};
+use crate::{python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::ApplicationState};
 
-use super::{directory_manager, runtime_logging_service::LoggingStreamInstance};
+use super::runtime_logging_service::LoggingStreamInstance;
 
 /// This event spawns the initalize event, returning the event id and the log file id.
 /// This will emit the event id to the front id  when the process is complete
@@ -16,8 +16,6 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     let sequential_id_generator = &mut state.sequential_id_generator;
     let external_snippet_manager = &mut state.external_snippet_manager;   
     let directory_manager = &mut state.directory_manager;
-
-    //TODO reinitialize directory if already initialized
 
     // Initialize directory of snippets
     directory_manager.initialize(&"runables/snippets/root".to_string(), sequential_id_generator).unwrap();
@@ -47,7 +45,6 @@ pub async fn spawn_run_snippets_event(build_state: InitializedPythonSnippetRunne
             logging_stream_instance.append_log(format!("Finished successfully running all snippets"));
         },
         Err(e) => {
-            //TODO log error
             logging_stream_instance.append_log(e);
         }
     };

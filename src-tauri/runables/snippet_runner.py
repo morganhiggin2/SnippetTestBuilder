@@ -20,9 +20,6 @@ def run_snippet(*args, **kwargs):
     :param parameter_values: parameter values
     '''
 
-    # TODO set output of std in to something that the program can buffer into the user
-    # probably on the os level
-
     # import snippet from other file
     # reload if it has already been loaded
     py_snippet_runnable = importlib.import_module(snippet_path)

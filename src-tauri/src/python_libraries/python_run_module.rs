@@ -1,12 +1,11 @@
-use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
+use std::{collections::{HashMap, HashSet, VecDeque}, fs::File, io::{self, Read}, path::PathBuf};
 
-use petgraph::{graph::NodeIndex, visit::{EdgeRef, NodeRef}};
-use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, Bound, IntoPy, Py, PyAny, PyResult, Python, ToPyObject};
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
+use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, IntoPy, Py, PyAny, PyResult, Python};
 use pathdiff::diff_paths;
 
-use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::get_working_directory, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::{self, ExternalSnippet, ExternalSnippetManager}, visual_snippet_component_manager::{self, VisualSnippetComponentManager}}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::get_working_directory, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::{ExternalSnippetManager}, visual_snippet_component_manager::{VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::python_build_module::FinalizedPythonSnipppetInitializerBuilder;
 
 // location of the python runner library
 const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "runables/snippet_runner.py";
@@ -129,7 +128,6 @@ impl InitializedPythonSnippetRunnerBuilder {
             match file.read_to_string(&mut contents) {
                 io::Result::Ok(_) => (),
                 io::Result::Err(e) => {
-                    //TODO return error
                     return Err(format!("Could not read the contents of the python runner wrapper file: {}", e)); 
                 }
             };
@@ -203,7 +201,7 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 // get inputs for snippet
                 // if this fails, there is a critical logic error in the code
-                let mut snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
+                let snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
 
                 // grab input parameters from hash map
                 // this maps each snippets output to the next snippet input id and name
@@ -260,7 +258,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // convert to python module 
                 let py_path = file_path_to_py_path(snippet_python_build_information.python_file.to_owned())?;
 
-                let mut kwargs = PyDict::new_bound(py);
+                let kwargs = PyDict::new_bound(py);
 
                 match kwargs.set_item("snippet_path", py_path.to_owned().into_py(py)) {
                     Ok(_) => (),
@@ -353,7 +351,7 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
     let working_directory = get_working_directory();
 
     // build base python runner location
-    let mut base_python_runner_location = working_directory.to_owned();
+    let base_python_runner_location = working_directory.to_owned();
     //base_python_runner_location.push(PYTHON_BASE_RUNNER_LOCATION.to_owned());
 
     // remove relative directory of runner files
@@ -383,7 +381,7 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
 mod test {
     use std::path::PathBuf;
 
-    use crate::{core_services::concurrent_processes::get_working_directory, python_libraries::python_run_module::{file_path_to_py_path, InitializedPythonSnippetRunnerBuilder}};
+    use crate::{core_services::concurrent_processes::get_working_directory, python_libraries::python_run_module::file_path_to_py_path};
 
     #[test]
     fn test_file_path_to_py_path() {

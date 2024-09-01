@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use crate::{core_services::{concurrent_processes::spawn_run_snippets_event, directory_manager}, python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::{external_snippet_manager, visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
-use std::sync::{Arc, MutexGuard};
+use crate::{core_services::concurrent_processes::spawn_run_snippets_event, python_libraries::python_run_module::InitializedPythonSnippetRunnerBuilder, state_management::{visual_snippet_component_manager::{FrontPipelineContent, FrontSnippetContent}, window_manager::WindowSession, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
+use std::sync::MutexGuard;
 use std::ops::DerefMut;
 
 /// create a new snippet

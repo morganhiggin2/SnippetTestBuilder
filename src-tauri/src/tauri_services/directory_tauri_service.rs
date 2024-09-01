@@ -1,8 +1,7 @@
 use std::{ops::DerefMut, sync::{Arc, MutexGuard}};
 
-use tauri::Manager;
 
-use crate::{core_services::{concurrent_processes::spawn_initialize_directory_event, directory_manager::{self, DirectoryManager}, visual_directory_component_manager::FrontDirectoryContent}, state_management::{external_snippet_manager::ExternalSnippetManager, ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
+use crate::{core_services::{concurrent_processes::spawn_initialize_directory_event, visual_directory_component_manager::FrontDirectoryContent}, state_management::{ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
 #[tauri::command] 
 pub fn get_snippet_directory_details(application_state: tauri::State<SharedApplicationState>) -> Vec<FrontDirectoryContent> {
     // get the state

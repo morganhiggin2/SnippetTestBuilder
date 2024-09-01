@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 use bimap::BiHashMap;
 use strum_macros::{EnumString, Display};
 
-use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectorySnippet, SnippetDirectoryType}, python_libraries::python_build_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuildInformation, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{self, SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{PipelineConnectorComponent, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::directory_manager::{DirectoryManager, SnippetDirectoryEntry, SnippetDirectoryType}, python_libraries::python_build_module::{FinalizedPythonSnipppetInitializerBuilder, InitializedPythonSnippetInitializerBuilder, PythonSnippetBuilderWrapper}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
 //TODO implement schema matching
 pub type Schema = String;
@@ -131,7 +131,7 @@ impl ExternalSnippetManager {
     }
 
     /// Walk though the directory, creating snippets as we go
-    fn directory_walker(&self, directory_entry: &SnippetDirectoryEntry, python_snippet_builder: &mut InitializedPythonSnippetInitializerBuilder, sequential_id_generator: &mut SequentialIdGenerator, mut package_path: PackagePath) -> Result<(), String> {
+    fn directory_walker(&self, directory_entry: &SnippetDirectoryEntry, python_snippet_builder: &mut InitializedPythonSnippetInitializerBuilder, sequential_id_generator: &mut SequentialIdGenerator, package_path: PackagePath) -> Result<(), String> {
         // get name
         let name = directory_entry.get_name();
         let path = directory_entry.get_path();
@@ -424,7 +424,7 @@ impl ExternalSnippet {
         //external snippet creation
         let external_snippet = ExternalSnippet {
             uuid: uuid,
-            name: name.clone().to_owned(),
+            name: name.to_owned(),
             package_path: package_path, 
             sub_directory: String::new(),
             io_points: HashMap::with_capacity(2),
@@ -563,7 +563,7 @@ impl ToString for PackagePath {
 mod test {
     use std::collections::HashMap;
 
-    use crate::{core_services::directory_manager::{self, DirectoryManager}, state_management::external_snippet_manager::{ExternalSnippetCategory, ExternalSnippetIOPoint, ExternalSnippetParameter, ExternalSnippetParameterType}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+    use crate::{core_services::directory_manager::{DirectoryManager}, state_management::external_snippet_manager::{ExternalSnippetIOPoint, ExternalSnippetParameter, ExternalSnippetParameterType}, utils::sequential_id_generator::{SequentialIdGenerator}};
 
     use super::{ExternalSnippet, ExternalSnippetManager, PackagePath};
 
@@ -909,7 +909,7 @@ mod test {
             assert_eq!(io_point.schema, "".to_string());
             
             // create map for params based on name and input, output
-            let param_map: HashMap<String, &ExternalSnippetParameter> = external_snippet.parameters.iter().map(|element| -> ((String), &ExternalSnippetParameter) {
+            let param_map: HashMap<String, &ExternalSnippetParameter> = external_snippet.parameters.iter().map(|element| -> (String, &ExternalSnippetParameter) {
                 return (element.1.name.to_owned(), &element.1);
             })
             .collect();
@@ -925,9 +925,6 @@ mod test {
             };
 
             assert_eq!(param.p_type, ExternalSnippetParameterType::SingleLineText);
-        
-        //TODO tests for parameters
-        //TODO map them to correct directory entries, so look to see if we can get them, and if that directory entry has the right name
         }
     }
 
@@ -951,28 +948,3 @@ mod test {
         assert_eq!(package_path_iter.next().unwrap(), "child".to_string());
     }
 }
-
-/*
-impl ExternalSnippetCategory {
-    /// Create new category node
-    pub fn new(sequential_id_generator: &mut SequentialIdGenerator, name: String) -> Self {
-        return ExternalSnippetCategory {
-            uuid: sequential_id_generator.get_id(),
-            name: name
-        };
-    }
-    
-    pub fn get_uuid(&self) -> Uuid {
-        return self.uuid;
-    }
-    
-    pub fn get_name(&self) -> String {
-        return self.name.clone();
-    }
-}
-
-impl fmt::Display for ExternalSnippetCategory {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
-    }
-} */

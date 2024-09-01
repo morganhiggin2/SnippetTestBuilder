@@ -1,9 +1,9 @@
-use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType}, visual_snippet_component_manager::{self, FrontParameterContent, VisualSnippetComponentManager}, window_manager::WindowSession, ApplicationState}, utils::sequential_id_generator::{self, SequentialIdGenerator}};
+use crate::{state_management::{external_snippet_manager::{ExternalSnippet, ExternalSnippetParameterType}, visual_snippet_component_manager::{FrontParameterContent, VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator}};
 use crate::state_management::visual_snippet_component_manager::{FrontSnippetContent, FrontPipelineConnectorContent, FrontPipelineContent};
-use std::{collections::{HashMap, HashSet}, hash::Hash, ops::Add, sync::MutexGuard};
+use std::collections::{HashMap, HashSet};
 use crate::utils::sequential_id_generator::Uuid;
 use bimap::BiHashMap;
-use petgraph::{self, adj::EdgeIndex, data::{Build, DataMap, DataMapMut}, graph::{Node, NodeIndex}, visit::{EdgeIndexable, EdgeRef}};
+use petgraph::{self, data::{Build, DataMapMut}, graph::NodeIndex};
 use pyo3::{IntoPy, Py, PyAny};
 
 /// the manager of the snippets, and their links
@@ -15,7 +15,6 @@ pub struct SnippetManager {
     pipelines: HashMap<Uuid, PipelineComponent>,
 
     //mapping for pipeline connects to pipeline components
-    // TODO this fails for multiple pipielinse for the same pipeline connector
     
     //what we need is a bi searchable structure that allows us to get multiple results when calling pipeline connector to pipeline
     // and pipieline to pipeline connector
@@ -23,18 +22,6 @@ pub struct SnippetManager {
     pipeline_connector_to_snippet: HashMap<Uuid, Uuid>,
     parameter_to_snippet: HashMap<Uuid, Uuid>,
     
-    //TODO delete these thoughts
-    // we use it to 
-    // a) get pipeline from pipeline connector
-    // b) get snippet from pipeline connector
-    // now for the building of a map
-    // c) we need to get all pipeline connectors for each pipeline
-    // b) get each snippet for each pipeline connector
-    // the problem is there can exists multiple pipeline connectors for each snippet, and multiple pipelines connectors for each pipeline
-    //
-    // we can do c in an efficient O(n) iterative processs
-    // b needs to change to allow multiple pipelines for a pipeline connector
-
     // graph for keeping track of cycles
     // where the edge weight is the number of connections (pipelines) form that snippet to the other snippet
     snippet_graph: petgraph::stable_graph::StableGraph<(), i16, petgraph::Directed>,
@@ -45,10 +32,6 @@ pub struct SnippetManager {
     //uuid_to_edge_adj_index: HashMap<u32, usize>
     //edge adj list
 }
-
-//TODO to adapt for multi input and outputs
-//have hashmap of <(from_uuid, to_uuid), pipeline_uuid>
-//and bihashmap of <from_uuid, to_uuid> which only includes pipeline connectors involed in pipelines
 
 /// the actual snippet itself
 pub struct SnippetComponent {
@@ -368,7 +351,6 @@ impl SnippetManager {
         return new_graph;
     }
 
-    //TODO tests check for multiple pipielines to connect
     /// create pipeline
     /// 
     /// # Arguments
@@ -434,7 +416,6 @@ impl SnippetManager {
             }
         }
         
-        //TODO better way
         let mut graph_uuid_container: Option<petgraph::prelude::EdgeIndex> = Option::None;
 
         {
@@ -509,7 +490,7 @@ impl SnippetManager {
                 uuids.insert(pipeline_uuid);
             },
             None => {
-                let mut uuids = HashSet::<Uuid>::from([pipeline_uuid]);
+                let uuids = HashSet::<Uuid>::from([pipeline_uuid]);
 
                 self.pipeline_connector_to_pipeline.insert(from_uuid, uuids);
             }
@@ -524,7 +505,7 @@ impl SnippetManager {
                 uuids.insert(pipeline_uuid);
             },
             None => {
-                let mut uuids = HashSet::<Uuid>::from([pipeline_uuid]);
+                let uuids = HashSet::<Uuid>::from([pipeline_uuid]);
 
                 self.pipeline_connector_to_pipeline.insert(to_uuid, uuids);
             }
@@ -927,7 +908,6 @@ impl SnippetComponent {
         //generate contents vector
         let mut contents: Vec<FrontPipelineConnectorContent> = Vec::with_capacity(self.pipeline_connectors.len());
 
-        //TODO try to find in visual snippet component manager by calling find_ method on visual snippet component manager, if not, then create using pipeline_connector.create_as_front_content
         // have this approach for many
         //get io points
         for pipeline_connector in self.pipeline_connectors.iter() {
@@ -1077,21 +1057,6 @@ impl SnippetParameterComponent {
         return self.p_type.clone();
     }
 }
-//map: pipeline_connectors->parent
-
-//could store parent uuid for connector inside connector or mapping
-//TODO change alot of impl from getting self seperatrly to directory getting &self or &mut self
-//TODO implement automatically the order of pipeline so that input: false always goes to input:true, also add validation for this to make sure
-//  that they appose
-//TODO visual grid, and gridlocking
-
-
-
-//TODO rust backend visual to id mapper 
-//TODO convert all then()'s to .await
-//TODO hide all new shippet stuff with internal id's behind abstraction layer of virtual component manager
-//TODO be able to move visual snippet components on screen, have pipelines either (a disapear temproarly, so visiabiliy off, then redraw), or if working
-//  b) be able to have dotted lines that move with the snippet as the pipelines when it moves (can implement a first, then b)
 
 #[cfg(test)]
 mod tests {
@@ -1183,7 +1148,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -1196,7 +1161,7 @@ mod tests {
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
@@ -1236,7 +1201,6 @@ mod tests {
         assert_eq!(snippet_manager.pipeline_connector_to_snippet.len(), 5);
 
         // make sure the pipeline connectors from the third one are 
-        //TODO insert rest
         assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&1), true);
         assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&2), true);
         assert_eq!(snippet_manager.pipeline_connector_to_snippet.contains_key(&6), true);
@@ -1257,7 +1221,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -1270,7 +1234,7 @@ mod tests {
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
@@ -1369,7 +1333,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -1382,7 +1346,7 @@ mod tests {
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));
@@ -1473,7 +1437,7 @@ mod tests {
         let mut snippet_manager = SnippetManager::default(); 
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
 
         // create the first snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
@@ -1486,7 +1450,7 @@ mod tests {
         // create second snippet
         let external_pipeline_connector_uuid = sequential_id_generator.get_id();
         let mut pipeline_connectors = Vec::<PipelineConnectorComponent>::new();
-        let mut parameters = Vec::<SnippetParameterComponent>::new();
+        let parameters = Vec::<SnippetParameterComponent>::new();
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "input_one", true));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_one", false));
         pipeline_connectors.push(PipelineConnectorComponent::new(&mut sequential_id_generator, external_pipeline_connector_uuid, "output_two", false));

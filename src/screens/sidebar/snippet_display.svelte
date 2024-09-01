@@ -37,8 +37,8 @@
         });
         
         // call the spawn initalize snippet directory
-        invoke('spawn_initialize_snippet_directory', {windowSessionUuid: window_session_id}).then((log_id) => {
-            //TODO unused log id
+        invoke('spawn_initialize_snippet_directory', {windowSessionUuid: window_session_id}).then((_log_id) => {
+
         });
 
         /*logging_dispatch('triggerLogging', {
