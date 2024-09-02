@@ -62,7 +62,7 @@ pub fn get_working_directory() -> PathBuf {
     let mut working_directory = env::current_dir().unwrap();
 
     // if we are on mac
-    if cfg!(target_os = "macos") {
+    if !cfg!(debug_assertions) && cfg!(target_os = "macos") {
         // get current executable location
         working_directory = env::current_exe().unwrap();
         // remove the executable name from the path to get the base folder
