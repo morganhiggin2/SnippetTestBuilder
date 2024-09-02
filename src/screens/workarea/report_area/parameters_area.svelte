@@ -95,6 +95,7 @@
     .parameter.name {
         padding-right: 0px;
         margin-right: 0px;
+        font-size: 13px;
     }
 
     .parameter.value {

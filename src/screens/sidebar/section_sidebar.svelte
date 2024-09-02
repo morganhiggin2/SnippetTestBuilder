@@ -1,9 +1,10 @@
 <script>
-
+    //<div class="icon">&#9874;</div>
+    import BuildImage from './../../images/BuildIcon.png';
 </script>
 
 <div class="body">
-    <div class="icon">&#9874;</div>
+    <img class="icon" src={BuildImage} alt="build icon"/>
 </div>
 
 <style>
@@ -14,7 +15,5 @@
     }
     .icon {
         color: white;
-        font-size: 46px;
-        margin-left: 2px;
     }
 </style>
