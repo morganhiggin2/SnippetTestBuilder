@@ -4,11 +4,11 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, IntoPy, Py, PyAny, PyResult, Python};
 use pathdiff::diff_paths;
 
-use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::get_working_directory, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::{ExternalSnippetManager}, visual_snippet_component_manager::{VisualSnippetComponentManager}}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
+use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::{get_runables_directory, get_working_directory}, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::ExternalSnippetManager, visual_snippet_component_manager::VisualSnippetComponentManager}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
 
 // location of the python runner library
-const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "runables/snippet_runner.py";
+const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "snippet_runner.py";
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetRunnerBuilder {
@@ -114,7 +114,7 @@ impl InitializedPythonSnippetRunnerBuilder {
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
             // import python module for calling snippets (the wrapper function)
-            let python_runner_wrapper_path: PathBuf = get_working_directory().join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
+            let python_runner_wrapper_path: PathBuf = get_working_directory().join(get_runables_directory()).join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
             
             let mut file = match File::open(python_runner_wrapper_path) {
                 Ok(file) => file,
@@ -381,14 +381,14 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
 mod test {
     use std::path::PathBuf;
 
-    use crate::{core_services::concurrent_processes::get_working_directory, python_libraries::python_run_module::file_path_to_py_path};
+    use crate::{core_services::concurrent_processes::{get_runables_directory, get_working_directory}, python_libraries::python_run_module::file_path_to_py_path};
 
     #[test]
     fn test_file_path_to_py_path() {
         // get working directory
         let working_directory = get_working_directory();
         // create path buf
-        let path = working_directory.join(PathBuf::from("runables/snippets/root/main/basic_one_snippet/app"));
+        let path = working_directory.join(get_runables_directory().join(PathBuf::from("/snippets/root/main/basic_one_snippet/app")));
 
         let py_path = file_path_to_py_path(path);
 

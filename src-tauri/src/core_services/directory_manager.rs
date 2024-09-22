@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::{state_management::external_snippet_manager::PackagePath, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
 
-use super::{concurrent_processes::get_working_directory, visual_directory_component_manager::{FrontDirectoryContent, VisualDirectoryComponentManager}};
+use super::{concurrent_processes::{get_runables_directory, get_working_directory}, visual_directory_component_manager::{FrontDirectoryContent, VisualDirectoryComponentManager}};
 
 // This here is not ui related
 pub struct DirectoryManager {
@@ -137,10 +137,10 @@ impl SnippetDirectory {
     /// as well as assembles external snippets, existing snippets will not be overriden
     /// and new snippets will be inserted
     fn scan_and_map_directory(&mut self, relative_snippet_directory: &String, sequential_id_generator: &mut SequentialIdGenerator) -> Result<(), String> {
-        //get current working directory
-        let current_working_directory = get_working_directory(); 
+        //get current runables directory 
+        let runables_directory = get_runables_directory(); 
         //get snippet directory
-        let snippets_directory = current_working_directory.join(relative_snippet_directory);
+        let snippets_directory = runables_directory.join(relative_snippet_directory);
 
         // if root category does not exist, override it 
         /*match self.root {

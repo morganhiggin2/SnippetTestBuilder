@@ -5,6 +5,8 @@ use std::ops::DerefMut;
 
 //use core_services::
 
+use core_services::installation_manager::install_runables;
+
 //use snippet_python_module::python_module::call_init_2;
 use crate::state_management::{SharedApplicationState, ApplicationState};
 use crate::tauri_services::directory_tauri_service::{get_snippet_directory_details, spawn_initialize_snippet_directory};
@@ -25,6 +27,9 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             // initialize installation files 
+            install_runables(app);
+
+            return Ok(());
         })
         .manage(application_state_guard)
         .invoke_handler(tauri::generate_handler![logln, new_window_session, new_snippet, validate_pipeline_connection, new_pipeline, check_pipeline_connector_capacity_full, get_id, get_pipeline_connector_uuids_from_pipeline, delete_pipeline, get_snippet_pipelines, get_pipeline_connector_uuids_from_snippet, delete_snippet, spawn_initialize_snippet_directory, get_snippet_directory_details, update_snippet_parameter_value, spawn_run_snippets])

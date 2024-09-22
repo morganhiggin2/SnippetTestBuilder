@@ -18,7 +18,7 @@ pub async fn spawn_initialize_directory_event(application_state: Arc::<Mutex::<A
     let directory_manager = &mut state.directory_manager;
 
     // Initialize directory of snippets
-    directory_manager.initialize(&"runables/snippets/root".to_string(), sequential_id_generator).unwrap();
+    directory_manager.initialize(&"/snippets/root".to_string(), sequential_id_generator).unwrap();
 
     // create external snippets from directory manager
     let result = external_snippet_manager.create_external_snippets_from_directory(directory_manager, sequential_id_generator);
@@ -70,4 +70,10 @@ pub fn get_working_directory() -> PathBuf {
     }
 
     return working_directory;
+}
+
+// get runables directory
+pub fn get_runables_directory() -> PathBuf {
+    // base directory 
+    return directories::UserDirs::new().unwrap().home_dir().join("SnippetTestBuilder/runables");
 }
