@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet, VecDeque}, fs::File, io::{self, Read}, path::PathBuf};
+use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
 
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, IntoPy, Py, PyAny, PyResult, Python};
@@ -110,6 +110,8 @@ impl InitializedPythonSnippetRunnerBuilder {
         //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
         //    BUT what else is going to want the lock? as are single threaded single project
 
+        // set the pythonpath if not already set
+        set_python_path();
 
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
@@ -348,10 +350,12 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
     path.set_extension("");
 
     // get working directory
-    let working_directory = get_working_directory();
+    let mut runables_directory = get_runables_directory();
+    // pop runables directory from path to get base
+    runables_directory.pop();
 
     // build base python runner location
-    let base_python_runner_location = working_directory.to_owned();
+    let base_python_runner_location = runables_directory.to_owned();
     //base_python_runner_location.push(PYTHON_BASE_RUNNER_LOCATION.to_owned());
 
     // remove relative directory of runner files
@@ -377,6 +381,44 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
     return Ok(py_path);
 }
 
+/// Set the python path, if it has not already been set, to make the runables visible to the python interpreter
+pub fn set_python_path() {
+    // get runables location
+    let mut runables_directory = get_runables_directory();
+
+    // pop runables off to get snippet directory base 
+    runables_directory.pop();
+    let runables_directory_str = runables_directory.to_str().unwrap();
+
+    // set python path environment variable
+    match env::var("PYTHONPATH") {
+        Ok(val) => {
+            // if it does not already contains the runables path, set it
+            if !val.contains(runables_directory_str) {
+                let mut seperator = ":";
+
+                // if windows, the seperator is different
+                if cfg!(target_os = "windows") {
+                    seperator = ";";
+                }
+
+                let new_val = val + seperator + runables_directory_str;
+
+                unsafe {
+                    env::set_var("PYTHONPATH", new_val);
+                }
+            }
+            // else, leave alone
+        }
+        // None could be found or error retriving, assume none existed
+        Err(_) => {
+            unsafe {
+                env::set_var("PYTHONPATH", runables_directory.to_str().unwrap());
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::path::PathBuf;
@@ -388,7 +430,7 @@ mod test {
         // get working directory
         let working_directory = get_working_directory();
         // create path buf
-        let path = working_directory.join(get_runables_directory().join(PathBuf::from("/snippets/root/main/basic_one_snippet/app")));
+        let path = working_directory.join(get_runables_directory().join(PathBuf::from("snippets/root/main/basic_one_snippet/app")));
 
         let py_path = file_path_to_py_path(path);
 

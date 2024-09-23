@@ -12,6 +12,8 @@ use pyo3::types::*;
 use crate::state_management::external_snippet_manager::{ExternalSnippetParameterType, PackagePath};
 use crate::utils::sequential_id_generator::Uuid;
 
+use super::python_run_module::set_python_path;
+
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetInitializerBuilder {
     build_information: Vec<PythonSnippetBuildInformation>
@@ -75,6 +77,10 @@ impl InitializedPythonSnippetInitializerBuilder {
 
     fn initialize_snippets(self) -> Result<Vec<PythonSnippetBuilderWrapper>, String> {
         let python_build_information_list = self.build_information;
+
+        // set the pythonpath if not already set
+        set_python_path();
+
         // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
         let python_built_snippets = Python::with_gil(|py| -> Result<Vec::<PythonSnippetBuilderWrapper>, String> {
             let mut python_snippet_builders: Vec::<PythonSnippetBuilderWrapper> = Vec::<PythonSnippetBuilderWrapper>::new();

@@ -143,10 +143,6 @@ impl SnippetDirectory {
         //get snippet directory
         let snippets_directory = runables_directory.to_owned().join(PathBuf::from(relative_snippet_directory));
 
-        println!("{}", runables_directory.to_string_lossy());
-        println!("{}", relative_snippet_directory);
-        println!("{}", snippets_directory.to_string_lossy());
-
         // if root category does not exist, override it 
         /*match self.root {
             Some(_) => (), 
