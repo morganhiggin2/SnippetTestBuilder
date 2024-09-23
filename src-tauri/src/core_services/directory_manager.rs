@@ -1,5 +1,6 @@
 use std::{ffi::OsStr, fs::{self, File}, path::PathBuf};
 use enum_as_inner::EnumAsInner;
+use tauri::RunEvent;
 use std::path::Path;
 
 use crate::{state_management::external_snippet_manager::PackagePath, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
@@ -140,7 +141,11 @@ impl SnippetDirectory {
         //get current runables directory 
         let runables_directory = get_runables_directory(); 
         //get snippet directory
-        let snippets_directory = runables_directory.join(relative_snippet_directory);
+        let snippets_directory = runables_directory.to_owned().join(PathBuf::from(relative_snippet_directory));
+
+        println!("{}", runables_directory.to_string_lossy());
+        println!("{}", relative_snippet_directory);
+        println!("{}", snippets_directory.to_string_lossy());
 
         // if root category does not exist, override it 
         /*match self.root {
