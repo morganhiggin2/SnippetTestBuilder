@@ -475,3 +475,49 @@ fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> 
 
     return Ok(0);
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::core_services::installation_manager::compare_versions;
+
+    #[test]
+    fn test_compare_versions() {
+        // versions of size one
+        assert_eq!(compare_versions("14".to_string(), "0".to_string()), Ok(1));
+        assert_eq!(compare_versions("2".to_string(), "2".to_string()), Ok(1));
+        assert_eq!(compare_versions("0".to_string(), "8".to_string()), Ok(1));
+
+        // versions of size three
+        assert_eq!(
+            compare_versions("2.5.0".to_string(), "1.78.9".to_string()),
+            Ok(1)
+        );
+        assert_eq!(
+            compare_versions("1.78.9".to_string(), "1.78.9".to_string()),
+            Ok(0)
+        );
+        assert_eq!(
+            compare_versions("1.24.2".to_string(), "1.78.9".to_string()),
+            Ok(-1)
+        );
+        assert_eq!(
+            compare_versions("0.24.2".to_string(), "1.78.9".to_string()),
+            Ok(-1)
+        );
+
+        // empty versions
+        matches!(compare_versions("".to_string(), "".to_string()), Err(_));
+
+        // negitive version (invalid)
+        matches!(
+            compare_versions("-5.0.0".to_string(), "0.0.0".to_string()),
+            Err(_)
+        );
+
+        // other invalid versions
+        matches!(
+            compare_versions("1.2.3".to_string(), "a.b.c".to_string()),
+            Err(_)
+        );
+    }
+}
