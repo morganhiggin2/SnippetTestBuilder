@@ -12,6 +12,7 @@ use super::concurrent_processes::get_runables_directory;
 /// The files to install will be bundled with the launcher
 const SNIPPET_CREATOR_FILE_CONTENTS: &str = include_str!("../../runables/snippet_creator.py");
 const SNIPPET_RUNNER_FILE_CONTENTS: &str = include_str!("../../runables/snippet_runner.py");
+
 // structs for the visual directory
 struct VirtualFolder {
     name: &'static str,
