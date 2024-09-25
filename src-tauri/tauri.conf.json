@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Snippet Test Builder",
-    "version": "0.0.0"
+    "version": "0.0.1"
   },
   "tauri": {
     "allowlist": {
@@ -18,7 +18,8 @@
         "open": true
       },
       "fs": {
-        "scope": ["$RESOURCE/*"]
+        "scope": ["$RESOURCE/*"],
+        "all": true
       }
     },
     "bundle": {
@@ -30,9 +31,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources": [
-        "runables/*"
-      ],
+      "resources": [],
       "identifier": "snippet.test.builder",
       "targets": ["deb", "dmg"]
     },
