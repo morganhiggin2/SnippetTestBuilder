@@ -128,8 +128,9 @@ impl ExternalSnippetManager {
             .get_root_directory_entry()
         {
             Some(some) => some,
+            // If no root, simply do not create the external snippet manager
             None => {
-                return Err("Directory Manager has not been initialized".to_string());
+                return Ok(());
             }
         };
         let root_package = PackagePath::default();
