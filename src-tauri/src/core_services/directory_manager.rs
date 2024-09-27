@@ -214,16 +214,24 @@ impl SnippetDirectory {
 
         // we don't have a root folder
         if roots.len() == 0 {
-            return Err(format!(
+            /*return Err(format!(
                 "Root root directory missing: {}/{}",
                 runables_directory.to_string_lossy(),
                 relative_snippet_directory
-            ));
+            ));*/
+
+            // add empty root to allow directory browser to be spawned
+            /*self.root = Some(SnippetDirectoryEntry::new_category(
+                "root".to_string(),
+                runables_directory.join("root"),
+                sequential_id_generator,
+            ));*/
+
+            self.root = None
+        } else {
+            // get one that is named root
+            self.root = Some(roots.remove(0));
         }
-
-        // get one that is named root
-        self.root = Some(roots.remove(0));
-
         return Ok(());
     }
     // the next step would to call initialize snippet to create snippets on every snippet file container

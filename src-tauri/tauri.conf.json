@@ -20,6 +20,10 @@
       "fs": {
         "scope": ["$RESOURCE/*"],
         "all": true
+      },
+      "http": {
+        "all": true,
+        "request": true
       }
     },
     "bundle": {

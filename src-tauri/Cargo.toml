@@ -13,7 +13,7 @@ edition = "2021"
 tauri-build = { version = "1.2", features = [] }
 
 [dependencies]
-tauri = { version = "1.2", features = ["fs-all", "shell-open"] }
+tauri = { version = "1.2", features = ["fs-all", "http-all", "shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bimap = "0.6.3"
@@ -25,8 +25,8 @@ pathdiff = "0.2.1"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 directories = "5.0.1"
-downloader = "0.2.7"
 zip = "2.2.0"
+reqwest = "0.12.7"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

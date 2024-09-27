@@ -1,4 +1,4 @@
-use downloader::{self, Downloader};
+use reqwest;
 use std::{
     env::home_dir,
     fs::{self, create_dir_all, read_dir},
@@ -130,33 +130,15 @@ fn install_runable_crawer(folder: &VirtualFolder, install_path: PathBuf) -> Resu
 /// and downloads if they don't exists, or updates if it exists.
 /// This is done in parallel to program execution, and changes will be visible
 /// in the directory manager, the next startup of the program, as to now slow down startup time
-pub async fn download_or_update_standard_snippets() -> Result<(), String> {
+pub async fn fetch_new_snippets_zip() -> Result<(), String> {
     let runables_directory = get_runables_directory();
-
-    // downloader
-    let mut downloader = Downloader::builder()
-        .download_folder(&runables_directory)
-        .build()
-        .unwrap();
 
     // download metadata file, check for new versions
     let metadata_url =
         "https://www.snippettestbuilder.com/download/_standard_snippets/metadata.txt";
     let metadata_path = runables_directory.join(".metadata");
 
-    // download metadata file
-    let metadata_download =
-        downloader::Download::new(metadata_url).file_name(&PathBuf::from(".metadata"));
-    match downloader.download(&[metadata_download]) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "Could not download metadata file to {}: {}",
-                metadata_path.to_string_lossy(),
-                e.to_string()
-            ))
-        }
-    }
+    download_file(metadata_url.to_string(), metadata_path.to_owned()).await?;
 
     // wether we are going to download the new version
     let mut download_new_version = false;
@@ -192,6 +174,8 @@ pub async fn download_or_update_standard_snippets() -> Result<(), String> {
             }
         };
 
+        metadata_file_contents.pop();
+
         // get version (just going to be the only vonent in the file)
         new_version = metadata_file_contents;
     }
@@ -201,14 +185,14 @@ pub async fn download_or_update_standard_snippets() -> Result<(), String> {
     // if lock file does not exist
     if !lock_file_path.exists() {
         // no version was ever read, we are going to download the new version
-        download_new_version == true;
+        download_new_version = true;
     } else {
         // get lockfile version
         let mut current_version = String::new();
 
         {
             // read file contents
-            let lock_file_contents = match fs::read(lock_file_path.to_owned()) {
+            let mut lock_file_contents = match fs::read(lock_file_path.to_owned()) {
                 Ok(some) => some,
                 Err(e) => {
                     return Err(format!(
@@ -218,6 +202,9 @@ pub async fn download_or_update_standard_snippets() -> Result<(), String> {
                     ))
                 }
             };
+
+            // trim end of file character off end of file
+            lock_file_contents.pop();
 
             // get version (just going to be the only vonent in the file)
             current_version = match String::from_utf8(lock_file_contents) {
@@ -251,103 +238,55 @@ pub async fn download_or_update_standard_snippets() -> Result<(), String> {
             // create url for snippets zip from new version
             let snippets_zip_url = format!("https://www.snippettestbuilder.com/download/_standard_snippets/{}/standard_snippets.zip", new_version);
 
-            // download new snippets in compressed zip file to runables directory
-            let snippets_download = downloader::Download::new(&snippets_zip_url)
-                .file_name(&PathBuf::from("snippets.zip"));
-            match downloader.download(&[snippets_download]) {
-                Ok(_) => (),
-                Err(e) => {
-                    return Err(format!(
-                        "Could not download snippets file {}: {}",
-                        snippets_zip_path.to_string_lossy(),
-                        e.to_string()
-                    ))
+            download_file(snippets_zip_url.to_string(), snippets_zip_path.to_owned()).await?;
+
+            /*
+            // for each entry in the archive
+            for i in 0..archive.len() {
+                // open file in zip
+                let mut file = archive.by_index(i).unwrap();
+
+                // get output path
+                let zip_file_output_path = match file.enclosed_name() {
+                    Some(path) => path,
+                    None => continue,
+                };
+
+                // if this file is a directory
+                if file.is_dir() {
+                    // if directory does not exist
+                    if zip_file_output_path.exists() {
+                        // create directories
+                        fs::create_dir_all(&zip_file_output_path).unwrap();
+                    }
+                } else {
+                    // if path to file does not exist, create path
+                    if let Some(p) = zip_file_output_path.parent() {
+                        if !p.exists() {
+                            fs::create_dir_all(p).unwrap();
+                        }
+                    }
+                    // get output file
+                    let mut outfile = fs::File::create(&zip_file_output_path).unwrap();
+
+                    // copy contents
+                    std::io::copy(&mut file, &mut outfile).unwrap();
                 }
-            }
 
-            // unzip the file, overwriting existing contents in the process
-            let snippets_zip_file = match fs::File::open(snippets_zip_path.to_owned()) {
-                Ok(file) => file,
-                Err(e) => {
-                    return Err(format!(
-                        "Could not open snippets zip file {}: {}",
-                        snippets_zip_path.to_string_lossy(),
-                        e.to_string()
-                    ));
-                }
-            };
+                // Get and Set permissions
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
 
-            // create the archive unziper
-            let mut archive = match zip::ZipArchive::new(snippets_zip_file) {
-                Ok(some) => some,
-                Err(e) => {
-                    return Err(format!(
-                        "Could not create zip archive from file {}: {}",
-                        snippets_zip_path.to_string_lossy(),
-                        e.to_string()
-                    ))
-                }
-            };
-
-            // extract file to runnables location
-            match archive.extract(runables_directory.to_owned()) {
-                Ok(_) => (),
-                Err(e) => {
-                    return Err(format!(
-                        "Could not extract snippet zip file contents to {}: {}",
-                        runables_directory.to_string_lossy(),
-                        e.to_string()
-                    ));
-                }
-            };
-        }
-
-        /*
-        // for each entry in the archive
-        for i in 0..archive.len() {
-            // open file in zip
-            let mut file = archive.by_index(i).unwrap();
-
-            // get output path
-            let zip_file_output_path = match file.enclosed_name() {
-                Some(path) => path,
-                None => continue,
-            };
-
-            // if this file is a directory
-            if file.is_dir() {
-                // if directory does not exist
-                if zip_file_output_path.exists() {
-                    // create directories
-                    fs::create_dir_all(&zip_file_output_path).unwrap();
-                }
-            } else {
-                // if path to file does not exist, create path
-                if let Some(p) = zip_file_output_path.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(p).unwrap();
+                    if let Some(mode) = file.unix_mode() {
+                        fs::set_permissions(&zip_file_output_path, fs::Permissions::from_mode(mode))
+                            .unwrap();
                     }
                 }
-                // get output file
-                let mut outfile = fs::File::create(&zip_file_output_path).unwrap();
-
-                // copy contents
-                std::io::copy(&mut file, &mut outfile).unwrap();
             }
-
-            // Get and Set permissions
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-
-                if let Some(mode) = file.unix_mode() {
-                    fs::set_permissions(&zip_file_output_path, fs::Permissions::from_mode(mode))
-                        .unwrap();
-                }
-            }
-
-            // delete the zip file
-        }*/
+                // delete the zip file
+            }*/
+        }
 
         {
             // create lock file, truncating one if it exists
@@ -374,52 +313,69 @@ pub async fn download_or_update_standard_snippets() -> Result<(), String> {
                 }
             }
         }
+    }
 
-        // delete metadata file
-        {
-            match fs::remove_file(metadata_path.to_owned()) {
-                Ok(_) => (),
-                Err(e) => {
-                    return Err(format!(
-                        "Could not remove metadata file at {}: {}",
-                        metadata_path.to_string_lossy(),
-                        e.to_string()
-                    ));
-                }
+    // delete metadata file
+    {
+        match fs::remove_file(metadata_path.to_owned()) {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(format!(
+                    "Could not remove metadata file at {}: {}",
+                    metadata_path.to_string_lossy(),
+                    e.to_string()
+                ));
             }
         }
     }
+    return Ok(());
+}
+
+/// Unpack zip file if it exists
+pub async fn unpack_snippet_zip_if_exists() -> Result<(), String> {
+    let runables_directory = get_runables_directory();
+    let snippets_zip_path = runables_directory.join("snippets.zip");
+
+    // if snippet zip exists
+    if snippets_zip_path.exists() {
+        // unzip the file, overwriting existing contents in the process
+        let snippets_zip_file = match fs::File::open(snippets_zip_path.to_owned()) {
+            Ok(file) => file,
+            Err(e) => {
+                return Err(format!(
+                    "Could not open snippets zip file {}: {}",
+                    snippets_zip_path.to_string_lossy(),
+                    e.to_string()
+                ));
+            }
+        };
+
+        // create the archive unziper
+        let mut archive = match zip::ZipArchive::new(snippets_zip_file) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!(
+                    "Could not create zip archive from file {}: {}",
+                    snippets_zip_path.to_string_lossy(),
+                    e.to_string()
+                ))
+            }
+        };
+
+        // extract file to runnables location
+        match archive.extract(runables_directory.to_owned()) {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(format!(
+                    "Could not extract snippet zip file contents to {}: {}",
+                    runables_directory.to_string_lossy(),
+                    e.to_string()
+                ));
+            }
+        };
+    }
 
     return Ok(());
-
-    /*
-
-    // examine lock file for current version
-    let lock_file_path = runables_directory.join("lock.json");
-    let current_version = read_lock_file(&lock_file_path);
-
-    // if metadata file is different version (not just new, as we may at times want to roll back)
-    //   then start download of snippets zip and unpack contents
-    let metadata = read_metadata_file(&metadata_path);
-    if metadata.version != current_version {
-        let snippets_zip_url = "https://example.com/snippets.zip";
-        let snippets_zip_path = runables_directory.join("snippets.zip");
-        download_file(snippets_zip_url, &snippets_zip_path)
-            .await
-            .unwrap();
-        unzip_file(&snippets_zip_path, &runables_directory).unwrap();
-
-        // after successful download, update the lock file, create if it did not exist
-        update_lock_file(&lock_file_path, metadata.version);
-    }*/
-    // download metadata file, check for new versions
-
-    // examine lock file for current version
-
-    // if metadata file is different version (not just new, as we may at times want to roll back)
-    //   then start download of snippets zip and unpack contents
-
-    // after sucessful download, update the lock file, create if it did not exist
 }
 
 /// check if one version is greater than the other
@@ -445,7 +401,7 @@ fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> 
             Ok(some) => Ok(some),
             Err(e) => {
                 return Err(format!(
-                    "Could not convert string {} to i64 value: {}",
+                    "Could not convert string '{}' to i64 value: {}",
                     s,
                     e.to_string()
                 ));
@@ -458,7 +414,7 @@ fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> 
             Ok(some) => Ok(some),
             Err(e) => {
                 return Err(format!(
-                    "Could not convert string {} to i64 value: {}",
+                    "Could not convert string '{}' to i64 value: {}",
                     s,
                     e.to_string()
                 ));
@@ -482,6 +438,74 @@ fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> 
     return Ok(0);
 }
 
+/// Download a file from a url to the file_path destination
+async fn download_file(url: String, file_path: PathBuf) -> Result<(), String> {
+    // create request client
+    let client = match reqwest::Client::builder().build() {
+        Ok(some) => some,
+        Err(e) => {
+            return Err(format!(
+                "Could not build reqwest builder: {}",
+                e.to_string()
+            ));
+        }
+    };
+
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.append("Host", "www.snippettestbuilder.com".parse().unwrap());
+    headers.append("User-Agent", "SnippetTestBuilderApp".parse().unwrap());
+    headers.append("Cache-Control", "no-cache".parse().unwrap());
+
+    let request = client.request(reqwest::Method::GET, &url).headers(headers);
+
+    let response = match request.send().await {
+        Ok(some) => some,
+        Err(e) => {
+            return Err(format!(
+                "Could not make request to url {}: {}",
+                url,
+                e.to_string()
+            ));
+        }
+    };
+
+    let body = match response.bytes().await {
+        Ok(some) => some,
+        Err(e) => {
+            return Err(format!(
+                "Failed to read response bytes from url request {}: {}",
+                url,
+                e.to_string()
+            ))
+        }
+    };
+
+    let mut file = match std::fs::File::create(file_path.to_owned()) {
+        Ok(some) => some,
+        Err(e) => {
+            return Err(format!(
+                "Failed to create file at path {}: {}",
+                file_path.to_string_lossy(),
+                e.to_string()
+            ));
+        }
+    };
+
+    // copy contents from the request to the file
+    match std::io::copy(&mut body.as_ref(), &mut file) {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(format!(
+                "Could not copy contents to file {}: {}",
+                file_path.to_string_lossy(),
+                e.to_string()
+            ));
+        }
+    };
+
+    return Ok(());
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core_services::installation_manager::compare_versions;
@@ -497,6 +521,10 @@ mod tests {
         assert_eq!(
             compare_versions("2.5.0".to_string(), "1.78.9".to_string()),
             Ok(1)
+        );
+        assert_eq!(
+            compare_versions("0.0.1".to_string(), "0.0.1".to_string()),
+            Ok(0)
         );
         assert_eq!(
             compare_versions("1.78.9".to_string(), "1.78.9".to_string()),

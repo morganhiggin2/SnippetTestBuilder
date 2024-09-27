@@ -1,9 +1,21 @@
-use std::{ops::DerefMut, sync::{Arc, MutexGuard}};
+use std::{
+    ops::DerefMut,
+    sync::{Arc, MutexGuard},
+};
 
-
-use crate::{core_services::{concurrent_processes::spawn_initialize_directory_event, visual_directory_component_manager::FrontDirectoryContent}, state_management::{ApplicationState, SharedApplicationState}, utils::sequential_id_generator::Uuid};
-#[tauri::command] 
-pub fn get_snippet_directory_details(application_state: tauri::State<SharedApplicationState>) -> Vec<FrontDirectoryContent> {
+use crate::{
+    core_services::{
+        concurrent_processes::spawn_initialize_directory_event,
+        installation_manager::{fetch_new_snippets_zip, unpack_snippet_zip_if_exists},
+        visual_directory_component_manager::FrontDirectoryContent,
+    },
+    state_management::{ApplicationState, SharedApplicationState},
+    utils::sequential_id_generator::Uuid,
+};
+#[tauri::command]
+pub fn get_snippet_directory_details(
+    application_state: tauri::State<SharedApplicationState>,
+) -> Vec<FrontDirectoryContent> {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
@@ -17,23 +29,50 @@ pub fn get_snippet_directory_details(application_state: tauri::State<SharedAppli
 
 /// spawn initialize snippet directory, returning log stream id
 #[tauri::command]
-pub fn spawn_initialize_snippet_directory(application_state: tauri::State<SharedApplicationState>, app_handle: tauri::AppHandle, window_session_uuid: Uuid) -> u32 {
+pub fn spawn_initialize_snippet_directory(
+    application_state: tauri::State<SharedApplicationState>,
+    app_handle: tauri::AppHandle,
+    window_session_uuid: Uuid,
+) -> u32 {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
     let state = state_guard.deref_mut();
 
     // create log file and stream from window uuid
     // that way the log instance is specific to the window uuid
-    let logging_instance = state.logging_manager.create_new_stream(app_handle, window_session_uuid).unwrap();
+    let logging_instance = state
+        .logging_manager
+        .create_new_stream(app_handle, window_session_uuid)
+        .unwrap();
     let stream_i = logging_instance.get_stream_i();
 
-    // get shared reference to state 
+    // get shared reference to state
     // note this is a custom clone implementation utilizing on arc::clone
-    let application_state_ref : SharedApplicationState = SharedApplicationState(Arc::clone(&application_state.0));
+    let application_state_ref: SharedApplicationState =
+        SharedApplicationState(Arc::clone(&application_state.0));
 
     // spawn process, passing ownership of shared application state
     tauri::async_runtime::spawn(async move {
-        spawn_initialize_directory_event(application_state_ref.0, logging_instance).await;     
+        // TODO what to do with error, not going to fail if it fails
+        // unpack snippets zip file if it was previously downloaded before we initalize the directory
+        match unpack_snippet_zip_if_exists().await {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{}", e.to_string())
+            }
+        };
+
+        spawn_initialize_directory_event(application_state_ref.0, logging_instance).await;
+
+        // spawn download zip file
+        // TODO what to do with error, not going to fail if it fails
+        match fetch_new_snippets_zip().await {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{}", e.to_string())
+            }
+        };
+        // also spawn the download standard snippets
     });
 
     return stream_i;
