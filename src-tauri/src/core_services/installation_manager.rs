@@ -328,6 +328,7 @@ pub async fn fetch_new_snippets_zip() -> Result<(), String> {
             }
         }
     }
+
     return Ok(());
 }
 
@@ -338,41 +339,57 @@ pub async fn unpack_snippet_zip_if_exists() -> Result<(), String> {
 
     // if snippet zip exists
     if snippets_zip_path.exists() {
-        // unzip the file, overwriting existing contents in the process
-        let snippets_zip_file = match fs::File::open(snippets_zip_path.to_owned()) {
-            Ok(file) => file,
-            Err(e) => {
-                return Err(format!(
-                    "Could not open snippets zip file {}: {}",
-                    snippets_zip_path.to_string_lossy(),
-                    e.to_string()
-                ));
-            }
-        };
+        {
+            // unzip the file, overwriting existing contents in the process
+            let snippets_zip_file = match fs::File::open(snippets_zip_path.to_owned()) {
+                Ok(file) => file,
+                Err(e) => {
+                    return Err(format!(
+                        "Could not open snippets zip file {}: {}",
+                        snippets_zip_path.to_string_lossy(),
+                        e.to_string()
+                    ));
+                }
+            };
 
-        // create the archive unziper
-        let mut archive = match zip::ZipArchive::new(snippets_zip_file) {
-            Ok(some) => some,
-            Err(e) => {
-                return Err(format!(
-                    "Could not create zip archive from file {}: {}",
-                    snippets_zip_path.to_string_lossy(),
-                    e.to_string()
-                ))
-            }
-        };
+            // create the archive unziper
+            let mut archive = match zip::ZipArchive::new(snippets_zip_file) {
+                Ok(some) => some,
+                Err(e) => {
+                    return Err(format!(
+                        "Could not create zip archive from file {}: {}",
+                        snippets_zip_path.to_string_lossy(),
+                        e.to_string()
+                    ))
+                }
+            };
 
-        // extract file to runnables location
-        match archive.extract(runables_directory.to_owned()) {
-            Ok(_) => (),
-            Err(e) => {
-                return Err(format!(
-                    "Could not extract snippet zip file contents to {}: {}",
-                    runables_directory.to_string_lossy(),
-                    e.to_string()
-                ));
+            // extract file to runnables location
+            match archive.extract(runables_directory.to_owned()) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not extract snippet zip file contents to {}: {}",
+                        runables_directory.to_string_lossy(),
+                        e.to_string()
+                    ));
+                }
+            };
+        }
+
+        // delete snippets.zip file
+        {
+            match fs::remove_file(snippets_zip_path.to_owned()) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not remove metadata file at {}: {}",
+                        snippets_zip_path.to_string_lossy(),
+                        e.to_string()
+                    ));
+                }
             }
-        };
+        }
     }
 
     return Ok(());
