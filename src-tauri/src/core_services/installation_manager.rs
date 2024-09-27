@@ -471,7 +471,13 @@ fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> 
         return Err(format!("versions do not have the same number of version numbers, and hence is not valid to compare"));
     }
 
-    for i in 0..version_a_numbers.len() {}
+    for i in 0..version_a_numbers.len() {
+        if version_a_numbers[i] > version_b_numbers[i] {
+            return Ok(1);
+        } else if version_a_numbers[i] < version_b_numbers[i] {
+            return Ok(-1);
+        }
+    }
 
     return Ok(0);
 }
@@ -484,8 +490,8 @@ mod tests {
     fn test_compare_versions() {
         // versions of size one
         assert_eq!(compare_versions("14".to_string(), "0".to_string()), Ok(1));
-        assert_eq!(compare_versions("2".to_string(), "2".to_string()), Ok(1));
-        assert_eq!(compare_versions("0".to_string(), "8".to_string()), Ok(1));
+        assert_eq!(compare_versions("2".to_string(), "2".to_string()), Ok(0));
+        assert_eq!(compare_versions("0".to_string(), "8".to_string()), Ok(-1));
 
         // versions of size three
         assert_eq!(

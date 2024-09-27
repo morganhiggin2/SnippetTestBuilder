@@ -526,7 +526,9 @@ impl SnippetDirectorySnippet {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::core_services::concurrent_processes::get_working_directory;
+    use crate::core_services::concurrent_processes::{
+        get_runables_directory, get_working_directory,
+    };
     use crate::core_services::directory_manager::{SnippetDirectoryEntry, SnippetDirectoryType};
     use crate::utils::sequential_id_generator::SequentialIdGenerator;
 
@@ -536,12 +538,12 @@ mod tests {
     fn test_scan_and_map_directory() {
         let mut sequential_id_generator = SequentialIdGenerator::default();
         let mut snippet_directory = SnippetDirectory::default();
-        let working_directory = get_working_directory();
+        let runables_directory = get_runables_directory();
 
         // We are reading from a sample directory
         snippet_directory
             .scan_and_map_directory(
-                &"tests/testing_files/sample_directory/data/snippets/root".to_string(),
+                &"../tests/testing_files/sample_directory/data/snippets/root".to_string(),
                 &mut sequential_id_generator,
             )
             .unwrap();
@@ -558,7 +560,7 @@ mod tests {
         assert_eq!(root.name, "root");
         assert_eq!(
             root.path,
-            working_directory.join("tests/testing_files/sample_directory/data/snippets/root")
+            runables_directory.join("../tests/testing_files/sample_directory/data/snippets/root")
         );
 
         let mut root_content = match root.content {
@@ -576,7 +578,8 @@ mod tests {
         assert_eq!(main_entry.name, "main");
         assert_eq!(
             main_entry.path,
-            working_directory.join("tests/testing_files/sample_directory/data/snippets/root/main")
+            runables_directory
+                .join("../tests/testing_files/sample_directory/data/snippets/root/main")
         );
 
         let main_content = match main_entry.content {
