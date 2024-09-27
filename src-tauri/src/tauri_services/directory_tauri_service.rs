@@ -53,7 +53,6 @@ pub fn spawn_initialize_snippet_directory(
 
     // spawn process, passing ownership of shared application state
     tauri::async_runtime::spawn(async move {
-        // TODO what to do with error, not going to fail if it fails
         // unpack snippets zip file if it was previously downloaded before we initalize the directory
         match unpack_snippet_zip_if_exists().await {
             Ok(_) => (),
@@ -65,7 +64,6 @@ pub fn spawn_initialize_snippet_directory(
         spawn_initialize_directory_event(application_state_ref.0, logging_instance).await;
 
         // spawn download zip file
-        // TODO what to do with error, not going to fail if it fails
         match fetch_new_snippets_zip().await {
             Ok(_) => (),
             Err(e) => {

@@ -239,53 +239,6 @@ pub async fn fetch_new_snippets_zip() -> Result<(), String> {
             let snippets_zip_url = format!("https://www.snippettestbuilder.com/download/_standard_snippets/{}/standard_snippets.zip", new_version);
 
             download_file(snippets_zip_url.to_string(), snippets_zip_path.to_owned()).await?;
-
-            /*
-            // for each entry in the archive
-            for i in 0..archive.len() {
-                // open file in zip
-                let mut file = archive.by_index(i).unwrap();
-
-                // get output path
-                let zip_file_output_path = match file.enclosed_name() {
-                    Some(path) => path,
-                    None => continue,
-                };
-
-                // if this file is a directory
-                if file.is_dir() {
-                    // if directory does not exist
-                    if zip_file_output_path.exists() {
-                        // create directories
-                        fs::create_dir_all(&zip_file_output_path).unwrap();
-                    }
-                } else {
-                    // if path to file does not exist, create path
-                    if let Some(p) = zip_file_output_path.parent() {
-                        if !p.exists() {
-                            fs::create_dir_all(p).unwrap();
-                        }
-                    }
-                    // get output file
-                    let mut outfile = fs::File::create(&zip_file_output_path).unwrap();
-
-                    // copy contents
-                    std::io::copy(&mut file, &mut outfile).unwrap();
-                }
-
-                // Get and Set permissions
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-
-                    if let Some(mode) = file.unix_mode() {
-                        fs::set_permissions(&zip_file_output_path, fs::Permissions::from_mode(mode))
-                            .unwrap();
-                    }
-                }
-            }
-                // delete the zip file
-            }*/
         }
 
         {
