@@ -54,6 +54,9 @@
         "height": 600,
         "fileDropEnabled": false
       }
-    ]
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.png"
+    }
   }
 }
