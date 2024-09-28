@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "Snippet Test Builder",
-    "version": "0.0.1"
+    "version": "0.0.2"
   },
   "tauri": {
     "allowlist": {
@@ -29,11 +29,11 @@
     "bundle": {
       "active": false,
       "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
+        "icons/icon.ico",
         "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/128x128@2x.png",
+        "icons/128x128.png",
+        "icons/32x32.png"
       ],
       "resources": [],
       "identifier": "snippet.test.builder",
