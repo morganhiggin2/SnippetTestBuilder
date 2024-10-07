@@ -67,7 +67,7 @@ def run_snippet(*args, **kwargs):
     else:
         result_builder.set_exception_result()
 
-    return result_object
+    return result_builder
 
 def check_type(type, data):
     None
