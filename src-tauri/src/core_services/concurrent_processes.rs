@@ -59,7 +59,7 @@ pub async fn spawn_run_snippets_event(
     mut logging_stream_instance: LoggingStreamInstance,
 ) {
     // run the build state
-    match build_state.run() {
+    match build_state.run(&mut logging_stream_instance) {
         Ok(_) => {
             logging_stream_instance
                 .append_log(format!("Finished successfully running all snippets"));

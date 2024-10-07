@@ -9,14 +9,16 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::*;
 
-use crate::state_management::external_snippet_manager::{ExternalSnippetParameterType, PackagePath};
+use crate::state_management::external_snippet_manager::{
+    ExternalSnippetParameterType, PackagePath,
+};
 use crate::utils::sequential_id_generator::Uuid;
 
 use super::python_run_module::set_python_path;
 
 // Initialized builder, containing all the information to build the snippets
 pub struct InitializedPythonSnippetInitializerBuilder {
-    build_information: Vec<PythonSnippetBuildInformation>
+    build_information: Vec<PythonSnippetBuildInformation>,
 }
 
 // the build information for each snippet
@@ -24,19 +26,19 @@ pub struct PythonSnippetBuildInformation {
     directory_uuid: Uuid,
     name: String,
     path: PathBuf,
-    package_path: PackagePath
+    package_path: PackagePath,
 }
 
 // the state of the builder once the snippets have been built
 pub struct FinalizedPythonSnipppetInitializerBuilder {
-    built_snippets: Vec<PythonSnippetBuilderWrapper>
+    built_snippets: Vec<PythonSnippetBuilderWrapper>,
 }
 
 // containing the state of the python builder after building
 pub struct PythonSnippetBuilderWrapper {
     directory_entry_uuid: Uuid,
     python_snippet_builder: PythonSnippetBuilder,
-    package_path: PackagePath
+    package_path: PackagePath,
 }
 
 #[pyclass]
@@ -45,33 +47,40 @@ pub struct PythonSnippetBuilder {
     #[pyo3(get)]
     name: String,
     #[pyo3(get)]
-    inputs: Vec::<String>,
+    inputs: Vec<String>,
     #[pyo3(get)]
-    outputs: Vec::<String>,
+    outputs: Vec<String>,
     #[pyo3(get)]
-    parameters: Vec::<(String, String)>
+    parameters: Vec<(String, String)>,
 }
 
 impl InitializedPythonSnippetInitializerBuilder {
     /// initialize  new python builder
     pub fn new() -> Self {
         return InitializedPythonSnippetInitializerBuilder {
-            build_information: Vec::<PythonSnippetBuildInformation>::new()
+            build_information: Vec::<PythonSnippetBuildInformation>::new(),
         };
     }
-     
-    /// add a new snippet information to the python builder
-    pub fn add_snippet(&mut self, name: String, path: PathBuf, directory_uuid: Uuid, package_path: PackagePath) {
-        let snippet_build_information = PythonSnippetBuildInformation::new(name, path, directory_uuid, package_path);
 
-        self.build_information.push(snippet_build_information); 
+    /// add a new snippet information to the python builder
+    pub fn add_snippet(
+        &mut self,
+        name: String,
+        path: PathBuf,
+        directory_uuid: Uuid,
+        package_path: PackagePath,
+    ) {
+        let snippet_build_information =
+            PythonSnippetBuildInformation::new(name, path, directory_uuid, package_path);
+
+        self.build_information.push(snippet_build_information);
     }
 
     pub fn build(self) -> Result<FinalizedPythonSnipppetInitializerBuilder, String> {
         let built_snippets = self.initialize_snippets()?;
-        
+
         return Ok(FinalizedPythonSnipppetInitializerBuilder {
-            built_snippets: built_snippets
+            built_snippets: built_snippets,
         });
     }
 
@@ -82,104 +91,127 @@ impl InitializedPythonSnippetInitializerBuilder {
         set_python_path();
 
         // We want to get the rust object since each python object will hold and maintain a reference to the gil and gil pool
-        let python_built_snippets = Python::with_gil(|py| -> Result<Vec::<PythonSnippetBuilderWrapper>, String> {
-            let mut python_snippet_builders: Vec::<PythonSnippetBuilderWrapper> = Vec::<PythonSnippetBuilderWrapper>::new();
+        let python_built_snippets = Python::with_gil(
+            |py| -> Result<Vec<PythonSnippetBuilderWrapper>, String> {
+                let mut python_snippet_builders: Vec<PythonSnippetBuilderWrapper> =
+                    Vec::<PythonSnippetBuilderWrapper>::new();
 
-            //TODO handle cases
-            // misnames python file, how do we communicate this to the end user?
+                //TODO handle cases
+                // misnames python file, how do we communicate this to the end user?
 
-            for python_build_information in python_build_information_list {
-                // Create file path
-                let mut main_python_file_path = python_build_information.path.into_os_string();
-                main_python_file_path.push("/app.py");
-                let full_path: PathBuf = main_python_file_path.into();
+                for python_build_information in python_build_information_list {
+                    // Create file path
+                    let mut main_python_file_path = python_build_information.path.into_os_string();
+                    main_python_file_path.push("/app.py");
+                    let full_path: PathBuf = main_python_file_path.into();
 
-                // Read the main file and the main file only
-                let mut file = match File::open(full_path) {
-                    Ok(file) => file,
-                    Err(e) => {
-                        return Err(format!("Could not open file to read python sippet: {}", e.to_string()));
-                    }
-                };
+                    // Read the main file and the main file only
+                    let mut file = match File::open(full_path) {
+                        Ok(file) => file,
+                        Err(e) => {
+                            return Err(format!(
+                                "Could not open file to read python sippet: {}",
+                                e.to_string()
+                            ));
+                        }
+                    };
 
-                // Read the contents of the file
-                let mut contents = String::new();
+                    // Read the contents of the file
+                    let mut contents = String::new();
 
-                // Attempt to read the file contents in to the string
-                match file.read_to_string(&mut contents) {
-                    io::Result::Ok(_) => (),
-                    io::Result::Err(e) => {
-                        //TODO return error
-                        return Err(format!("Could not read the contents of the main python file: {}", e.to_string())); 
-                    }
-                };
+                    // Attempt to read the file contents in to the string
+                    match file.read_to_string(&mut contents) {
+                        io::Result::Ok(_) => (),
+                        io::Result::Err(e) => {
+                            //TODO return error
+                            return Err(format!(
+                                "Could not read the contents of the main python file: {}",
+                                e.to_string()
+                            ));
+                        }
+                    };
 
-                // TODO Create new gil pool
-                /*let pool = unsafe { py.new_pool() };
-                let py = pool.python();*/
+                    // TODO Create new gil pool
+                    /*let pool = unsafe { py.new_pool() };
+                    let py = pool.python();*/
 
-                // import code to pool
-                let fun = match PyModule::from_code_bound(
-                    py,
-                    &contents,
-                    "",
-                    "",
-                ) {
-                    PyResult::Ok(some) => some,
-                    PyResult::Err(e) => {
-                        return Err(format!("Could not create python code from main python file: {}", e.to_string()));
-                    }
-                };
+                    // import code to pool
+                    let fun = match PyModule::from_code_bound(py, &contents, "", "") {
+                        PyResult::Ok(some) => some,
+                        PyResult::Err(e) => {
+                            return Err(format!(
+                                "Could not create python code from main python file: {}",
+                                e.to_string()
+                            ));
+                        }
+                    };
 
-                let fun: Py<PyAny> = match fun.getattr("init") {
+                    let fun: Py<PyAny> = match fun.getattr("init") {
                     PyResult::Ok(some) => some,
                     PyResult::Err(e) => {
                         return Err(format!("Could not get init function attribute from main python file code: {}", e.to_string()));
                     }
                 }
-                .into(); 
+                .into();
 
-                // Create arguments for init function
-                // which includes a python callable object
-                let obj = Bound::new(py, PythonSnippetBuilder::new(python_build_information.name)).unwrap();
-                let args = PyTuple::new_bound(py, &[obj]);
+                    // Create arguments for init function
+                    // which includes a python callable object
+                    let obj =
+                        Bound::new(py, PythonSnippetBuilder::new(python_build_information.name))
+                            .unwrap();
+                    let args = PyTuple::new_bound(py, &[obj]);
 
-                // Define python function call closure
-                let init_python_return = match fun.call1(py, args) {
-                    PyResult::Ok(some) => some,
-                    PyResult::Err(e) => {
-                        return Err(format!("Error calling init function from main python file: {}", e.to_string()));
-                    }
-                };
+                    // Define python function call closure
+                    let init_python_return = match fun.call1(py, args) {
+                        PyResult::Ok(some) => some,
+                        PyResult::Err(e) => {
+                            return Err(format!(
+                                "Error calling init function from main python file: {}",
+                                e.to_string()
+                            ));
+                        }
+                    };
 
-                let init_python_return : PythonSnippetBuilder = match init_python_return.extract(py) {
-                    PyResult::Ok(some) => some,
-                    PyResult::Err(e) => {
-                        return Err(format!("Error extacting python snippet builder result from init function call: {}", e.to_string()));
-                    }
-                };
+                    let init_python_return: PythonSnippetBuilder = match init_python_return
+                        .extract(py)
+                    {
+                        PyResult::Ok(some) => some,
+                        PyResult::Err(e) => {
+                            return Err(format!("Error extacting python snippet builder result from init function call: {}", e.to_string()));
+                        }
+                    };
 
-                // Create wrapper contianing extra necessary information
-                let python_return_wrapper = PythonSnippetBuilderWrapper::new(python_build_information.directory_uuid, python_build_information.package_path, init_python_return);
+                    // Create wrapper contianing extra necessary information
+                    let python_return_wrapper = PythonSnippetBuilderWrapper::new(
+                        python_build_information.directory_uuid,
+                        python_build_information.package_path,
+                        init_python_return,
+                    );
 
-                python_snippet_builders.push(python_return_wrapper);
-            }
+                    python_snippet_builders.push(python_return_wrapper);
+                }
 
-            return Ok(python_snippet_builders);
-        })?;
+                return Ok(python_snippet_builders);
+            },
+        )?;
 
         return Ok(python_built_snippets);
-    }}
+    }
+}
 
 impl PythonSnippetBuilderWrapper {
-    pub fn new(directory_entry_uuid: Uuid, package_path: PackagePath, python_snippet_builder: PythonSnippetBuilder) -> Self {
+    pub fn new(
+        directory_entry_uuid: Uuid,
+        package_path: PackagePath,
+        python_snippet_builder: PythonSnippetBuilder,
+    ) -> Self {
         return PythonSnippetBuilderWrapper {
             directory_entry_uuid: directory_entry_uuid,
             package_path: package_path,
-            python_snippet_builder: python_snippet_builder
-        }
+            python_snippet_builder: python_snippet_builder,
+        };
     }
-    
+
     pub fn get_name(&self) -> String {
         return self.python_snippet_builder.get_name();
     }
@@ -187,7 +219,7 @@ impl PythonSnippetBuilderWrapper {
     pub fn get_directory_entry_uuid(&self) -> Uuid {
         return self.directory_entry_uuid.to_owned();
     }
-    
+
     pub fn get_inputs(&self) -> &Vec<String> {
         &self.python_snippet_builder.inputs
     }
@@ -203,15 +235,20 @@ impl PythonSnippetBuilderWrapper {
     pub fn get_package_path(&self) -> PackagePath {
         return self.package_path.to_owned();
     }
-}    
+}
 impl PythonSnippetBuildInformation {
-    /// create new python build information for a snippet to be built 
-    pub fn new(name: String, path: PathBuf, directory_uuid: Uuid, package_path: PackagePath) -> Self {
+    /// create new python build information for a snippet to be built
+    pub fn new(
+        name: String,
+        path: PathBuf,
+        directory_uuid: Uuid,
+        package_path: PackagePath,
+    ) -> Self {
         return PythonSnippetBuildInformation {
             directory_uuid: directory_uuid,
             name: name,
             path: path,
-            package_path: package_path 
+            package_path: package_path,
         };
     }
 }
@@ -233,11 +270,11 @@ impl PythonSnippetBuilder {
     #[new]
     fn new(name: String) -> Self {
         // placeholder for directory entry uuid as we are going to set this later
-        PythonSnippetBuilder { 
-            name: name, 
-            inputs: Vec::<String>::new(), 
-            outputs: Vec::<String>::new(), 
-            parameters: Vec::<(String, String)>::new()
+        PythonSnippetBuilder {
+            name: name,
+            inputs: Vec::<String>::new(),
+            outputs: Vec::<String>::new(),
+            parameters: Vec::<(String, String)>::new(),
         }
     }
 
@@ -254,7 +291,10 @@ impl PythonSnippetBuilder {
     fn add_input(&mut self, name: String) -> PyResult<()> {
         // if inputs is already in output, raise error to python
         if self.inputs.contains(&name) {
-            return Err(PyValueError::new_err(format!("Cannot insert {} into snippet {}, already exists as input", name, self.name)));
+            return Err(PyValueError::new_err(format!(
+                "Cannot insert {} into snippet {}, already exists as input",
+                name, self.name
+            )));
         }
 
         // insert input
@@ -262,14 +302,17 @@ impl PythonSnippetBuilder {
 
         return Ok(());
     }
-    
+
     /// callable method from python
     /// insert io input point to snippet
     #[pyo3(text_signature = "$self, name")]
     fn add_output(&mut self, name: String) -> PyResult<()> {
         // if inputs is already in output, raise error to python
         if self.outputs.contains(&name) {
-            return Err(PyValueError::new_err(format!("Cannot insert {} into snippet {}, already exists as output", name, self.name)));
+            return Err(PyValueError::new_err(format!(
+                "Cannot insert {} into snippet {}, already exists as output",
+                name, self.name
+            )));
         }
 
         // insert input
@@ -281,22 +324,36 @@ impl PythonSnippetBuilder {
     /// add parameter to snippet. Name must be in the list of supported types
     /// each parameter has it's own schema (TODO be supported).
     /// parameters are considered inputs
-    #[pyo3(text_signature = "$self, name")]
+    #[pyo3(text_signature = "$self, parameter_name, parameter_type")]
     fn add_parameter(&mut self, parameter_name: String, parameter_type: String) -> PyResult<()> {
         // if inputs is already in output, raise error to python
-        if self.parameters.iter().map(|element| &element.0).filter(|val| **val == parameter_name).collect::<Vec::<&String>>().len() > 0 {
-            return Err(PyValueError::new_err(format!("Cannot insert {} into snippet {}, already exists as parameter", parameter_name, self.name)));
+        if self
+            .parameters
+            .iter()
+            .map(|element| &element.0)
+            .filter(|val| **val == parameter_name)
+            .collect::<Vec<&String>>()
+            .len()
+            > 0
+        {
+            return Err(PyValueError::new_err(format!(
+                "Cannot insert {} into snippet {}, already exists as parameter",
+                parameter_name, self.name
+            )));
         }
 
         // needs to be of a supported parameter type
         match ExternalSnippetParameterType::from_str(&parameter_type) {
             Ok(_) => (),
             Err(e) => {
-                return Err(PyValueError::new_err(format!("parameter type {} is not of a valid type", parameter_type)));
-            },
+                return Err(PyValueError::new_err(format!(
+                    "parameter type {} is not of a valid type",
+                    parameter_type
+                )));
+            }
         };
 
-        // insert parameter 
+        // insert parameter
         self.parameters.push((parameter_name, parameter_type));
 
         return Ok(());
@@ -305,15 +362,14 @@ impl PythonSnippetBuilder {
 
 impl Default for PythonSnippetBuilder {
     fn default() -> Self {
-        return PythonSnippetBuilder { 
+        return PythonSnippetBuilder {
             name: String::new(),
             inputs: Vec::<String>::new(),
             outputs: Vec::<String>::new(),
-            parameters: Vec::<(String, String)>::new()
-        }
+            parameters: Vec::<(String, String)>::new(),
+        };
     }
 }
-
 
 /*use pyo3::{prelude::*, PyClass};
 use pyo3::{wrap_pyfunction, wrap_pymodule};
@@ -351,7 +407,7 @@ pub fn call_init_2() -> PyResult<()>{
             "",
         )?
         .getattr("example")?
-        .into(); 
+        .into();
 
         let args = PyTuple::new(py, &[obj]);
         let res: PythonSnippetBuilder = fun.call1(py, args)?.extract(py)?;
@@ -394,7 +450,7 @@ impl PythonSnippetBuilder {
         //convert from pytypes to rust types
         return Ok(());
     }
-    
+
     /// callable method from python
     /// finishes the snippet creation
     /// adds snippet information to external snippet manager
@@ -416,13 +472,13 @@ pub fn call_init() -> Result<(), String> {
                 snippet.set_name(\"new-name\")
 
                 return snippet;
-            
+
             ",
             "",
             "",
         )?
         .getattr("init")?
-        .into(); 
+        .into();
 
         let kwargs = [("snippet", obj)].into_py_dict(py);
         let res: PythonSnippetBuilder = fun.call(py, (), Some(kwargs))?.extract(py)?;
@@ -444,14 +500,14 @@ pub fn call_init() -> Result<(), String> {
         let fun: Py<PyAny> = PyModule::from_code(
             py,
             "
-            def say_hello(*args, **kwargs): 
+            def say_hello(*args, **kwargs):
                 print(\"hello\")
             ",
             "",
             "",
         )?
         .getattr("hello")?
-        .into(); 
+        .into();
 
         fun.call0(py)?;
         //let res: PyAny = fun.call1(py, args)?.into_py(py);
@@ -473,9 +529,9 @@ pub fn call_init() -> Result<(), String> {
 
 impl Default for PythonSnippetBuilder {
     fn default() -> Self {
-        return PythonSnippetBuilder { 
-            name: String::new(), 
-            relative_file_location: String::new() 
+        return PythonSnippetBuilder {
+            name: String::new(),
+            relative_file_location: String::new()
         }
     }
 }
@@ -550,7 +606,7 @@ fn person_info(py:Python, p: PyObject) -> PyResult<()> {
 
 
 /*# Load pyenv automatically by appending
-# the following to 
+# the following to
 ~/.bash_profile if it exists, otherwise ~/.profile (for login shells)
 and ~/.bashrc (for interactive shells) :
 

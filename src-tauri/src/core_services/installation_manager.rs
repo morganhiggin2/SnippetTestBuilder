@@ -11,8 +11,8 @@ use super::concurrent_processes::get_runables_directory;
 // The files needed for the base python runables
 /// Responsible for installing the files upon launch in the right location on the computer if not already there
 /// The files to install will be bundled with the launcher
-const SNIPPET_CREATOR_FILE_CONTENTS: &str = include_str!("../../runables/snippet_creator.py");
-const SNIPPET_RUNNER_FILE_CONTENTS: &str = include_str!("../../runables/snippet_runner.py");
+const SNIPPET_CREATOR_FILE_CONTENTS: &str = include_str!("./../runables/snippet_creator.py");
+const SNIPPET_RUNNER_FILE_CONTENTS: &str = include_str!("./../runables/snippet_runner.py");
 
 // structs for the visual directory
 struct VirtualFolder {
@@ -83,6 +83,8 @@ fn install_runable_crawer(folder: &VirtualFolder, install_path: PathBuf) -> Resu
 
     //  create files within this folder if file does not eixst
     for child_file in folder.files {
+        // TODO add version feature for updating these files
+
         // file path
         let child_install_path = install_path.to_owned().join(child_file.name.to_owned());
 

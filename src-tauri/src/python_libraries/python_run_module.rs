@@ -1,11 +1,35 @@
-use std::{collections::{HashMap, HashSet, VecDeque}, env, fs::File, io::{self, Read}, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    env,
+    fs::File,
+    io::{self, Read},
+    path::PathBuf,
+};
 
-use petgraph::{graph::NodeIndex, visit::EdgeRef};
-use pyo3::{types::{PyAnyMethods, PyDict, PyModule}, IntoPy, Py, PyAny, PyResult, Python};
 use pathdiff::diff_paths;
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
+use pyo3::{
+    prelude::*,
+    pymethods,
+    types::{PyAnyMethods, PyDict, PyModule},
+    IntoPy, Py, PyAny, PyResult, Python,
+};
 
-use crate::{core_components::snippet_manager::{SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent}, core_services::{concurrent_processes::{get_runables_directory, get_working_directory}, directory_manager::DirectoryManager}, state_management::{external_snippet_manager::ExternalSnippetManager, visual_snippet_component_manager::VisualSnippetComponentManager}, utils::sequential_id_generator::{SequentialIdGenerator, Uuid}};
-
+use crate::{
+    core_components::snippet_manager::{
+        SnippetManager, SnippetParameterBaseStorage, SnippetParameterComponent,
+    },
+    core_services::{
+        concurrent_processes::{get_runables_directory, get_working_directory},
+        directory_manager::DirectoryManager,
+        runtime_logging_service::LoggingStreamInstance,
+    },
+    state_management::{
+        external_snippet_manager::ExternalSnippetManager,
+        visual_snippet_component_manager::VisualSnippetComponentManager,
+    },
+    utils::sequential_id_generator::{SequentialIdGenerator, Uuid},
+};
 
 // location of the python runner library
 const PYTHON_RUNNER_WRAPPER_LOCATION: &str = "snippet_runner.py";
@@ -15,7 +39,7 @@ pub struct InitializedPythonSnippetRunnerBuilder {
     // a map of each snippet id in the snippet manager to a snippet build information
     build_information: HashMap<Uuid, PythonSnippetBuildInformation>,
     graph: petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed>,
-    snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>>
+    snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>>,
 }
 
 pub struct PythonSnippetBuildInformation {
@@ -24,7 +48,25 @@ pub struct PythonSnippetBuildInformation {
     // names of inputs and outputs
     inputs: Vec<String>,
     outputs: Vec<String>,
-    python_file: PathBuf
+    python_file: PathBuf,
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PythonLogger {
+    #[pyo3(get)]
+    logs: Vec<(String, String)>,
+}
+
+#[pyclass]
+#[derive(FromPyObject)]
+struct PythonRunnerResult {
+    #[pyo3(get, set)]
+    exception: bool,
+    #[pyo3(get, set)]
+    outputs: HashMap<(Uuid, String), Py<PyAny>>,
+    #[pyo3(get, set)]
+    logger: PythonLogger,
 }
 
 impl Default for PythonSnippetBuildInformation {
@@ -34,23 +76,33 @@ impl Default for PythonSnippetBuildInformation {
             parameters: Vec::default(),
             inputs: Vec::<String>::default(),
             outputs: Vec::<String>::default(),
-            python_file: PathBuf::default()
-        }
+            python_file: PathBuf::default(),
+        };
     }
 }
 
 impl InitializedPythonSnippetRunnerBuilder {
-    fn new (build_information: HashMap::<Uuid, PythonSnippetBuildInformation>, graph: petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed>, snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>> ) -> Self {
+    fn new(
+        build_information: HashMap<Uuid, PythonSnippetBuildInformation>,
+        graph: petgraph::stable_graph::StableGraph<Uuid, (), petgraph::Directed>,
+        snippet_io_points_map: HashMap<(Uuid, String), Vec<(Uuid, String)>>,
+    ) -> Self {
         return InitializedPythonSnippetRunnerBuilder {
             build_information: build_information,
             graph: graph,
-            snippet_io_points_map: snippet_io_points_map
+            snippet_io_points_map: snippet_io_points_map,
         };
     }
 
     /// Build the intialized python snippet runner
-    pub fn build(snippet_manager: &SnippetManager, external_snippet_manager: &ExternalSnippetManager, directory_manager: &DirectoryManager, visual_snippet_component_manager: &VisualSnippetComponentManager,sequential_id_generator: &mut SequentialIdGenerator) -> Result<Self, String> {
-        // create information necessary to 
+    pub fn build(
+        snippet_manager: &SnippetManager,
+        external_snippet_manager: &ExternalSnippetManager,
+        directory_manager: &DirectoryManager,
+        visual_snippet_component_manager: &VisualSnippetComponentManager,
+        sequential_id_generator: &mut SequentialIdGenerator,
+    ) -> Result<Self, String> {
+        // create information necessary to
         // a. run the necessary python code
         // b. call the front visual components
 
@@ -65,7 +117,7 @@ impl InitializedPythonSnippetRunnerBuilder {
         // get graph of connecting snippets, with each node weight being the snippet uuid
         let runtime_graph = snippet_manager.get_snippet_graph();
 
-        // mapping of snippet inputs to outputs as dictated by pipelines 
+        // mapping of snippet inputs to outputs as dictated by pipelines
         let snippet_io_points_map = snippet_manager.generate_snippet_io_point_mappings();
 
         // iterate over all the snippets
@@ -74,14 +126,16 @@ impl InitializedPythonSnippetRunnerBuilder {
             let mut python_snippet_build_information = PythonSnippetBuildInformation::default();
 
             // find snippet in visual snippet manager, get uuid
-            python_snippet_build_information.visual_snippet_uuid = visual_snippet_component_manager.find_snippet_front_uuid(&snippet.get_uuid()).unwrap();
+            python_snippet_build_information.visual_snippet_uuid = visual_snippet_component_manager
+                .find_snippet_front_uuid(&snippet.get_uuid())
+                .unwrap();
 
             // create deep copy and set parameter values
             python_snippet_build_information.parameters = snippet.get_parameters_as_copy();
 
             python_snippet_build_information.inputs = snippet.get_input_names();
             python_snippet_build_information.outputs = snippet.get_output_names();
-           
+
             // get the runnable python file
             {
                 // get external snippet uuid
@@ -89,24 +143,33 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 // look up external snippet
                 //TODO handle when external snippet is removed while snippet is still in project
-                let external_snippet = external_snippet_manager.find_external_snippet(external_snippet_id).unwrap();
-                let snippet_directory_entry = directory_manager.find_directory_entry(external_snippet.get_package_path()).unwrap();
-                
+                let external_snippet = external_snippet_manager
+                    .find_external_snippet(external_snippet_id)
+                    .unwrap();
+                let snippet_directory_entry = directory_manager
+                    .find_directory_entry(external_snippet.get_package_path())
+                    .unwrap();
+
                 // get runnable python file path
-                python_snippet_build_information.python_file = snippet_directory_entry.get_python_file()?;
+                python_snippet_build_information.python_file =
+                    snippet_directory_entry.get_python_file()?;
             }
 
             // insert into build information
             build_information.insert(snippet.get_uuid(), python_snippet_build_information);
         }
 
-        return Ok(Self::new(build_information, runtime_graph, snippet_io_points_map));
+        return Ok(Self::new(
+            build_information,
+            runtime_graph,
+            snippet_io_points_map,
+        ));
     }
 
     // run the python snippet runnere
-    pub fn run(mut self) -> Result<(), String> {
+    pub fn run(mut self, logger: &mut LoggingStreamInstance) -> Result<(), String> {
         // inputs: reference to lock on the app handler
-        
+
         //TODO every time we want to write a log, we aquire the lock and then release, rather than holding for build information
         //    BUT what else is going to want the lock? as are single threaded single project
 
@@ -116,8 +179,10 @@ impl InitializedPythonSnippetRunnerBuilder {
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
             // import python module for calling snippets (the wrapper function)
-            let python_runner_wrapper_path: PathBuf = get_working_directory().join(get_runables_directory()).join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
-            
+            let python_runner_wrapper_path: PathBuf = get_working_directory()
+                .join(get_runables_directory())
+                .join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
+
             let mut file = match File::open(python_runner_wrapper_path) {
                 Ok(file) => file,
                 Err(e) => {
@@ -125,12 +190,15 @@ impl InitializedPythonSnippetRunnerBuilder {
                 }
             };
 
-            // read the file 
+            // read the file
             let mut contents = String::new();
             match file.read_to_string(&mut contents) {
                 io::Result::Ok(_) => (),
                 io::Result::Err(e) => {
-                    return Err(format!("Could not read the contents of the python runner wrapper file: {}", e)); 
+                    return Err(format!(
+                        "Could not read the contents of the python runner wrapper file: {}",
+                        e
+                    ));
                 }
             };
 
@@ -139,18 +207,24 @@ impl InitializedPythonSnippetRunnerBuilder {
                 py,
                 &contents,
                 "snippet_runner.py",
-                "snippet_runner"
+                "snippet_runner",
             ) {
                 PyResult::Ok(some) => some,
                 PyResult::Err(e) => {
-                    return Err(format!("Could not create python runner wrapper code from main python file: {}", e.to_string()));
+                    return Err(format!(
+                        "Could not create python runner wrapper code from main python file: {}",
+                        e.to_string()
+                    ));
                 }
-            }; 
+            };
 
             let python_wrapper_run_snippet = match python_wrapper.getattr("run_snippet") {
                 PyResult::Ok(some) => some,
                 PyResult::Err(e) => {
-                    return Err(format!("Could not get run snippet attribute from wrapper python file: {}", e.to_string()));
+                    return Err(format!(
+                        "Could not get run snippet attribute from wrapper python file: {}",
+                        e.to_string()
+                    ));
                 }
             };
 
@@ -160,20 +234,25 @@ impl InitializedPythonSnippetRunnerBuilder {
             let mut run_set = HashSet::<NodeIndex>::new();
 
             /*
-            Current mapping overview: 
+            Current mapping overview:
             - graph: directed graph representing the flow of the build from one snippet to another snippet based on the io points
                 the weights of each node are the corresponding snippet id
-            - io mapping: maps 
+            - io mapping: maps
                 for each snippet id, maps it's input by input name (since names are unique based on io type (input or output) and snippet id)
-                    to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too  
+                    to a list of entries, each entry being a) the name of the output in the output snippet it maps to and b) the output snippet id it maps too
              */
             // contains the mapping of the next input, and the pyany value to be inserted
             let mut input_cache = HashMap::<(Uuid, String), Py<PyAny>>::new();
 
-            // add all nodes which have no inputs 
+            // add all nodes which have no inputs
             for node in self.graph.node_indices() {
                 // if node has no edges in
-                if self.graph.edges_directed(node, petgraph::Direction::Incoming).count() == 0 {
+                if self
+                    .graph
+                    .edges_directed(node, petgraph::Direction::Incoming)
+                    .count()
+                    == 0
+                {
                     // if no neighbors
                     // add to run queue
                     run_queue.push_back(node);
@@ -203,7 +282,8 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 // get inputs for snippet
                 // if this fails, there is a critical logic error in the code
-                let snippet_python_build_information = self.build_information.remove(&snippet_id).unwrap();
+                let snippet_python_build_information =
+                    self.build_information.remove(&snippet_id).unwrap();
 
                 // grab input parameters from hash map
                 // this maps each snippets output to the next snippet input id and name
@@ -211,7 +291,10 @@ impl InitializedPythonSnippetRunnerBuilder {
 
                 //for each output
                 for output in snippet_python_build_information.outputs {
-                    match self.snippet_io_points_map.get(&(snippet_id, output.to_owned())) {
+                    match self
+                        .snippet_io_points_map
+                        .get(&(snippet_id, output.to_owned()))
+                    {
                         // if it exists in mapping, insert all into cache
                         Some(other_inputs) => {
                             for other_input in other_inputs {
@@ -220,9 +303,9 @@ impl InitializedPythonSnippetRunnerBuilder {
                             }
                         }
                         // no mapping, then nothing to do
-                        None => ()
+                        None => (),
                     }
-                }     
+                }
 
                 let mut input_mapping = HashMap::<String, Py<PyAny>>::new();
 
@@ -235,17 +318,26 @@ impl InitializedPythonSnippetRunnerBuilder {
                             // insert into input mapping
                             input_mapping.insert(input, val);
                         }
-                        None => ()
+                        None => (),
                     };
-
                 }
-                
 
                 let mut parameter_mapping = HashMap::<String, SnippetParameterBaseStorage>::new();
 
                 for parameter in snippet_python_build_information.parameters {
                     parameter_mapping.insert(parameter.get_name(), parameter.get_storage().clone());
-                } 
+                }
+
+                // create pyresult class
+                let py_result_builder = match Bound::new(py, PythonRunnerResult::new()) {
+                    Ok(logger) => logger,
+                    Err(e) => {
+                        return Err(format!(
+                            "Could not bound the python runner result to the py gil: {}",
+                            e.to_string()
+                        ));
+                    }
+                };
 
                 // convert parameter mapping to python
                 let py_parameter_mapping = parameter_mapping.into_py(py);
@@ -256,55 +348,100 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // convert output mapping to python
                 let py_output_mapping = output_mapping.into_py(py);
 
-
-                // convert to python module 
-                let py_path = file_path_to_py_path(snippet_python_build_information.python_file.to_owned())?;
+                // convert to python module
+                let py_path =
+                    file_path_to_py_path(snippet_python_build_information.python_file.to_owned())?;
 
                 let kwargs = PyDict::new_bound(py);
 
+                match kwargs.set_item("result_builder", py_result_builder) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
+                    }
+                };
                 match kwargs.set_item("snippet_path", py_path.to_owned().into_py(py)) {
                     Ok(_) => (),
                     Err(e) => {
-                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
                     }
                 };
                 match kwargs.set_item("function_inputs", py_input_mapping) {
                     Ok(_) => (),
                     Err(e) => {
-                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
                     }
                 };
                 match kwargs.set_item("input_mappings", py_output_mapping) {
                     Ok(_) => (),
                     Err(e) => {
-                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
                     }
                 };
                 match kwargs.set_item("parameter_values", py_parameter_mapping) {
                     Ok(_) => (),
                     Err(e) => {
-                        return Err(format!("Could not insert item into kwargs map: {}", e.to_string()));
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
                     }
                 };
 
                 // execute pywrapper
-                let run_result = match python_wrapper_run_snippet.call((), Some(&kwargs)) {
-                    Ok(output) => output,
+                let run_result_result = match python_wrapper_run_snippet.call((), Some(&kwargs)) {
+                    Ok(some) => some,
                     Err(e) => {
-                        return Err(format!("Execution of snippet {} failed with error {}", py_path.to_owned(), e.to_string()));
-                    },
+                        return Err(format!(
+                            "Critical exception occured in snippet runner: {}",
+                            e.to_string()
+                        ));
+                    }
                 };
 
-                // convert result into HashMap<(Uuid, String), Py<PyAny>>
-                let output_results: HashMap::<(Uuid, String), Py<PyAny>> = match run_result.extract() {
-                    Ok(some) => some, 
+                // extract the result type
+                let run_result: PythonRunnerResult = match run_result_result.extract() {
+                    Ok(result) => result,
                     Err(e) => {
-                        return Err(format!("Could not convert output type into HashMap::<(Uuid, String), Py<PyAny>> for snippet {}: {}", snippet_id, e.to_string()));
-                    },
-                }; 
+                        return Err(format!(
+                            "Error in extracting snippet runner return type: {}",
+                            e.to_string()
+                        ))
+                    }
+                };
+
+                // print logger statements
+                run_result.logger.print_logs(logger);
+
+                // if an exception was raised
+                // Note: what would be more useful for this is to have a pyo3 conversion
+                // from tuple to rust type, but because we don't, we must use our own logic
+                // and call unwrap
+                match run_result.exception {
+                    true => {
+                        // Return exception
+                        return Err(format!(
+                            //"Snippet {} failed with previous exception", snippet_python_build_information.
+                            "Snippet failed with previous exception"
+                        ));
+                    }
+                    false => (),
+                }
 
                 // for each output result
-                for output_result in output_results.into_iter() {
+                for output_result in run_result.outputs.into_iter() {
                     // insert into input cache
                     input_cache.insert(output_result.0, output_result.1);
                 }
@@ -312,36 +449,89 @@ impl InitializedPythonSnippetRunnerBuilder {
                 // inlude node in run set
                 run_set.insert(run_node.clone());
 
-                // get children of node, insert into run queue 
-                for edge in self.graph.edges_directed(run_node, petgraph::Direction::Outgoing) {
+                // get children of node, insert into run queue
+                for edge in self
+                    .graph
+                    .edges_directed(run_node, petgraph::Direction::Outgoing)
+                {
                     let child_node = edge.target();
 
                     run_queue.push_back(child_node);
                 }
             }
 
+            // if we are missing any parameters, then we are still waiting on a child to run,
+            //   so reinsert into the queue and continue
 
-                    // if we are missing any parameters, then we are still waiting on a child to run, 
-                    //   so reinsert into the queue and continue
+            // call snippet with HashMap<output_name, i32 number of copies)
 
-                // call snippet with HashMap<output_name, i32 number of copies) 
+            // get mapping entry of outputs to inputs, include this in the wrapper module
+            // note that not every output is assigned an input, so we want to check for the number of copies we need of each
 
-                // get mapping entry of outputs to inputs, include this in the wrapper module
-                // note that not every output is assigned an input, so we want to check for the number of copies we need of each
+            // get return
+            // parse return into HashMap<string, Vec<PyAny>> from PyAny
+            // this is the output name, and the copies of pyany
 
-                // get return
-                // parse return into HashMap<string, Vec<PyAny>> from PyAny
-                // this is the output name, and the copies of pyany
+            // use the mapping and reducing to insert into input cache accordingly
 
-                // use the mapping and reducing to insert into input cache accordingly
-
-                // add child dependencies to queue
-
+            // add child dependencies to queue
 
             return Ok(());
         })?;
-        
+
         return Ok(());
+    }
+}
+
+#[pymethods]
+impl PythonRunnerResult {
+    #[new]
+    fn new() -> Self {
+        return Self {
+            outputs: HashMap::new(),
+            exception: false,
+            logger: PythonLogger::new()
+        };
+    }
+
+    #[pyo3(text_signature = "$self")]
+    fn set_exception_result(&mut self) {
+        self.exception = true;
+    }
+
+    #[pyo3(text_signature = "$self, outputs")]
+    fn set_successful_result(&mut self, outputs: HashMap<(u32, String), Py<PyAny>>) {
+        self.outputs = outputs;
+    }
+}
+
+#[pymethods]
+impl PythonLogger {
+    #[new]
+    fn new() -> Self {
+        return Self { logs: Vec::new() };
+    }
+
+    #[pyo3(text_signature = "$self, message")]
+    fn log(&mut self, message: String) -> PyResult<()> {
+        self.logs.push(("INFO".to_string(), message));
+
+        return Ok(());
+    }
+
+    #[pyo3(text_signature = "$self, message")]
+    fn log_err(&mut self, message: String) -> PyResult<()> {
+        self.logs.push(("ERROR".to_string(), message));
+
+        return Ok(());
+    }
+}
+
+impl PythonLogger {
+    pub fn print_logs(&self, logger: &mut LoggingStreamInstance) {
+        for (log_type, log_message) in self.logs.iter() {
+            logger.append_log(format!("{} {}", log_type, log_message));
+        }
     }
 }
 
@@ -359,12 +549,17 @@ fn file_path_to_py_path(mut path: PathBuf) -> Result<String, String> {
     //base_python_runner_location.push(PYTHON_BASE_RUNNER_LOCATION.to_owned());
 
     // remove relative directory of runner files
-    let runnable_relative_snippet_path = match diff_paths(path.to_owned(), base_python_runner_location.to_owned()) {
-        Some(some) => some,
-        None => {
-            return Err(format!("Could not compute relative paths for path {} and {} in python run module", base_python_runner_location.to_string_lossy(), path.to_owned().to_string_lossy()));
-        }
-    };
+    let runnable_relative_snippet_path =
+        match diff_paths(path.to_owned(), base_python_runner_location.to_owned()) {
+            Some(some) => some,
+            None => {
+                return Err(format!(
+                    "Could not compute relative paths for path {} and {} in python run module",
+                    base_python_runner_location.to_string_lossy(),
+                    path.to_owned().to_string_lossy()
+                ));
+            }
+        };
 
     let mut py_path = String::new();
 
@@ -386,7 +581,7 @@ pub fn set_python_path() {
     // get runables location
     let mut runables_directory = get_runables_directory();
 
-    // pop runables off to get snippet directory base 
+    // pop runables off to get snippet directory base
     runables_directory.pop();
     let runables_directory_str = runables_directory.to_str().unwrap();
 
@@ -411,11 +606,9 @@ pub fn set_python_path() {
             // else, leave alone
         }
         // None could be found or error retriving, assume none existed
-        Err(_) => {
-            unsafe {
-                env::set_var("PYTHONPATH", runables_directory.to_str().unwrap());
-            }
-        }
+        Err(_) => unsafe {
+            env::set_var("PYTHONPATH", runables_directory.to_str().unwrap());
+        },
     }
 }
 
@@ -423,18 +616,27 @@ pub fn set_python_path() {
 mod test {
     use std::path::PathBuf;
 
-    use crate::{core_services::concurrent_processes::{get_runables_directory, get_working_directory}, python_libraries::python_run_module::file_path_to_py_path};
+    use crate::{
+        core_services::concurrent_processes::{get_runables_directory, get_working_directory},
+        python_libraries::python_run_module::file_path_to_py_path,
+    };
 
     #[test]
     fn test_file_path_to_py_path() {
         // get working directory
         let working_directory = get_working_directory();
         // create path buf
-        let path = working_directory.join(get_runables_directory().join(PathBuf::from("snippets/root/main/basic_one_snippet/app")));
+        let path = working_directory.join(
+            get_runables_directory()
+                .join(PathBuf::from("snippets/root/main/basic_one_snippet/app")),
+        );
 
         let py_path = file_path_to_py_path(path);
 
-        // this is the path because the python interpreter is running from the location of the executable of the program, not the file it runs 
-        assert_eq!(py_path, Ok("runables.snippets.root.main.basic_one_snippet.app".to_string()));
+        // this is the path because the python interpreter is running from the location of the executable of the program, not the file it runs
+        assert_eq!(
+            py_path,
+            Ok("runables.snippets.root.main.basic_one_snippet.app".to_string())
+        );
     }
 }
