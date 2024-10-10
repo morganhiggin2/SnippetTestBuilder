@@ -5,7 +5,9 @@ use crate::utils::sequential_id_generator::Uuid;
 use bimap::BiHashMap;
 use petgraph::{self, data::{Build, DataMapMut}, graph::NodeIndex};
 use pyo3::{IntoPy, Py, PyAny};
+use serde::Serialize;
 
+#[derive(Serialize)]
 /// the manager of the snippets, and their links
 pub struct SnippetManager {
     //list of uuid of snippets to index in edge adj list
@@ -33,6 +35,7 @@ pub struct SnippetManager {
     //edge adj list
 }
 
+#[derive(Serialize)]
 /// the actual snippet itself
 pub struct SnippetComponent {
     uuid: Uuid,
@@ -43,6 +46,7 @@ pub struct SnippetComponent {
     parameters: Vec<SnippetParameterComponent>
 }
 
+#[derive(Serialize)]
 pub struct PipelineConnectorComponent {
     uuid: Uuid,
     external_pipeline_connector_uuid: Uuid,
@@ -50,6 +54,7 @@ pub struct PipelineConnectorComponent {
     input: bool
 }
 
+#[derive(Serialize)]
 pub struct PipelineComponent {
     uuid: Uuid, 
     graph_uuid: petgraph::graph::EdgeIndex,
@@ -57,7 +62,7 @@ pub struct PipelineComponent {
     to_pipeline_connector_uuid: Uuid
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct SnippetParameterComponent {
     uuid: Uuid,
     name: String,
@@ -65,7 +70,7 @@ pub struct SnippetParameterComponent {
     p_type: ExternalSnippetParameterType 
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub enum SnippetParameterBaseStorage {
     String(String)
 }

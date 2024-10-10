@@ -1,4 +1,5 @@
 use bimap::BiHashMap;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 use strum_macros::{Display, EnumString};
 
@@ -50,19 +51,20 @@ pub struct ExternalSnippetIOPoint {
     input: bool,
 }
 
+#[derive(Serialize)]
 pub struct ExternalSnippetParameter {
     uuid: Uuid,
     name: String,
     p_type: ExternalSnippetParameterType,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PackagePath {
     path: String,
 }
 
 // supported list of parameter types
-#[derive(EnumString, PartialEq, Debug, Display, Clone)]
+#[derive(EnumString, PartialEq, Debug, Display, Clone, Serialize)]
 pub enum ExternalSnippetParameterType {
     SingleLineText,
 }

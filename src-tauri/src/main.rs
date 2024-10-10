@@ -66,3 +66,37 @@ fn logln(text: &str) {
 
 //IMPORTAINT
 //installed libpython3.10-dev
+
+// plan for project saving:
+// save rust state of snippets by: python path
+//  save connections by their ids
+//
+// 1. just save the internal snippet manager as serialized
+// 2. for each snippet, look up snippet id by the python path
+//  make call on front end to create snippet
+// 3. for each snippet pipeline
+//  lookup connection similarly, then create pipeline again using front end call
+//
+// ideally, rust creates a "plan" of these actions, then sends as one as a return to the front end, which then executes it
+//
+// so higher level:
+//  - rust creates plan with correct new snippet information
+//  - front end executes it
+//
+// testing:
+//  test as is
+//  test when creating new snippet after saving but before next load, on start of program
+//
+// once this feature is enables, mainly being that we are treating the current canvas as the only saved state,
+//  we can then work on creating the project directory, project names, etc
+// Build plan:
+// This is a rust structure that is based on a trait BuildRecreatePlan
+//   contains 
+//   1. steps to call from front end to recreate
+//      - actions: actions to recreate
+//      - parameters/dependencies: values to be determined at runtime, with hints
+//      - this is a ordered list
+//   2. metadata on dependencies to resolve at runtime, and how to resolve them
+//      - values from the parameters that tell which metadata to resolve to in the actions section
+//      - the value to resolve with
+//      - multiple sections for metadata based on the type of resolve, so there will be many types of resolvers

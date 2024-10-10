@@ -50,14 +50,105 @@ const VIRTUAL_DIRECTORY: VirtualFolder = VirtualFolder {
     }],
 };
 
-pub fn install_runables() {
+/// Install the runables files
+/// this occurs at the start of every program boot
+pub fn install_runables() -> Result<(), String> {
     let install_path = get_runables_directory();
+    let version_lock_path = install_path.join(".versionlock");
+    let current_version = env!("CARGO_PKG_VERSION");
 
-    // create base directory if not exists
-    create_dir_all(install_path.to_owned()).unwrap();
+    // whether or not we should install this as new
+    let mut install_new_version = false;
 
-    // create visual direction in install location
-    install_runable_crawer(&VIRTUAL_DIRECTORY, install_path).unwrap();
+    // if version lock file does not exist, it means we have not installed it before, so install
+    if !version_lock_path.exists() {
+        install_new_version = true;
+    } else {
+        // new version to be got from metadata file
+        let mut old_version = String::new();
+
+        // this scope allows the metadata file to be dropped after we are done using it
+        {
+            // examine version
+            // open metadata file
+            let mut version_lock_file = match fs::File::open(version_lock_path.to_owned()) {
+                Ok(some) => some,
+                Err(e) => {
+                    return Err(format!(
+                        "Could not open version lock path at {}: {}",
+                        version_lock_path.to_string_lossy(),
+                        e.to_string()
+                    ))
+                }
+            };
+
+            // read file contents
+            let mut version_lock_contents = String::new();
+            match version_lock_file.read_to_string(&mut version_lock_contents) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not read contents of version lock file {}: {}",
+                        version_lock_path.to_string_lossy(),
+                        e.to_string()
+                    ))
+                }
+            };
+
+            version_lock_contents.pop();
+
+            // get version (just going to be the only vonent in the file)
+            old_version = version_lock_contents;
+        }
+
+        // if current version is greater, reinstall
+        if compare_versions(current_version.to_owned(), old_version.to_owned()).unwrap() == 1 {
+            install_new_version = true;
+        }
+    }
+
+    if install_new_version {
+        // create base directory if not exists
+        create_dir_all(install_path.to_owned()).unwrap();
+
+        // create visual direction in install location
+        install_runable_crawer(&VIRTUAL_DIRECTORY, install_path, true).unwrap();
+    } else {
+        // ensure installation exists
+        // create base directory if not exists
+        create_dir_all(install_path.to_owned()).unwrap();
+
+        // create visual direction in install location
+        install_runable_crawer(&VIRTUAL_DIRECTORY, install_path, false).unwrap();
+        // write current version
+        {
+            // create lock file, truncating one if it exists
+            let mut version_lock_file = match fs::File::create(version_lock_path.to_owned()) {
+                Ok(file) => file,
+                Err(e) => {
+                    return Err(format!(
+                        "Could not create version lock file at {}: {}",
+                        version_lock_path.to_string_lossy(),
+                        e.to_string()
+                    ))
+                }
+            };
+
+            // write new version to lock file
+            match version_lock_file.write_all(current_version.as_bytes()) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Could not write to version lock file {}: {}",
+                        version_lock_path.to_string_lossy(),
+                        e.to_string()
+                    ))
+                }
+            };
+        }
+    }
+
+    return Ok(());
 }
 
 /// helper method to install files from the virual directory
@@ -65,7 +156,11 @@ pub fn install_runables() {
 /// # Arguments
 /// * 'folder' - virtual folder
 /// * 'install_path' - install base path
-fn install_runable_crawer(folder: &VirtualFolder, install_path: PathBuf) -> Result<(), String> {
+fn install_runable_crawer(
+    folder: &VirtualFolder,
+    install_path: PathBuf,
+    overwrite: bool,
+) -> Result<(), String> {
     // create folder if it does not exist
     if !install_path.exists() {
         // create the folder
@@ -89,7 +184,7 @@ fn install_runable_crawer(folder: &VirtualFolder, install_path: PathBuf) -> Resu
         let child_install_path = install_path.to_owned().join(child_file.name.to_owned());
 
         // only create the file if it does exist
-        if !child_install_path.exists() {
+        if overwrite || !child_install_path.exists() {
             // create file
             let mut file = match fs::File::create(child_install_path.to_owned()) {
                 Ok(some) => some,
@@ -122,7 +217,7 @@ fn install_runable_crawer(folder: &VirtualFolder, install_path: PathBuf) -> Resu
         let child_install_path = install_path.to_owned().join(child_folder.name.to_owned());
 
         // make recursive call
-        install_runable_crawer(child_folder, child_install_path)?;
+        install_runable_crawer(child_folder, child_install_path, overwrite)?;
     }
 
     return Ok(());
@@ -365,6 +460,8 @@ pub async fn unpack_snippet_zip_if_exists() -> Result<(), String> {
 fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> {
     let version_a_parts: Vec<String> = version_a.split('.').map(|s| s.to_string()).collect();
     let version_b_parts: Vec<String> = version_b.split('.').map(|s| s.to_string()).collect();
+
+    println!("{} {}", version_a, version_b);
 
     // convert each version part to an interget
     let version_a_numbers: Vec<i64> = version_a_parts

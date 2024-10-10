@@ -1,23 +1,28 @@
-use crate::utils::sequential_id_generator::{SequentialIdGenerator};
+use serde::Serialize;
+
 use crate::core_components::snippet_manager::SnippetManager;
+use crate::utils::sequential_id_generator::SequentialIdGenerator;
 use crate::utils::sequential_id_generator::Uuid;
 
 use super::visual_snippet_component_manager::VisualSnippetComponentManager;
 
 pub struct WindowManager {
-    window_sessions: Vec<WindowSession> 
+    window_sessions: Vec<WindowSession>,
 }
 
 pub struct WindowSession {
     pub uuid: Uuid,
     pub snippet_manager: SnippetManager,
-    pub visual_component_manager: VisualSnippetComponentManager
+    pub visual_component_manager: VisualSnippetComponentManager,
 }
 
 impl WindowManager {
     /// create a new window session for the window sessions manager
     /// returns uuid of session
-    pub fn new_window_session(&mut self, sequential_id_generator: &mut SequentialIdGenerator) -> Uuid {
+    pub fn new_window_session(
+        &mut self,
+        sequential_id_generator: &mut SequentialIdGenerator,
+    ) -> Uuid {
         //create new window session
         let window_session = WindowSession::new(sequential_id_generator);
 
@@ -33,14 +38,15 @@ impl WindowManager {
 
     /// find a reference to a window session in the window manager
     pub fn find_window_session(&self, uuid: u32) -> Option<&WindowSession> {
-        let window_index_result: Option<usize> = self.window_sessions.iter().position(|w| w.uuid == uuid);
+        let window_index_result: Option<usize> =
+            self.window_sessions.iter().position(|w| w.uuid == uuid);
 
         // handle result cases
         // if found, get index
         // else, return with none
         let window_index: usize = match window_index_result {
             Some(i) => i,
-            None => return None 
+            None => return None,
         };
 
         //get mutable reference to window session
@@ -52,14 +58,15 @@ impl WindowManager {
 
     /// find a mutable reference window session in the window manager
     pub fn find_window_session_mut(&mut self, uuid: u32) -> Option<&mut WindowSession> {
-        let window_index_result: Option<usize> = self.window_sessions.iter().position(|w| w.uuid == uuid);
+        let window_index_result: Option<usize> =
+            self.window_sessions.iter().position(|w| w.uuid == uuid);
 
         // handle result cases
         // if found, get index
         // else, return with none
         let window_index: usize = match window_index_result {
             Some(i) => i,
-            None => return None 
+            None => return None,
         };
 
         //get mutable reference to window session
@@ -73,8 +80,8 @@ impl WindowManager {
 impl Default for WindowManager {
     fn default() -> Self {
         return WindowManager {
-            window_sessions: Vec::with_capacity(1)
-        }
+            window_sessions: Vec::with_capacity(1),
+        };
     }
 }
 
@@ -84,8 +91,8 @@ impl WindowSession {
         return WindowSession {
             uuid: sequential_id_generator.get_id(),
             snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualSnippetComponentManager::default()
-        }
+            visual_component_manager: VisualSnippetComponentManager::default(),
+        };
     }
 }
 
@@ -94,7 +101,7 @@ impl Default for WindowSession {
         return WindowSession {
             uuid: 0,
             snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualSnippetComponentManager::default()
-        }
+            visual_component_manager: VisualSnippetComponentManager::default(),
+        };
     }
 }
