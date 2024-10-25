@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::core_components::snippet_manager::SnippetManager;
+use crate::core_services::project_service::ProjectManager;
 use crate::utils::sequential_id_generator::SequentialIdGenerator;
 use crate::utils::sequential_id_generator::Uuid;
 
@@ -12,8 +13,7 @@ pub struct WindowManager {
 
 pub struct WindowSession {
     pub uuid: Uuid,
-    pub snippet_manager: SnippetManager,
-    pub visual_component_manager: VisualSnippetComponentManager,
+    pub project_manager: ProjectManager,
 }
 
 impl WindowManager {
@@ -90,8 +90,7 @@ impl WindowSession {
     pub fn new(sequential_id_generator: &mut SequentialIdGenerator) -> Self {
         return WindowSession {
             uuid: sequential_id_generator.get_id(),
-            snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualSnippetComponentManager::default(),
+            project_manager: ProjectManager::new(),
         };
     }
 }
@@ -100,8 +99,7 @@ impl Default for WindowSession {
     fn default() -> Self {
         return WindowSession {
             uuid: 0,
-            snippet_manager: SnippetManager::default(),
-            visual_component_manager: VisualSnippetComponentManager::default(),
+            project_manager: ProjectManager::default(),
         };
     }
 }

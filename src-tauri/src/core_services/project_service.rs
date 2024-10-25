@@ -1,11 +1,44 @@
-use std::{io::{Read, Write}, path::PathBuf};
+use std::{
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 
-use crate::state_management::{
-    external_snippet_manager::{self, ExternalSnippetManager, PackagePath},
-    window_manager::WindowSession,
+use crate::{
+    core_components::snippet_manager::SnippetManager,
+    state_management::{
+        external_snippet_manager::{self, ExternalSnippetManager, PackagePath},
+        visual_snippet_component_manager::VisualSnippetComponentManager,
+        window_manager::WindowSession,
+    },
 };
+
+// project manager
+pub struct ProjectManager {
+    pub snippet_manager: SnippetManager,
+    pub visual_component_manager: VisualSnippetComponentManager,
+}
+
+impl ProjectManager {
+    /// create a new window session
+    pub fn new() -> Self {
+        return ProjectManager {
+            snippet_manager: SnippetManager::default(),
+            visual_component_manager: VisualSnippetComponentManager::default(),
+        };
+    }
+}
+
+impl Default for ProjectManager {
+    /// create a new window session
+    fn default() -> Self {
+        return ProjectManager {
+            snippet_manager: SnippetManager::default(),
+            visual_component_manager: VisualSnippetComponentManager::default(),
+        };
+    }
+}
 
 #[derive(Serialize, Deserialize, Default)]
 struct Plan {
@@ -43,10 +76,10 @@ struct BuildSnippetParameterAction {
 pub fn save_project(
     window_session: &mut WindowSession,
     external_snippet_manager: &mut ExternalSnippetManager,
-    path: PathBuf
+    path: PathBuf,
 ) -> Result<(), String> {
     // get components
-    let snippet_manager = &mut window_session.snippet_manager;
+    let snippet_manager = &mut window_session.project_manager.snippet_manager;
 
     // create plan
     let mut plan = Plan::default();
@@ -210,15 +243,23 @@ pub fn save_project(
     let mut file = match std::fs::File::create(path.to_owned()) {
         Ok(some) => some,
         Err(e) => {
-            return Err(format!("Unable to create project file at {}: {}", path.to_string_lossy(), e));
-        }    
+            return Err(format!(
+                "Unable to create project file at {}: {}",
+                path.to_string_lossy(),
+                e
+            ));
+        }
     };
 
     // export plan
     match file.write_all(&serialized_plan) {
         Ok(()) => (),
         Err(e) => {
-            return Err(format!("Unable to write serialized plan to file {}: {}", path.to_string_lossy(), e));
+            return Err(format!(
+                "Unable to write serialized plan to file {}: {}",
+                path.to_string_lossy(),
+                e
+            ));
         }
     };
 
@@ -226,15 +267,19 @@ pub fn save_project(
 }
 
 /// Read the project from the project file path
-/// 
+///
 /// returns the project build information
 fn read_project(path: PathBuf) -> Result<Plan, String> {
     // create file, truncate if exists
     let mut file = match std::fs::File::open(path.to_owned()) {
         Ok(some) => some,
         Err(e) => {
-            return Err(format!("Unable to read project file at {}: {}", path.to_string_lossy(), e));
-        }    
+            return Err(format!(
+                "Unable to read project file at {}: {}",
+                path.to_string_lossy(),
+                e
+            ));
+        }
     };
 
     let mut unserialized_plan = Vec::<u8>::new();
@@ -243,9 +288,13 @@ fn read_project(path: PathBuf) -> Result<Plan, String> {
     match file.read_to_end(&mut unserialized_plan) {
         Ok(_) => (),
         Err(e) => {
-            return Err(format!("Unable to write serialized plan to file {}: {}", path.to_string_lossy(), e));
+            return Err(format!(
+                "Unable to write serialized plan to file {}: {}",
+                path.to_string_lossy(),
+                e
+            ));
         }
-    };   
+    };
 
     // deserialize plan
     let plan = match bincode::deserialize(&unserialized_plan) {
