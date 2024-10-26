@@ -1,6 +1,10 @@
 use crate::{
     core_services::{concurrent_processes::get_projects_directory, project_service::Plan},
-    state_management::{window_manager::WindowSession, SharedApplicationState},
+    state_management::{
+        external_snippet_manager::{self, PackagePath},
+        window_manager::WindowSession,
+        SharedApplicationState,
+    },
     utils::sequential_id_generator::Uuid,
 };
 use std::ops::DerefMut;
@@ -86,6 +90,31 @@ pub fn open_project(
 
 // create snippet:
 // given an external snippet path, give me an external snippet id
+#[tauri::command]
+pub fn get_external_snippet_id_from_package_path(
+    application_state: tauri::State<SharedApplicationState>,
+    snippet_path: &str,
+) -> Result<Uuid, String> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = &mut state_guard.deref_mut();
+
+    // borrow split
+    let external_snippet_manager = &state.external_snippet_manager;
+
+    // get string path as package path
+    let package_path: PackagePath = snippet_path.to_string().into();
+
+    // get external snippet uuid from path
+    return match external_snippet_manager.find_external_snippet_uuid_from_package_path(package_path)
+    {
+        Some(val) => Ok(val),
+        None => Err(format!(
+            "Could not find external snippet uuid for {}, must not exist anymore",
+            snippet_path
+        )),
+    };
+}
 
 // create pipeline:
 // given a front snippet id and a snippet component name, give me the front snippet component id

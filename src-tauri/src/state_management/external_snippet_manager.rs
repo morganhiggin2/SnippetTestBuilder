@@ -21,7 +21,8 @@ use crate::{
 pub type Schema = String;
 
 pub struct ExternalSnippetManager {
-    external_snippets: Vec<ExternalSnippet>,
+    external_snippets: HashMap<Uuid, ExternalSnippet>,
+    package_path_to_external_snippet_uuid: HashMap<PackagePath, Uuid>,
     external_snippets_to_directory_entries: BiHashMap<Uuid, Uuid>,
 }
 
@@ -58,7 +59,7 @@ pub struct ExternalSnippetParameter {
     p_type: ExternalSnippetParameterType,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct PackagePath {
     path: String,
 }
@@ -92,7 +93,8 @@ impl IntoStorageType for ExternalSnippetParameterType {
 impl Default for ExternalSnippetManager {
     fn default() -> Self {
         return ExternalSnippetManager {
-            external_snippets: Vec::new(),
+            external_snippets: HashMap::new(),
+            package_path_to_external_snippet_uuid: HashMap::new(),
             external_snippets_to_directory_entries: BiHashMap::new(),
         };
     }
@@ -103,6 +105,12 @@ impl Default for PackagePath {
         return PackagePath {
             path: String::default(),
         };
+    }
+}
+
+impl From<String> for PackagePath {
+    fn from(value: String) -> Self {
+        return PackagePath { path: value };
     }
 }
 
@@ -254,9 +262,15 @@ impl ExternalSnippetManager {
             python_build_information.get_directory_entry_uuid(),
         );
 
-        //add it to manager
-        self.external_snippets.push(external_snippet);
+        // add other mappings
+        self.package_path_to_external_snippet_uuid.insert(
+            external_snippet.package_path.to_owned(),
+            external_snippet.uuid,
+        );
 
+        //add it to manager
+        self.external_snippets
+            .insert(uuid.to_owned(), external_snippet);
         return Ok(uuid);
     }
 
@@ -507,7 +521,8 @@ impl ExternalSnippetManager {
         return self
             .external_snippets
             .iter_mut()
-            .find(|pipe: &&mut ExternalSnippet| pipe.uuid == uuid);
+            .find(|(_, pipe)| pipe.uuid == uuid)
+            .map(|(_, v)| v);
     }
 
     /// find refernece to external snippet from within the external snippet manager
@@ -519,7 +534,8 @@ impl ExternalSnippetManager {
         return self
             .external_snippets
             .iter()
-            .find(|pipe: &&ExternalSnippet| pipe.uuid == uuid);
+            .find(|(_, pipe)| pipe.uuid == uuid)
+            .map(|(_, v)| v);
     }
 
     pub fn find_external_snippet_from_directory_uuid(
@@ -551,6 +567,13 @@ impl ExternalSnippetManager {
             .to_owned();
 
         return self.find_external_snippet_mut(external_snippet_uuid);
+    }
+
+    pub fn find_external_snippet_uuid_from_package_path(&self, path: PackagePath) -> Option<Uuid> {
+        return match self.package_path_to_external_snippet_uuid.get(&path) {
+            Some(val) => Some(val.to_owned()),
+            None => None,
+        };
     }
 
     /*
@@ -796,7 +819,7 @@ mod test {
         let snippet_map: HashMap<String, &ExternalSnippet> = external_snippet_manager
             .external_snippets
             .iter()
-            .map(|element| -> (String, &ExternalSnippet) {
+            .map(|(_, element)| -> (String, &ExternalSnippet) {
                 return (element.name.to_owned(), element);
             })
             .collect();
