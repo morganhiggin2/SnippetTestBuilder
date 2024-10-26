@@ -8,9 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     core_components::snippet_manager::SnippetManager,
     state_management::{
-        external_snippet_manager::{self, ExternalSnippetManager, PackagePath},
+        external_snippet_manager::{ExternalSnippetManager, PackagePath},
         visual_snippet_component_manager::VisualSnippetComponentManager,
-        window_manager::WindowSession,
     },
 };
 
@@ -41,7 +40,7 @@ impl Default for ProjectManager {
 }
 
 #[derive(Serialize, Deserialize, Default)]
-struct Plan {
+pub struct Plan {
     actions: PlanActions,
 }
 
@@ -55,6 +54,8 @@ struct PlanActions {
 #[derive(Serialize, Deserialize)]
 struct BuildSnippetAction {
     python_path: PackagePath,
+    x_position: f64,
+    y_posititon: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -72,42 +73,51 @@ struct BuildSnippetParameterAction {
     parameter_value: String,
 }
 
-/// Save the current project session to a file at the specified project file path
-pub fn save_project(
-    window_session: &mut WindowSession,
-    external_snippet_manager: &mut ExternalSnippetManager,
-    path: PathBuf,
-) -> Result<(), String> {
-    // get components
-    let snippet_manager = &mut window_session.project_manager.snippet_manager;
+impl ProjectManager {
+    /// Save the current project session to a file at the specified project file path
+    pub fn save_project(
+        &mut self,
+        external_snippet_manager: &mut ExternalSnippetManager,
+        path: PathBuf,
+    ) -> Result<(), String> {
+        // get components
+        let snippet_manager = &mut self.snippet_manager;
 
-    // create plan
-    let mut plan = Plan::default();
-    // build plan
+        // create plan
+        let mut plan = Plan::default();
+        // build plan
 
-    // build snippets plan
-    // build snippet actions
-    for snippet in snippet_manager.get_snippets_as_ref() {
-        // find it in external snippet manager
-        let external_snippet = match external_snippet_manager
-            .find_external_snippet(snippet.get_external_snippet_id())
-        {
-            None => {
-                return Err(format!("Could not find snippet in external snippet manager in project build actions step"));
-            }
-            Some(external_snippet) => external_snippet,
-        };
+        // build snippets plan
+        // build snippet actions
+        for snippet in snippet_manager.get_snippets_as_ref() {
+            // find it in external snippet manager
+            let external_snippet = match external_snippet_manager
+                .find_external_snippet(snippet.get_external_snippet_id())
+            {
+                None => {
+                    return Err(format!("Could not find snippet in external snippet manager in project build actions step"));
+                }
+                Some(external_snippet) => external_snippet,
+            };
 
-        // get python path
-        let python_path = external_snippet.get_package_path();
+            // get python path
+            let python_path = external_snippet.get_package_path();
 
-        // create snippet action
-        let snippet_action = BuildSnippetAction {
-            python_path: python_path,
-        };
+            // get positions
+            let position = snippet.get_position();
+            let x_position = position.0;
+            let y_position = position.1;
 
-        // add the created snippet action to the list of build snippet actions in the plan
-        plan.actions.build_snippet_actions.push(snippet_action);
+            // create snippet action
+            let snippet_action = BuildSnippetAction {
+                python_path: python_path,
+                x_position: x_position,
+                y_posititon: y_position,
+            };
+
+            // add the created snippet action to the list of build snippet actions in the plan
+            plan.actions.build_snippet_actions.push(snippet_action);
+        }
 
         // for each snippet
         for snippet in snippet_manager.get_snippets_as_ref() {
@@ -119,7 +129,7 @@ pub fn save_project(
                 {
                     // get pipeline
                     let pipeline = match snippet_manager.find_pipeline(&pipeline_uuid) {
-                        None => return Err(format!("Critical logic error: Pipeline not found")),
+                        None => return Err(format!("Critical logic error in get pipelines from to connector: Pipeline not found")),
                         Some(pipeline) => pipeline,
                     };
 
@@ -142,6 +152,7 @@ pub fn save_project(
                         }
                     };
 
+                    // get connecting snippet
                     let connecting_snippet =
                         match snippet_manager.find_snippet(&connecting_snippet_uuid) {
                             Some(snippet) => snippet,
@@ -154,18 +165,18 @@ pub fn save_project(
                             Some(pipeline_connector) => pipeline_connector.get_name(),
                             None => {
                                 return Err(String::from(
-                                    "Critical logic error: Pipeline connector not found",
+                                    "Critical logic error in getting from pipeline from pipeline connector: Pipeline connector not found",
                                 ))
                             }
                         };
 
                     // get pipeline connector names
                     let to_pipeline_connector_name =
-                        match snippet.find_pipeline_connector(to_pipeline_connector_uuid) {
+                        match connecting_snippet.find_pipeline_connector(to_pipeline_connector_uuid) {
                             Some(pipeline_connector) => pipeline_connector.get_name(),
                             None => {
                                 return Err(String::from(
-                                    "Critical logic error: Pipeline connector not found",
+                                    "Critical logic error in getting to pipeline connector : Pipeline connectornot found",
                                 ))
                             }
                         };
@@ -229,80 +240,84 @@ pub fn save_project(
                 }
             }
         }
+
+        // serialize plan
+        let serialized_plan = match bincode::serialize(&plan) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!("Unable to serialize plan: {}", e));
+            }
+        };
+
+        // create file, truncate if exists
+        let mut file = match std::fs::File::create(path.to_owned()) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!(
+                    "Unable to create project file at {}: {}",
+                    path.to_string_lossy(),
+                    e
+                ));
+            }
+        };
+
+        // export plan
+        match file.write_all(&serialized_plan) {
+            Ok(()) => (),
+            Err(e) => {
+                return Err(format!(
+                    "Unable to write serialized plan to file {}: {}",
+                    path.to_string_lossy(),
+                    e
+                ));
+            }
+        };
+
+        return Ok(());
     }
 
-    // serialize plan
-    let serialized_plan = match bincode::serialize(&plan) {
-        Ok(some) => some,
-        Err(e) => {
-            return Err(format!("Unable to serialize plan: {}", e));
-        }
-    };
+    /// Read the project from the project file path
+    ///
+    /// returns the project build information
+    pub fn open_project(&self, path: PathBuf) -> Result<Plan, String> {
+        // create file, truncate if exists
+        let mut file = match std::fs::File::open(path.to_owned()) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!(
+                    "Unable to read project file at {}: {}",
+                    path.to_string_lossy(),
+                    e
+                ));
+            }
+        };
 
-    // create file, truncate if exists
-    let mut file = match std::fs::File::create(path.to_owned()) {
-        Ok(some) => some,
-        Err(e) => {
-            return Err(format!(
-                "Unable to create project file at {}: {}",
-                path.to_string_lossy(),
-                e
-            ));
-        }
-    };
+        let mut unserialized_plan = Vec::<u8>::new();
 
-    // export plan
-    match file.write_all(&serialized_plan) {
-        Ok(()) => (),
-        Err(e) => {
-            return Err(format!(
-                "Unable to write serialized plan to file {}: {}",
-                path.to_string_lossy(),
-                e
-            ));
-        }
-    };
+        // export plan
+        match file.read_to_end(&mut unserialized_plan) {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(format!(
+                    "Unable to write serialized plan to file {}: {}",
+                    path.to_string_lossy(),
+                    e
+                ));
+            }
+        };
 
-    return Ok(());
-}
+        // deserialize plan
+        let plan = match bincode::deserialize(&unserialized_plan) {
+            Ok(some) => some,
+            Err(e) => {
+                return Err(format!("Unable to serialize plan: {}", e));
+            }
+        };
 
-/// Read the project from the project file path
-///
-/// returns the project build information
-fn read_project(path: PathBuf) -> Result<Plan, String> {
-    // create file, truncate if exists
-    let mut file = match std::fs::File::open(path.to_owned()) {
-        Ok(some) => some,
-        Err(e) => {
-            return Err(format!(
-                "Unable to read project file at {}: {}",
-                path.to_string_lossy(),
-                e
-            ));
-        }
-    };
+        return plan;
+    }
 
-    let mut unserialized_plan = Vec::<u8>::new();
-
-    // export plan
-    match file.read_to_end(&mut unserialized_plan) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "Unable to write serialized plan to file {}: {}",
-                path.to_string_lossy(),
-                e
-            ));
-        }
-    };
-
-    // deserialize plan
-    let plan = match bincode::deserialize(&unserialized_plan) {
-        Ok(some) => some,
-        Err(e) => {
-            return Err(format!("Unable to serialize plan: {}", e));
-        }
-    };
-
-    return plan;
+    pub fn get_default_plan(&self) -> Plan {
+        return Plan::default();
+    }
 }

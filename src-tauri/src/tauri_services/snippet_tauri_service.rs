@@ -24,6 +24,8 @@ pub fn new_snippet(
     application_state: tauri::State<SharedApplicationState>,
     window_session_uuid: Uuid,
     directory_front_uuid: Uuid,
+    x_position: f64,
+    y_position: f64,
 ) -> Result<FrontSnippetContent, &str> {
     // get the state
     let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
@@ -69,7 +71,12 @@ pub fn new_snippet(
         };
 
     //create snippet
-    let snippet_uuid = snippet_manager.new_snippet(sequential_id_generator, external_snippet);
+    let snippet_uuid = snippet_manager.new_snippet(
+        sequential_id_generator,
+        external_snippet,
+        x_position,
+        y_position,
+    );
 
     //get the snippet
     let snippet = match snippet_manager.find_snippet(&snippet_uuid) {
@@ -215,6 +222,55 @@ pub fn update_snippet_parameter_value(
         Ok(_) => (),
         Err(e) => {
             return Err(e);
+        }
+    };
+
+    return Ok(());
+}
+
+/// update snippet position
+#[tauri::command]
+pub fn update_snippet_position(
+    application_state: tauri::State<SharedApplicationState>,
+    window_session_uuid: Uuid,
+    front_uuid: Uuid,
+    x_position: f64,
+    y_position: f64,
+) -> Result<(), &str> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    //find window session
+    let window_session: &mut WindowSession = match state
+        .window_manager
+        .find_window_session_mut(window_session_uuid)
+    {
+        Some(result) => result,
+        None => {
+            return Err("window session could not be found");
+        }
+    };
+
+    //borrow split
+    let snippet_manager = &mut window_session.project_manager.snippet_manager;
+    let visual_snippet_component_manager =
+        &mut window_session.project_manager.visual_component_manager;
+
+    // front to internal id
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&front_uuid) {
+        Some(result) => result,
+        None => {
+            return Err("snippet uuid could not be found from front snippet uuid");
+        }
+    };
+
+    // update_snippet_position
+    match snippet_manager.update_snippet_position(snippet_uuid, x_position, y_position) {
+        Ok(result) => result,
+        Err(e) => {
+            println!("Could not update snippet positions: {}", e);
+            return Err("could not update snippet positions");
         }
     };
 

@@ -9,7 +9,19 @@
 
     export const trigger_logging = (stream_i) => {
         trigger_logging_(stream_i);
-    }
+    };
+
+    // project builder
+    let create_snippet_;
+    let create_pipeline_;
+
+    export const create_snippet = () => {
+        create_snippet_();
+    };
+
+    export const create_pipeline = () => {
+        create_pipeline_();
+    };
 
     let window_height = 0;
     export let window_session_id;
@@ -20,23 +32,35 @@
     // parameters methods
     let add_parameters;
     let delete_parameters;
-
-
-
 </script>
 
 <div class="body">
-    <div class="container" style="grid-template-rows: {window_height - 250}px 250px;">
+    <div
+        class="container"
+        style="grid-template-rows: {window_height - 250}px 250px;"
+    >
         <div class="test-creation-area">
-            <TestCreationArea {window_session_id} add_parameters={add_parameters} delete_parameters={delete_parameters}/>
+            <TestCreationArea
+                {window_session_id}
+                {add_parameters}
+                {delete_parameters}
+                bind:create_snippet={create_snippet_}
+                bind:create_pipeline={create_pipeline_}
+            />
         </div>
         <div class="logging-view">
-            <ReportArea {window_session_id} bind:trigger_logging={trigger_logging_} bind:add_parameters={add_parameters} bind:delete_parameters={delete_parameters} sidebar_width={sidebar_width}/>
+            <ReportArea
+                {window_session_id}
+                bind:trigger_logging={trigger_logging_}
+                bind:add_parameters
+                bind:delete_parameters
+                {sidebar_width}
+            />
         </div>
     </div>
 </div>
 
-<svelte:window bind:innerHeight={window_height}/>
+<svelte:window bind:innerHeight={window_height} />
 
 <style>
     .body {
@@ -54,7 +78,7 @@
     .logging-view {
         grid-row: 2 / span 1;
     }
-    
+
     .logging-view.border {
         grid-column: 3 / span 1;
         background-color: lightgrey;

@@ -301,7 +301,7 @@ pub async fn fetch_new_snippets_zip() -> Result<(), String> {
             };
 
             // trim end of file character off end of file
-            lock_file_contents.pop();
+            //lock_file_contents.pop();
 
             // get version (just going to be the only vonent in the file)
             current_version = match String::from_utf8(lock_file_contents) {
@@ -460,8 +460,6 @@ pub async fn unpack_snippet_zip_if_exists() -> Result<(), String> {
 fn compare_versions(version_a: String, version_b: String) -> Result<i8, String> {
     let version_a_parts: Vec<String> = version_a.split('.').map(|s| s.to_string()).collect();
     let version_b_parts: Vec<String> = version_b.split('.').map(|s| s.to_string()).collect();
-
-    println!("{} {}", version_a, version_b);
 
     // convert each version part to an interget
     let version_a_numbers: Vec<i64> = version_a_parts

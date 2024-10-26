@@ -104,3 +104,17 @@ pub fn get_runables_directory() -> PathBuf {
             .join("SnippetTestBuilder/runables");
     }
 }
+
+// get project save directory
+pub fn get_projects_directory() -> PathBuf {
+    // if we are in test mode
+    if cfg!(test) {
+        return get_working_directory().join("projects");
+    } else {
+        // base directory
+        return directories::UserDirs::new()
+            .unwrap()
+            .home_dir()
+            .join("SnippetTestBuilder/projects");
+    }
+}

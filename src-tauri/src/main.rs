@@ -12,11 +12,12 @@ use crate::state_management::{ApplicationState, SharedApplicationState};
 use crate::tauri_services::directory_tauri_service::{
     get_snippet_directory_details, spawn_initialize_snippet_directory,
 };
+use crate::tauri_services::project_tauri_service::save_project;
 use crate::tauri_services::snippet_tauri_service::{
     check_pipeline_connector_capacity_full, delete_pipeline, delete_snippet, get_id,
     get_pipeline_connector_uuids_from_pipeline, get_pipeline_connector_uuids_from_snippet,
     get_snippet_pipelines, new_pipeline, new_snippet, spawn_run_snippets,
-    update_snippet_parameter_value, validate_pipeline_connection,
+    update_snippet_parameter_value, update_snippet_position, validate_pipeline_connection,
 };
 use crate::tauri_services::window_session_tauri_service::new_window_session;
 
@@ -53,7 +54,9 @@ fn main() {
             spawn_initialize_snippet_directory,
             get_snippet_directory_details,
             update_snippet_parameter_value,
-            spawn_run_snippets
+            spawn_run_snippets,
+            save_project,
+            update_snippet_position
         ])
         .run(tauri::generate_context!())
         .expect("error while starting tauri application");
@@ -91,7 +94,7 @@ fn logln(text: &str) {
 //  we can then work on creating the project directory, project names, etc
 // Build plan:
 // This is a rust structure that is based on a trait BuildRecreatePlan
-//   contains 
+//   contains
 //   1. steps to call from front end to recreate
 //      - actions: actions to recreate
 //      - parameters/dependencies: values to be determined at runtime, with hints

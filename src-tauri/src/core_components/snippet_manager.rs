@@ -18,6 +18,7 @@ use petgraph::{
 use pyo3::{IntoPy, Py, PyAny};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::thread::yield_now;
 use strum_macros::Display;
 
 /// the manager of the snippets, and their links
@@ -53,6 +54,8 @@ pub struct SnippetComponent {
     external_snippet_uuid: Uuid,
     pipeline_connectors: Vec<PipelineConnectorComponent>,
     parameters: Vec<SnippetParameterComponent>,
+    x_position: f64,
+    y_position: f64,
 }
 
 pub struct PipelineConnectorComponent {
@@ -112,6 +115,8 @@ impl SnippetManager {
         &mut self,
         sequential_id_generator: &mut SequentialIdGenerator,
         external_snippet: &ExternalSnippet,
+        x_position: f64,
+        y_position: f64,
     ) -> Uuid {
         let pipeline_connectors =
             external_snippet.create_pipeline_connectors_for_io_points(sequential_id_generator);
@@ -127,6 +132,8 @@ impl SnippetManager {
             parameters,
             external_snippet.get_uuid(),
             external_snippet.get_name(),
+            x_position,
+            y_position,
         );
     }
 
@@ -137,13 +144,15 @@ impl SnippetManager {
         parameters: Vec<SnippetParameterComponent>,
         external_snippet_uuid: Uuid,
         external_snippet_name: String,
+        x_position: f64,
+        y_position: f64,
     ) -> Uuid {
         //add snippet to graph
         let graph_uuid = self.snippet_graph.add_node(());
 
         //create snippet component
         let mut snippet_component: SnippetComponent =
-            SnippetComponent::new(graph_uuid, sequential_id_generator);
+            SnippetComponent::new(graph_uuid, sequential_id_generator, x_position, y_position);
 
         //get snippet uuid before borrowed mut
         let snippet_uuid: Uuid = snippet_component.uuid;
@@ -922,12 +931,37 @@ impl SnippetManager {
 
         return map;
     }
+
+    /// update a snippets position by front snippet id
+    pub fn update_snippet_position(
+        &mut self,
+        uuid: Uuid,
+        x_position: f64,
+        y_position: f64,
+    ) -> Result<(), String> {
+        let snippet = match self.snippets.get_mut(&uuid) {
+            Some(some) => some,
+            None => {
+                return Err(format!(
+                    "Could not find snippet {} in snippet manager",
+                    &uuid
+                ))
+            }
+        };
+
+        snippet.x_position = x_position;
+        snippet.y_position = y_position;
+
+        return Ok(());
+    }
 }
 
 impl SnippetComponent {
     pub fn new(
         graph_uuid: petgraph::prelude::NodeIndex,
         sequential_id_generator: &mut SequentialIdGenerator,
+        x_position: f64,
+        y_position: f64,
     ) -> Self {
         return SnippetComponent {
             uuid: sequential_id_generator.get_id(),
@@ -936,6 +970,8 @@ impl SnippetComponent {
             external_snippet_uuid: 0,
             pipeline_connectors: Vec::new(),
             parameters: Vec::new(),
+            x_position: x_position,
+            y_position: y_position,
         };
     }
 
@@ -1089,6 +1125,11 @@ impl SnippetComponent {
             .filter(|connector| -> bool { connector.input == false })
             .map(|connector| -> String { connector.get_name() })
             .collect();
+    }
+
+    /// get the position of the snippet in an (x, y) tuple
+    pub fn get_position(&self) -> (f64, f64) {
+        return (self.x_position, self.y_position);
     }
 }
 
@@ -1257,6 +1298,8 @@ mod tests {
             parameters,
             external_snippet_uuid,
             "testing_snippet".to_string(),
+            0.0,
+            0.0,
         );
 
         // assert that the state of the snippet manager was changed in the correct way
@@ -1353,6 +1396,8 @@ mod tests {
             parameters,
             first_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // create second snippet
@@ -1385,6 +1430,8 @@ mod tests {
             parameters,
             second_external_snippet_uuid,
             "testing_snippet_two".to_string(),
+            0.0,
+            0.0,
         );
 
         // create third snippet
@@ -1429,6 +1476,8 @@ mod tests {
             parameters,
             third_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // delete third snippet
@@ -1514,6 +1563,8 @@ mod tests {
             parameters,
             first_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // create second snippet
@@ -1546,6 +1597,8 @@ mod tests {
             parameters,
             second_external_snippet_uuid,
             "testing_snippet_two".to_string(),
+            0.0,
+            0.0,
         );
 
         // create third snippet
@@ -1590,6 +1643,8 @@ mod tests {
             parameters,
             third_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // connect one to three
@@ -1705,6 +1760,8 @@ mod tests {
             parameters,
             first_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // create second snippet
@@ -1737,6 +1794,8 @@ mod tests {
             parameters,
             second_external_snippet_uuid,
             "testing_snippet_two".to_string(),
+            0.0,
+            0.0,
         );
 
         // create third snippet
@@ -1781,6 +1840,8 @@ mod tests {
             parameters,
             third_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // connect one to three
@@ -1884,6 +1945,8 @@ mod tests {
             parameters,
             first_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // create second snippet
@@ -1916,6 +1979,8 @@ mod tests {
             parameters,
             second_external_snippet_uuid,
             "testing_snippet_two".to_string(),
+            0.0,
+            0.0,
         );
 
         // create third snippet
@@ -1960,6 +2025,8 @@ mod tests {
             parameters,
             third_external_snippet_uuid,
             "testing_snippet_one".to_string(),
+            0.0,
+            0.0,
         );
 
         // connect one to three

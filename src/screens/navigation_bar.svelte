@@ -11,7 +11,7 @@
       </li>
       <li class="navigation-option"><a href="#">Three</a></li>
     </ul>
-</div> 
+</div>
 
 <style>
     .body {
@@ -26,16 +26,16 @@
         text-align: left;
         padding: 5px;
         padding-top: 6px;
-        padding-bottom: 2px; 
+        padding-bottom: 2px;
         float: left;
-        border-bottom: 2px solid whitesmoke; 
+        border-bottom: 2px solid whitesmoke;
         z-index: 99;
     }
- 
+
     .navigation-option:hover {
         border-color: blue;
         cursor: pointer;
-    }   
+    }
 
     .navigation-option a {
         color: black;
@@ -52,8 +52,8 @@
         opacity: 0;
         min-width: 80px;
         z-index: 99;
-    }    
-        
+    }
+
     .navigation-option:hover > ul,
 
     .dropdown:hover {
@@ -86,24 +86,30 @@
 
     function handleRunClick(e) {
         // wait for done event
-        event.once('snippets ran', (event) => {
+        event.once("snippets ran", (event) => {
             // nothing?
-        });             
+        });
 
-        logging_dispatch('triggerLogging', {
-            log_id: window_session_id 
+        logging_dispatch("triggerLogging", {
+            log_id: window_session_id,
         });
 
         // call run for snippet state
-        invoke("spawn_run_snippets", {windowSessionUuid: window_session_id}).then((stream_id) => {
-
-        })
-        .catch((e) => {
-            invoke('logln', {text: JSON.stringify(e)});
-        });
+        invoke("spawn_run_snippets", { windowSessionUuid: window_session_id })
+            .then((stream_id) => {})
+            .catch((e) => {
+                invoke("logln", { text: JSON.stringify(e) });
+            });
     }
 
-/*
+    function handleSaveClick(e) {
+        invoke("save_project", { windowSessionUuid: window_session_id })
+            .then(() => {})
+            .catch((e) => {
+                invoke("logln", { text: JSON.stringify(e) });
+            });
+    }
+    /*
 <div class="body">
     <ul class="navigation-bar">
         <li class="navigation-option" id="plain">File</li>
@@ -117,37 +123,48 @@
                 <li class="dropdown-option">Sub two</li>
                 <li class="dropdown-option">Sub three</li>
             </ul>
-        </li> 
+        </li>
     </ul>
     <ul class="nagivation-bar">
         <div class="button play" on:click={handleRunClick} on:keydown={() => {}}>
-        </div> 
+        </div>
     </ul>
 </div>*/
 </script>
 
 <div class="body">
-    <div/> 
-    <ul class="nagivation-bar">
-        <div class="button play" on:click={handleRunClick} on:keydown={() => {}}>
-        </div> 
-    </ul>
+    <div />
+    <div class="navigation-bar">
+        <div
+            class="button play"
+            on:click={handleRunClick}
+            on:keydown={() => {}}
+        ></div>
+        <button
+            class="button save"
+            on:click={handleSaveClick}
+            on:keydown={() => {}}
+        >
+            Save
+        </button>
+    </div>
 </div>
 
 <style>
     .body {
         background-color: whitesmoke;
         cursor: default;
-        display: flex; 
+        display: flex;
         justify-content: space-between;
         width: 100%;
     }
-
-    .navigation-bar { 
+    .navigation-bar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
     }
 
-
-    .navigation-bar #plain.navigation-option{
+    .navigation-bar #plain.navigation-option {
         float: left;
         font-size: 16px;
         color: black;
@@ -155,7 +172,7 @@
         text-align: left;
         padding: 5px;
         padding-top: 6px;
-        padding-bottom: 2px; 
+        padding-bottom: 2px;
         border-bottom: 2px solid whitesmoke;
     }
 
@@ -165,7 +182,7 @@
     }
 
     #dropdown.navigation-option .dropdown-text {
-        font-size: 16px;  
+        font-size: 16px;
         border: none;
         outline: none;
         color: black;
@@ -174,20 +191,21 @@
         margin: 0;
         padding: 5px;
         padding-top: 6px;
-        padding-bottom: 2px; 
+        padding-bottom: 2px;
         border-bottom: 2px solid whitesmoke;
     }
 
-    #plain.navigation-option:hover, #dropdown.navigation-option:hover .dropdown-text {
+    #plain.navigation-option:hover,
+    #dropdown.navigation-option:hover .dropdown-text {
         border-color: blue;
     }
 
     .dropdown-content {
         display: none;
         position: absolute;
-        min-width:  80px;
+        min-width: 80px;
         background-color: whitesmoke;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
         z-index: 1;
     }
 
@@ -223,5 +241,25 @@
         border-bottom: 12px solid whitesmoke;
         border-left: 19px solid #02a667;
         height: 0px;
+    }
+
+    .button.play:hover {
+        border-left: 19px solid lightgreen;
+        cursor: pointer;
+    }
+
+    .button.save {
+        background-color: #02a667;
+        height: 20px;
+        margin: 4px;
+    }
+
+    .button.save:hover {
+        background-color: lightgreen;
+        cursor: pointer;
+    }
+
+    .button.save:active {
+        background-color: darkgreen;
     }
 </style>
