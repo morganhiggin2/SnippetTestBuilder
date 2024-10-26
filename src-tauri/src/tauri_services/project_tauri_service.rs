@@ -91,7 +91,8 @@ pub fn open_project(
 // create snippet:
 // given an external snippet path, give me an external snippet id
 #[tauri::command]
-pub fn get_external_snippet_id_from_package_path(
+// TODO change this to get directory id
+pub fn get_directory_id_from_package_path(
     application_state: tauri::State<SharedApplicationState>,
     snippet_path: &str,
 ) -> Result<Uuid, String> {
@@ -100,17 +101,16 @@ pub fn get_external_snippet_id_from_package_path(
     let state = &mut state_guard.deref_mut();
 
     // borrow split
-    let external_snippet_manager = &state.external_snippet_manager;
+    let directory_manager = &state.directory_manager;
 
     // get string path as package path
     let package_path: PackagePath = snippet_path.to_string().into();
 
     // get external snippet uuid from path
-    return match external_snippet_manager.find_external_snippet_uuid_from_package_path(package_path)
-    {
-        Some(val) => Ok(val),
+    return match directory_manager.find_directory_entry(package_path) {
+        Some(directory_entry) => Ok(directory_entry.get_uuid()),
         None => Err(format!(
-            "Could not find external snippet uuid for {}, must not exist anymore",
+            "Could not find directory uuid for {}, must not exist anymore",
             snippet_path
         )),
     };

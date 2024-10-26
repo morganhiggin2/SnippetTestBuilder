@@ -22,7 +22,6 @@ pub type Schema = String;
 
 pub struct ExternalSnippetManager {
     external_snippets: HashMap<Uuid, ExternalSnippet>,
-    package_path_to_external_snippet_uuid: HashMap<PackagePath, Uuid>,
     external_snippets_to_directory_entries: BiHashMap<Uuid, Uuid>,
 }
 
@@ -94,7 +93,6 @@ impl Default for ExternalSnippetManager {
     fn default() -> Self {
         return ExternalSnippetManager {
             external_snippets: HashMap::new(),
-            package_path_to_external_snippet_uuid: HashMap::new(),
             external_snippets_to_directory_entries: BiHashMap::new(),
         };
     }
@@ -260,12 +258,6 @@ impl ExternalSnippetManager {
         self.external_snippets_to_directory_entries.insert(
             uuid.to_owned(),
             python_build_information.get_directory_entry_uuid(),
-        );
-
-        // add other mappings
-        self.package_path_to_external_snippet_uuid.insert(
-            external_snippet.package_path.to_owned(),
-            external_snippet.uuid,
         );
 
         //add it to manager
@@ -567,13 +559,6 @@ impl ExternalSnippetManager {
             .to_owned();
 
         return self.find_external_snippet_mut(external_snippet_uuid);
-    }
-
-    pub fn find_external_snippet_uuid_from_package_path(&self, path: PackagePath) -> Option<Uuid> {
-        return match self.package_path_to_external_snippet_uuid.get(&path) {
-            Some(val) => Some(val.to_owned()),
-            None => None,
-        };
     }
 
     /*

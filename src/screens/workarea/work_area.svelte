@@ -18,30 +18,52 @@
     let create_snippet;
     let create_pipeline;
 
-    function open_project() {
+    async function open_project() {
         // get build plan
-        invoke("open_project", { windowSessionId: window_session_id }).then(
-            (plan) => {
-                let actions = plan.actions;
-                // call actions to create build plan
+        let plan = await invoke("open_project", {
+            windowSessionId: window_session_id,
+        });
 
-                // for each snippet
-                for (let i = 0; i < actions.buildSnippetActions.length; i++) {
-                    let snippet_build_action = actions.buildSnippetActions[i];
+        let actions = plan.actions;
+        // call actions to create build plan
 
-                    //  find external snippet id
+        // build map of package path to external snippet id
+        let package_path_to_visual_id = {};
 
-                    //  create snippet, record front snippet id
-                }
+        // for each snippet
+        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
+            let snippet_build_action = actions.buildSnippetActions[i];
 
-                //  find external snippet id
-                //  create snippet, record front snippet id
-                // for each pipelines
-                //  get from snippet connector
-                //  get to snippet connector
-                //  create pipelines
-            },
-        );
+            //  find external snippet id
+            let external_snippet_id = await invoke(
+                "get_external_snippet_id_from_package_path",
+                {
+                    snippetPath: snippet_build_action.packagePath,
+                },
+            );
+
+            //TODO not sure if this is the external snippet id or the directory id
+            //  create snippet, record front snippet id
+            let visual_id = create_snippet(
+                external_snippet_id,
+                snippet_build_action.positionX,
+                snippet_build_action.positionY,
+            );
+
+            // insert into mapping
+            package_path_to_visual_id[snippet_build_action.packagePath] =
+                visual_id;
+        }
+
+        // for each pipelines
+        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
+            let pipeline_build_action = actions.buildSnippetPipelineActions[i];
+            //  get from snippet connector
+            //  get to snippet connector
+            //  create pipeline
+        }
+
+        // for parameters
     }
 </script>
 

@@ -53,7 +53,7 @@ struct PlanActions {
 
 #[derive(Serialize, Deserialize)]
 struct BuildSnippetAction {
-    python_path: PackagePath,
+    package_path: PackagePath,
     x_position: f64,
     y_posititon: f64,
 }
@@ -101,7 +101,7 @@ impl ProjectManager {
             };
 
             // get python path
-            let python_path = external_snippet.get_package_path();
+            let package_path = external_snippet.get_package_path();
 
             // get positions
             let position = snippet.get_position();
@@ -110,7 +110,7 @@ impl ProjectManager {
 
             // create snippet action
             let snippet_action = BuildSnippetAction {
-                python_path: python_path,
+                package_path: package_path,
                 x_position: x_position,
                 y_posititon: y_position,
             };

@@ -15,8 +15,8 @@
     let create_snippet_;
     let create_pipeline_;
 
-    export const create_snippet = () => {
-        create_snippet_();
+    export const create_snippet = (id, x, y) => {
+        create_snippet_(id, x, y);
     };
 
     export const create_pipeline = () => {
