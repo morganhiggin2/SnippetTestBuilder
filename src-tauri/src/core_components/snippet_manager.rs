@@ -1002,6 +1002,29 @@ impl SnippetComponent {
             .find(|pipe: &&mut PipelineConnectorComponent| pipe.uuid == uuid);
     }
 
+    /// find reference to pipeline connector from name
+    ///
+    /// # Arguments
+    /// * 'uuid' - uuid of the pipeline connector
+    pub fn find_pipeline_connector_from_name(
+        &self,
+        name: String,
+    ) -> Option<&PipelineConnectorComponent> {
+        //find pipeline in vector
+        return self
+            .pipeline_connectors
+            .iter()
+            .find(|pipe: &&PipelineConnectorComponent| pipe.name == name);
+    }
+
+    /// find reference to pipeline parameter from name
+    pub fn find_parameter_from_name(&self, name: String) -> Option<&SnippetParameterComponent> {
+        //find pipeline in vector
+        return self
+            .parameters
+            .iter()
+            .find(|param: &&SnippetParameterComponent| param.name == name);
+    }
     /// create deep copy of parameters
     pub fn get_parameters_as_copy(&self) -> Vec<SnippetParameterComponent> {
         return self.parameters.clone();
@@ -1236,6 +1259,10 @@ impl SnippetParameterComponent {
         };
 
         return Ok(());
+    }
+
+    pub fn get_uuid(&self) -> Uuid {
+        return self.uuid.to_owned();
     }
 
     pub fn get_name(&self) -> String {

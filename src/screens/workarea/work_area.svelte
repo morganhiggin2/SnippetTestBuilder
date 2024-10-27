@@ -35,17 +35,16 @@
             let snippet_build_action = actions.buildSnippetActions[i];
 
             //  find external snippet id
-            let external_snippet_id = await invoke(
-                "get_external_snippet_id_from_package_path",
+            let directory_id = await invoke(
+                "get_directory_id_from_package_path",
                 {
                     snippetPath: snippet_build_action.packagePath,
                 },
             );
 
-            //TODO not sure if this is the external snippet id or the directory id
-            //  create snippet, record front snippet id
-            let visual_id = create_snippet(
-                external_snippet_id,
+            // create snippet, record front snippet id
+            let visual_id = await create_snippet(
+                directory_id,
                 snippet_build_action.positionX,
                 snippet_build_action.positionY,
             );
@@ -58,12 +57,60 @@
         // for each pipelines
         for (let i = 0; i < actions.buildSnippetActions.length; i++) {
             let pipeline_build_action = actions.buildSnippetPipelineActions[i];
-            //  get from snippet connector
-            //  get to snippet connector
+
+            //  get from visual front snippet connector
+            let from_snippet_connector_id = invoke(
+                "get_front_snippet_connector_id_from_snippet_uuid_and_name",
+                {
+                    windowSessionUuid: window_session_id,
+                    frontSnippetId:
+                        package_path_to_visual_id[
+                            pipeline_build_action.fromSnippetConnectorPath
+                        ],
+                    snippetConnectorName:
+                        pipeline_build_action.fromSnippetConnectorName,
+                },
+            );
+
+            //  get from visual to snippet connector
+            let to_snippet_connector_id = invoke(
+                "get_front_snippet_connector_id_from_snippet_uuid_and_name",
+                {
+                    windowSessionUuid: window_session_id,
+                    frontSnippetId:
+                        package_path_to_visual_id[
+                            pipeline_build_action.toSnippetConnectorPath
+                        ],
+                    snippetConnectorName:
+                        pipeline_build_action.toSnippetConnectorName,
+                },
+            );
+
             //  create pipeline
+            await create_pipeline(
+                from_snippet_connector_id,
+                to_snippet_connector_id,
+            );
         }
 
-        // for parameters
+        // for each parameter
+        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
+            let parameter_build_action = actions.buildSnippetPipelineActions[i];
+
+            let parameter_front_uuid = invoke(
+                "get_front_parameter_id_from_snippet_uuid_and_name",
+                {
+                    windowSessionUuid: window_session_id,
+                    frontSnippetId:
+                        package_path_to_visual_id[
+                            parameter_build_action.fromSnippetConnectorPath
+                        ],
+                    pipelineName: parameter_build_action.parameterName,
+                },
+            );
+
+            // TODO we need a set parameter method, because the parameters would have been created already in the crate snippet stage
+        }
     }
 </script>
 

@@ -105,6 +105,14 @@ impl VisualSnippetComponentManager {
         return self.snippet_front_to_snippet.get_by_left(uuid).copied();
     }
 
+    /// find parameter front uuid from parameter uuid
+    pub fn find_parameter_front_uuid(&self, uuid: &Uuid) -> Option<Uuid> {
+        return self
+            .parameter_front_to_parameter
+            .get_by_right(uuid)
+            .copied();
+    }
+
     /// put pipeline front and component pair
     /// will overwrite
     pub fn put_pipeline(&mut self, front_uuid: Uuid, component_uuid: Uuid) {

@@ -2,6 +2,7 @@ use crate::{
     core_services::{concurrent_processes::get_projects_directory, project_service::Plan},
     state_management::{
         external_snippet_manager::{self, PackagePath},
+        visual_snippet_component_manager,
         window_manager::WindowSession,
         SharedApplicationState,
     },
@@ -118,5 +119,151 @@ pub fn get_directory_id_from_package_path(
 
 // create pipeline:
 // given a front snippet id and a snippet component name, give me the front snippet component id
+#[tauri::command]
+pub fn get_front_snippet_connector_id_from_snippet_uuid_and_name(
+    application_state: tauri::State<SharedApplicationState>,
+    window_session_uuid: Uuid,
+    front_snippet_id: Uuid,
+    snippet_connector_name: &str,
+) -> Result<Uuid, String> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = &mut state_guard.deref_mut();
+
+    //borrow split
+    let window_manager = &mut state.window_manager;
+
+    //find window session
+    let window_session: &mut WindowSession =
+        match window_manager.find_window_session_mut(window_session_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("window session could not be found".to_string());
+            }
+        };
+
+    // borrow split
+    let project_manager = &window_session.project_manager;
+
+    let visual_snippet_component_manager = &project_manager.visual_component_manager;
+    let snippet_manager = &project_manager.snippet_manager;
+
+    // get snippet id from front snippet id
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&front_snippet_id) {
+        Some(uuid) => uuid,
+        None => {
+            return Err("Could not find snippet uuid for the given front snippet id".to_string());
+        }
+    };
+
+    // get snippet
+    let snippet = match snippet_manager.find_snippet(&snippet_uuid) {
+        Some(s) => s,
+        None => return Err("Could not find snippet for the given snippet uuid".to_string()),
+    };
+
+    // find the nsippet connector by name
+    let snippet_connector =
+        match snippet.find_pipeline_connector_from_name(snippet_connector_name.to_string()) {
+            Some(connector) => connector,
+            None => {
+                return Err(format!(
+                    "Could not find pipeline connector for the given name {}",
+                    snippet_connector_name.to_string()
+                ));
+            }
+        };
+
+    // get front snippet connector uuid from snippet connector uuid
+    let front_snippet_connector_uuid = match visual_snippet_component_manager
+        .find_pipeline_connector_front_uuid(&snippet_connector.get_uuid())
+    {
+        Some(uuid) => uuid,
+        None => {
+            return Err(
+                "Could not find front snippet connector uuid for the given snippet connector"
+                    .to_string(),
+            );
+        }
+    };
+
+    // NOTE: then way this should work is it gets the id of the connector from the external snippet manager, then
+    // gets the ids up the chain.
+
+    return Ok(front_snippet_connector_uuid);
+}
 
 // TODO parameter
+// create pipeline:
+// given a front snippet id and a snippet component name, give me the front snippet component id
+#[tauri::command]
+pub fn get_front_parameter_id_from_snippet_uuid_and_name(
+    application_state: tauri::State<SharedApplicationState>,
+    window_session_uuid: Uuid,
+    front_snippet_id: Uuid,
+    parameter_name: &str,
+) -> Result<Uuid, String> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = &mut state_guard.deref_mut();
+
+    //borrow split
+    let window_manager = &mut state.window_manager;
+
+    //find window session
+    let window_session: &mut WindowSession =
+        match window_manager.find_window_session_mut(window_session_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("window session could not be found".to_string());
+            }
+        };
+
+    // borrow split
+    let project_manager = &window_session.project_manager;
+
+    let visual_snippet_component_manager = &project_manager.visual_component_manager;
+    let snippet_manager = &project_manager.snippet_manager;
+
+    // get snippet id from front snippet id
+    let snippet_uuid = match visual_snippet_component_manager.find_snippet_uuid(&front_snippet_id) {
+        Some(uuid) => uuid,
+        None => {
+            return Err("Could not find snippet uuid for the given front snippet id".to_string());
+        }
+    };
+
+    // get snippet
+    let snippet = match snippet_manager.find_snippet(&snippet_uuid) {
+        Some(s) => s,
+        None => return Err("Could not find snippet for the given snippet uuid".to_string()),
+    };
+
+    // find the nsippet connector by name
+    let parameter = match snippet.find_parameter_from_name(parameter_name.to_string()) {
+        Some(connector) => connector,
+        None => {
+            return Err(format!(
+                "Could not find parameter name for the given name {}",
+                parameter_name.to_string()
+            ));
+        }
+    };
+
+    // get front snippet connector uuid from snippet connector uuid
+    let front_snippet_parameter_uuid = match visual_snippet_component_manager
+        .find_parameter_front_uuid(&parameter.get_uuid())
+    {
+        Some(uuid) => uuid,
+        None => {
+            return Err(
+                "Could not find front parameter uuid for the given snippet connector".to_string(),
+            );
+        }
+    };
+
+    // NOTE: then way this should work is it gets the id of the connector from the external snippet manager, then
+    // gets the ids up the chain.
+
+    return Ok(front_snippet_parameter_uuid);
+}
