@@ -132,6 +132,9 @@
 
         //draw snippet
         drawSnippet(snippetDrawable);
+
+        // return id
+        return snippet_information.id;
     }
 
     async function deleteSnippet(id) {
@@ -453,15 +456,105 @@
         }
     }
 
-    export async function create_pipeline(
-        from_pipelines_connector_id,
+    export async function draw_pipeline(
+        from_pipeline_connector_id,
+        to_pipeline_connector_id,
+    ) {
+        // create pipeline on backend
+        let pipeline_ids = await create_pipeline(
+            from_pipeline_connector_id,
+            to_pipeline_connector_id,
+        );
+
+        let pipeline_uuid = pipeline_ids[0];
+        let pipeline_id = pipeline_ids[1];
+
+        //get the visual component from the map
+        var pipeline_from_connector =
+            visualComponents[from_pipeline_connector_id];
+
+        var pipeline_to_connector = visualComponents[to_pipeline_connector_id];
+        //check if connector already has pipeline attached (assuming one-to-one policy for now, will be changed in future)
+        //return;
+
+        //get background rect
+        var from_background_rect = getChild(
+            pipeline_from_connector.visual,
+            "background_rect",
+        );
+
+        //get background rect position in canvas space
+        var from_background_rect_position =
+            from_background_rect.getAbsolutePosition(stage);
+
+        // just here on our
+        // let pipeline_uuid = pipeline_ids[0];
+        // let pipeline_id = pipeline_ids[1];
+
+        //get pipeline uuid in backend
+        //set pipeline uuid for visual component
+        var to_background_rect = pipeline_to_connector.visual.getChildren(
+            function (node) {
+                return node.getId() === "background_rect";
+            },
+        )[0];
+
+        var to_background_rect_position =
+            to_background_rect.getAbsolutePosition(stage);
+
+        //create visual pipeline
+        var visual_component = generatePipeConnector(
+            pipeline_id,
+            visualComponents,
+            from_background_rect_position.x,
+            from_background_rect_position.y,
+            to_background_rect_position.x - from_background_rect_position.x,
+            to_background_rect_position.y - from_background_rect_position.y,
+            deletePipeline,
+        );
+
+        //add to pipeline layers
+        pipelineLayer.add(visual_component);
+
+        //add pipeline to visual component mapping
+        visualComponents[pipeline_id] = {
+            visual: visual_component,
+            type: "pipeline",
+        };
+
+        //change both ends to connected color
+        pipeline_from_connector.state.color =
+            pipeline_from_connector.state.connected_color;
+        pipeline_to_connector.state.color =
+            pipeline_to_connector.state.connected_color;
+
+        let pipeline_from_connector_background_rect = getChild(
+            pipeline_from_connector.visual,
+            "background_rect",
+        );
+        let pipeline_to_connector_background_rect = getChild(
+            pipeline_to_connector.visual,
+            "background_rect",
+        );
+
+        //draw color change
+        pipeline_from_connector_background_rect.fill(
+            pipeline_from_connector.state.color,
+        );
+        pipeline_to_connector_background_rect.fill(
+            pipeline_to_connector.state.color,
+        );
+    }
+
+    async function create_pipeline(
+        from_pipeline_connector_id,
         to_pipeline_connector_id,
     ) {
         //create pipeline in backend
         try {
             let result = await invoke("new_pipeline", {
                 windowSessionUuid: window_session_id,
-                fromFrontUuid: from_pipelines_connector_id,
+                fromFrontUuid: from_pipeline_connector_id,
                 toFrontUuid: to_pipeline_connector_id,
             });
 

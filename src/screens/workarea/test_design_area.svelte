@@ -13,14 +13,14 @@
 
     // project builder
     let create_snippet_;
-    let create_pipeline_;
+    let draw_pipeline_;
 
     export const create_snippet = (id, x, y) => {
-        create_snippet_(id, x, y);
+        return create_snippet_(id, x, y);
     };
 
-    export const create_pipeline = () => {
-        create_pipeline_();
+    export const draw_pipeline = (from_uuid, to_uuid) => {
+        draw_pipeline_(from_uuid, to_uuid);
     };
 
     // parameters
@@ -52,7 +52,7 @@
                 {add_parameters}
                 {delete_parameters}
                 bind:create_snippet={create_snippet_}
-                bind:create_pipeline={create_pipeline_}
+                bind:draw_pipeline={draw_pipeline_}
             />
         </div>
         <div class="logging-view">

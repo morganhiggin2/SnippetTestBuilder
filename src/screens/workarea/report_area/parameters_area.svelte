@@ -45,6 +45,7 @@
     }
 
     export function set_parameter_text(id, text) {
+        invoke("logln", { text: JSON.stringify(id + " " + text) });
         // get parameter text
         let parameter_text = parameters_state.parameters.filter(
             (param) => param[1]["id"] == id,

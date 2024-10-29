@@ -1,10 +1,10 @@
 <script>
-    import { invoke, event} from "@tauri-apps/api";
+    import { invoke, event } from "@tauri-apps/api";
     import { onMount } from "svelte";
 
     export let window_session_id;
     export let logging_state;
-    
+
     // logging
     let logging_active;
 
@@ -16,25 +16,31 @@
 
         var stream_id = "log_" + stream_i;
 
-        event.listen(stream_id, (event) => {
-            var payload = event.payload;
+        event
+            .listen(stream_id, (event) => {
+                var payload = event.payload;
 
-            // if we receive the close log event
-            if (payload == "") {
-                logging_active();
-            }
-            else {
-                // append log to logging component
-                logging_state.log_text += payload;
-            }
-        }).then((unlisten) => {
-            logging_active = unlisten; 
-        });
+                // if we receive the close log event
+                if (payload == "") {
+                    logging_active();
+                } else {
+                    // append log to logging component
+                    logging_state.log_text += payload;
+                }
+            })
+            .then((unlisten) => {
+                logging_active = unlisten;
+            });
     };
 </script>
 
 <div class="body">
-    <textarea bind:value={logging_state.log_text} class="logging-area courier-prime-regular" readonly wrap="hard"/>
+    <textarea
+        bind:value={logging_state.log_text}
+        class="logging-area courier-prime-regular"
+        readonly
+        wrap="hard"
+    />
 </div>
 
 <style>

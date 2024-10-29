@@ -16,14 +16,23 @@
     };
 
     let create_snippet;
-    let create_pipeline;
+    let draw_pipeline;
     let set_parameter_text;
 
-    async function open_project() {
+    // temporary
+    export function main_open_project(window_session_id) {
+        open_project(window_session_id).then(() => {});
+    }
+
+    async function open_project(window_session_id) {
         // get build plan
-        let plan = await invoke("open_project", {
-            windowSessionId: window_session_id,
+        let plan = {};
+
+        plan = await invoke("open_project", {
+            windowSessionUuid: window_session_id,
         });
+
+        invoke("logln", { text: JSON.stringify(plan) });
 
         let actions = plan.actions;
         // call actions to create build plan
@@ -32,89 +41,101 @@
         let package_path_to_visual_id = {};
 
         // for each snippet
-        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
-            let snippet_build_action = actions.buildSnippetActions[i];
+        for (let i = 0; i < actions.build_snippet_actions.length; i++) {
+            let snippet_build_action = actions.build_snippet_actions[i];
 
             //  find external snippet id
             let directory_id = await invoke(
                 "get_directory_id_from_package_path",
                 {
-                    snippetPath: snippet_build_action.packagePath,
+                    snippetPath: snippet_build_action.package_path.path,
                 },
             );
 
             // create snippet, record front snippet id
             let visual_id = await create_snippet(
                 directory_id,
-                snippet_build_action.positionX,
-                snippet_build_action.positionY,
+                snippet_build_action.x_position,
+                snippet_build_action.y_position,
             );
 
             // insert into mapping
-            package_path_to_visual_id[snippet_build_action.packagePath] =
+            package_path_to_visual_id[snippet_build_action.package_path.path] =
                 visual_id;
         }
 
         // for each pipelines
-        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
-            let pipeline_build_action = actions.buildSnippetPipelineActions[i];
+        for (
+            let i = 0;
+            i < actions.build_snippet_pipeline_actions.length;
+            i++
+        ) {
+            let pipeline_build_action =
+                actions.build_snippet_pipeline_actions[i];
 
-            //  get from visual front snippet connector
-            let from_snippet_connector_id = invoke(
+            let from_snippet_connector_id = await invoke(
                 "get_front_snippet_connector_id_from_snippet_uuid_and_name",
                 {
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            pipeline_build_action.fromSnippetConnectorPath
+                            pipeline_build_action.from_snippet_package_path.path
                         ],
                     snippetConnectorName:
-                        pipeline_build_action.fromSnippetConnectorName,
+                        pipeline_build_action.from_snippet_connector_name,
                 },
             );
 
             //  get from visual to snippet connector
-            let to_snippet_connector_id = invoke(
+            let to_snippet_connector_id = await invoke(
                 "get_front_snippet_connector_id_from_snippet_uuid_and_name",
                 {
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            pipeline_build_action.toSnippetConnectorPath
+                            pipeline_build_action.to_snippet_package_path.path
                         ],
                     snippetConnectorName:
-                        pipeline_build_action.toSnippetConnectorName,
+                        pipeline_build_action.to_snippet_connector_name,
                 },
             );
 
             //  create pipeline
-            await create_pipeline(
+            await draw_pipeline(
                 from_snippet_connector_id,
                 to_snippet_connector_id,
             );
         }
 
         // for each parameter
-        for (let i = 0; i < actions.buildSnippetActions.length; i++) {
-            let parameter_build_action = actions.buildSnippetPipelineActions[i];
+        for (
+            let i = 0;
+            i < actions.build_snippet_parameter_actions.length;
+            i++
+        ) {
+            let parameter_build_action =
+                actions.build_snippet_parameter_actions[i];
 
-            let parameter_front_uuid = invoke(
+            let parameter_front_uuid = await invoke(
                 "get_front_parameter_id_from_snippet_uuid_and_name",
                 {
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            parameter_build_action.fromSnippetConnectorPath
+                            parameter_build_action.snippet_package_path.path
                         ],
-                    pipelineName: parameter_build_action.parameterName,
+                    parameterName: parameter_build_action.parameter_name,
                 },
             );
 
             // update parameter value
             set_parameter_text(
                 parameter_front_uuid,
-                parameter_build_action.parameterValue,
+                parameter_build_action.parameter_value,
             );
+
+            // WHAT we need to do is pre fill the parameters array since the parameters method won't be working yet because
+            // the parameter window is not rendered on startup'
         }
     }
 </script>
@@ -130,7 +151,7 @@
                 {window_session_id}
                 bind:trigger_logging={trigger_logging_}
                 bind:create_snippet
-                bind:create_pipeline
+                bind:draw_pipeline
                 bind:set_parameter_text
                 {sidebar_width}
             />
