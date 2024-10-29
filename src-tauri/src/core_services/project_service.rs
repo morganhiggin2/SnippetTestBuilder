@@ -55,7 +55,7 @@ struct PlanActions {
 struct BuildSnippetAction {
     package_path: PackagePath,
     x_position: f64,
-    y_posititon: f64,
+    y_position: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -70,6 +70,7 @@ struct BuildSnippetPipelineAction {
 #[derive(Serialize, Deserialize)]
 struct BuildSnippetParameterAction {
     snippet_package_path: PackagePath,
+    parameter_name: String,
     parameter_value: String,
 }
 
@@ -112,7 +113,7 @@ impl ProjectManager {
             let snippet_action = BuildSnippetAction {
                 package_path: package_path,
                 x_position: x_position,
-                y_posititon: y_position,
+                y_position: y_position,
             };
 
             // add the created snippet action to the list of build snippet actions in the plan
@@ -217,6 +218,8 @@ impl ProjectManager {
             for snippet in snippet_manager.get_snippets_as_ref() {
                 // for each parameter
                 for parameter in snippet.get_parameters_as_copy() {
+                    let parameter_name = parameter.get_name();
+
                     // get inner value as string
                     let parameter_value = parameter.get_storage().to_string();
 
@@ -234,6 +237,7 @@ impl ProjectManager {
                     plan.actions.build_snippet_parameter_actions.push(
                         BuildSnippetParameterAction {
                             snippet_package_path: snippet_package_path,
+                            parameter_name: parameter_name,
                             parameter_value: parameter_value,
                         },
                     );
@@ -299,7 +303,7 @@ impl ProjectManager {
             Ok(_) => (),
             Err(e) => {
                 return Err(format!(
-                    "Unable to write serialized plan to file {}: {}",
+                    "Unable to read unserialized plan from the file {}: {}",
                     path.to_string_lossy(),
                     e
                 ));
@@ -307,14 +311,14 @@ impl ProjectManager {
         };
 
         // deserialize plan
-        let plan = match bincode::deserialize(&unserialized_plan) {
+        let plan: Plan = match bincode::deserialize(&unserialized_plan) {
             Ok(some) => some,
             Err(e) => {
                 return Err(format!("Unable to serialize plan: {}", e));
             }
         };
 
-        return plan;
+        return Ok(plan);
     }
 
     pub fn get_default_plan(&self) -> Plan {

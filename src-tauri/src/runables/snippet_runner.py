@@ -8,16 +8,15 @@ sys.path.append(os.getcwd())
 
 def run_snippet(*args, **kwargs):
     snippet_path = kwargs["snippet_path"]
-    input_mappings: dict[str, (int, str)] = kwargs["input_mappings"]
+    input_mappings: dict[str, tuple] = kwargs["input_mappings"]
     result_builder = kwargs["result_builder"]
+    logger = kwargs["logger"]
 
-    '''
-    run...
-    :param module_path: path of the module relative to this file
-    :param function_inputs: inputs for the snippet mapped to their input name
-    :param input_mappings: mapping of each input name to each output id and name
-    :param parameter_values: parameter values
-    '''
+    # run...
+    # :param module_path: path of the module relative to this file
+    # :param function_inputs: inputs for the snippet mapped to their input name
+    # :param input_mappings: mapping of each input name to each output id and name
+    # :param parameter_values: parameter values
 
     # import snippet from other file
     # reload if it has already been loaded
@@ -39,19 +38,9 @@ def run_snippet(*args, **kwargs):
 
         # log exception
         # return false for success
-        result_builder.logger.log_err(str(e))
+        logger.log_err(str(e))
 
         run_exception = True
-
-    '''
-    #check types with type parser
-    for output_name, output_value in outputs:
-        #check if output_name exists in function_outputs
-        if output_name not in function_outputs.keys():
-            #raise some exeption: raise ResourceNotFoundExeption
-            raise IncorrectFunctionOutputs(snippet_path, output_name)
-
-        check_type(output_value, function_outputs[output_name])'''
 
     # If there was no runtime exception
     if run_exception is False:
@@ -67,7 +56,7 @@ def run_snippet(*args, **kwargs):
     else:
         result_builder.set_exception_result()
 
-    return result_builder
+    return result_builder, logger
 
 def check_type(type, data):
     None

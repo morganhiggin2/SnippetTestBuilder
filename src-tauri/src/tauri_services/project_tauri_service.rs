@@ -1,5 +1,8 @@
 use crate::{
-    core_services::{concurrent_processes::get_projects_directory, project_service::Plan},
+    core_services::{
+        concurrent_processes::get_projects_directory, project_service::Plan,
+        visual_directory_component_manager,
+    },
     state_management::{
         external_snippet_manager::{self, PackagePath},
         visual_snippet_component_manager,
@@ -107,14 +110,29 @@ pub fn get_directory_id_from_package_path(
     // get string path as package path
     let package_path: PackagePath = snippet_path.to_string().into();
 
-    // get external snippet uuid from path
-    return match directory_manager.find_directory_entry(package_path) {
-        Some(directory_entry) => Ok(directory_entry.get_uuid()),
-        None => Err(format!(
-            "Could not find directory uuid for {}, must not exist anymore",
-            snippet_path
-        )),
+    // get directory entry uuid from path
+    let directory_uuid = match directory_manager.find_directory_entry(package_path) {
+        Some(directory_entry) => directory_entry.get_uuid(),
+        None => {
+            return (Err(format!(
+                "Could not find directory uuid for {}, must not exist anymore",
+                snippet_path
+            )))
+        }
     };
+
+    // find front directory uuid
+    let directory_front_uuid = match directory_manager
+        .visual_component_manager
+        .find_directory_front_uuid(&directory_uuid)
+    {
+        Some(uuid) => uuid,
+        None => {
+            return Err("Could not find directory front uuid".to_string());
+        }
+    };
+
+    return Ok(directory_front_uuid);
 }
 
 // create pipeline:

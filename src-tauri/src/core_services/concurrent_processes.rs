@@ -65,6 +65,7 @@ pub async fn spawn_run_snippets_event(
                 .append_log(format!("Finished successfully running all snippets"));
         }
         Err(e) => {
+            // TODO remove
             logging_stream_instance.append_log(e);
         }
     };

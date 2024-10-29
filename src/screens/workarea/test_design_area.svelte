@@ -23,6 +23,13 @@
         create_pipeline_();
     };
 
+    // parameters
+    let set_parameter_text_;
+
+    export const set_parameter_text = (id, text) => {
+        set_parameter_text_(id, text);
+    };
+
     let window_height = 0;
     export let window_session_id;
     export let sidebar_width;
@@ -54,6 +61,7 @@
                 bind:trigger_logging={trigger_logging_}
                 bind:add_parameters
                 bind:delete_parameters
+                bind:set_parameter_text={set_parameter_text_}
                 {sidebar_width}
             />
         </div>

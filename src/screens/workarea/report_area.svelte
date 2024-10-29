@@ -12,7 +12,14 @@
 
     export const trigger_logging = (stream_i) => {
         trigger_logging_(stream_i);
-    }
+    };
+
+    // parameters
+    let set_parameter_text_;
+
+    export const set_parameter_text = (id, text) => {
+        set_parameter_text_(id, text);
+    };
 
     // multi screen
     var screens = ["logging", "parameters"];
@@ -24,11 +31,11 @@
 
     //state for each screen
     var logging_state = {
-        log_text: ""
-    }
+        log_text: "",
+    };
     var parameters_state = {
-        parameters: [] 
-    }
+        parameters: [],
+    };
 
     // parameters methods
     export const add_parameters = (snippet_id, parameters) => {
@@ -40,7 +47,7 @@
         }
 
         parameters_state.param_state_parameters = param_state_parameters;
-    }
+    };
 
     export const delete_parameters = (snippet_id) => {
         var param_state_parameters = [];
@@ -52,18 +59,25 @@
         }
 
         parameters_state.parameters = param_state_parameters;
-    }
-
+    };
 </script>
 
 <div class="body" style="width: calc(100% - {sidebar_width}px);">
     <div class="tab-bar">
-        <ScreenTabBar screens={screens} active_screen={active_screen} change_screen={change_screen}/>
+        <ScreenTabBar {screens} {active_screen} {change_screen} />
     </div>
     {#if active_screen == "logging"}
-        <LoggingArea {window_session_id} {logging_state} bind:trigger_logging={trigger_logging_}/>
+        <LoggingArea
+            {window_session_id}
+            {logging_state}
+            bind:trigger_logging={trigger_logging_}
+        />
     {:else if active_screen == "parameters"}
-        <ParametersArea {window_session_id} bind:parameters_state={parameters_state}/>
+        <ParametersArea
+            {window_session_id}
+            bind:parameters_state
+            bind:set_parameter_text={set_parameter_text_}
+        />
     {/if}
 </div>
 

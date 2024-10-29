@@ -12,7 +12,10 @@ use crate::state_management::{ApplicationState, SharedApplicationState};
 use crate::tauri_services::directory_tauri_service::{
     get_snippet_directory_details, spawn_initialize_snippet_directory,
 };
-use crate::tauri_services::project_tauri_service::save_project;
+use crate::tauri_services::project_tauri_service::{
+    get_directory_id_from_package_path, get_front_parameter_id_from_snippet_uuid_and_name,
+    get_front_snippet_connector_id_from_snippet_uuid_and_name, open_project, save_project,
+};
 use crate::tauri_services::snippet_tauri_service::{
     check_pipeline_connector_capacity_full, delete_pipeline, delete_snippet, get_id,
     get_pipeline_connector_uuids_from_pipeline, get_pipeline_connector_uuids_from_snippet,
@@ -56,7 +59,11 @@ fn main() {
             update_snippet_parameter_value,
             spawn_run_snippets,
             save_project,
-            update_snippet_position
+            update_snippet_position,
+            get_directory_id_from_package_path,
+            get_front_parameter_id_from_snippet_uuid_and_name,
+            get_front_snippet_connector_id_from_snippet_uuid_and_name,
+            open_project
         ])
         .run(tauri::generate_context!())
         .expect("error while starting tauri application");

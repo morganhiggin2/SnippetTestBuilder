@@ -13,7 +13,7 @@
 
     // timeed event so that when the user is done typing, it updates the paramter
     // one event per paramter
-    let parameter_typing_timers = {} 
+    let parameter_typing_timers = {};
     // in miliseconds
     let typing_interval = 2000;
 
@@ -25,27 +25,58 @@
         }
 
         // start timeout for that paramter
-        parameter_typing_timers[id] = setTimeout(() => {update_parameter(id)}, typing_interval);
+        parameter_typing_timers[id] = setTimeout(() => {
+            update_parameter(id);
+        }, typing_interval);
     }
 
     function update_parameter(id) {
         // get parameter text
-        let parameter_text = parameters_state.parameters.filter((param) => param[1]['id'] == id)[0][2];
+        let parameter_text = parameters_state.parameters.filter(
+            (param) => param[1]["id"] == id,
+        )[0][2];
 
         // update paramter text
-        invoke('update_snippet_parameter_value', {windowSessionUuid: window_session_id, frontUuid: id, value: parameter_text});
+        invoke("update_snippet_parameter_value", {
+            windowSessionUuid: window_session_id,
+            frontUuid: id,
+            value: parameter_text,
+        });
+    }
+
+    export function set_parameter_text(id, text) {
+        // get parameter text
+        let parameter_text = parameters_state.parameters.filter(
+            (param) => param[1]["id"] == id,
+        )[0][2];
+
+        // update paramter text
+        invoke("update_snippet_parameter_value", {
+            windowSessionUuid: window_session_id,
+            frontUuid: id,
+            value: text,
+        });
     }
 </script>
 
 <div class="body">
-    {#each parameters_state.parameters as parameter} 
+    {#each parameters_state.parameters as parameter}
         {#if parameter[1].p_type == "SingleLineText"}
             <div class="parameter tauri-regular">
                 <div class="parameter name">
                     {parameter[1].name}
                 </div>
-                <div class="parameter value" on:keyup={() => {on_key_up_typing(parameter[1].id)}}>
-                    <textarea class="input-element" rows="1" bind:value={parameter[2]}/>
+                <div
+                    class="parameter value"
+                    on:keyup={() => {
+                        on_key_up_typing(parameter[1].id);
+                    }}
+                >
+                    <textarea
+                        class="input-element"
+                        rows="1"
+                        bind:value={parameter[2]}
+                    />
                 </div>
             </div>
         {/if}
@@ -102,5 +133,4 @@
         padding-left: 4px;
         margin-left: 0px;
     }
-
 </style>

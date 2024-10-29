@@ -17,6 +17,7 @@
 
     let create_snippet;
     let create_pipeline;
+    let set_parameter_text;
 
     async function open_project() {
         // get build plan
@@ -109,7 +110,11 @@
                 },
             );
 
-            // TODO we need a set parameter method, because the parameters would have been created already in the crate snippet stage
+            // update parameter value
+            set_parameter_text(
+                parameter_front_uuid,
+                parameter_build_action.parameterValue,
+            );
         }
     }
 </script>
@@ -126,6 +131,7 @@
                 bind:trigger_logging={trigger_logging_}
                 bind:create_snippet
                 bind:create_pipeline
+                bind:set_parameter_text
                 {sidebar_width}
             />
         </div>

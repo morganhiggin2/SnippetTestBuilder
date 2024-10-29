@@ -52,9 +52,9 @@ pub struct PythonSnippetBuildInformation {
 }
 
 #[pyclass]
-#[derive(Clone)]
+#[derive(FromPyObject)]
 pub struct PythonLogger {
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     logs: Vec<(String, String)>,
 }
 
@@ -65,8 +65,6 @@ struct PythonRunnerResult {
     exception: bool,
     #[pyo3(get, set)]
     outputs: HashMap<(Uuid, String), Py<PyAny>>,
-    #[pyo3(get, set)]
-    logger: PythonLogger,
 }
 
 impl Default for PythonSnippetBuildInformation {
@@ -179,9 +177,8 @@ impl InitializedPythonSnippetRunnerBuilder {
         // aquire GI
         Python::with_gil(|py| -> Result<(), String> {
             // import python module for calling snippets (the wrapper function)
-            let python_runner_wrapper_path: PathBuf = get_working_directory()
-                .join(get_runables_directory())
-                .join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
+            let python_runner_wrapper_path: PathBuf =
+                get_runables_directory().join(PYTHON_RUNNER_WRAPPER_LOCATION.to_string());
 
             let mut file = match File::open(python_runner_wrapper_path) {
                 Ok(file) => file,
@@ -339,6 +336,17 @@ impl InitializedPythonSnippetRunnerBuilder {
                     }
                 };
 
+                // create python logger
+                let py_logger = match Bound::new(py, PythonLogger::new()) {
+                    Ok(logger) => logger,
+                    Err(e) => {
+                        return Err(format!(
+                            "Could not bound the python logger result to the py gil: {}",
+                            e.to_string()
+                        ));
+                    }
+                };
+
                 // convert parameter mapping to python
                 let py_parameter_mapping = parameter_mapping.into_py(py);
 
@@ -390,6 +398,17 @@ impl InitializedPythonSnippetRunnerBuilder {
                         ));
                     }
                 };
+
+                match kwargs.set_item("logger", py_logger) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err(format!(
+                            "Could not insert item into kwargs map: {}",
+                            e.to_string()
+                        ));
+                    }
+                };
+
                 match kwargs.set_item("parameter_values", py_parameter_mapping) {
                     Ok(_) => (),
                     Err(e) => {
@@ -412,18 +431,22 @@ impl InitializedPythonSnippetRunnerBuilder {
                 };
 
                 // extract the result type
-                let run_result: PythonRunnerResult = match run_result_result.extract() {
-                    Ok(result) => result,
-                    Err(e) => {
-                        return Err(format!(
-                            "Error in extracting snippet runner return type: {}",
-                            e.to_string()
-                        ))
-                    }
-                };
+                let run_results: (PythonRunnerResult, PythonLogger) =
+                    match run_result_result.extract() {
+                        Ok(result) => result,
+                        Err(e) => {
+                            return Err(format!(
+                                "Error in extracting snippet runner return type: {}",
+                                e.to_string()
+                            ))
+                        }
+                    };
+
+                let run_result = run_results.0;
+                let python_logger = run_results.1;
 
                 // print logger statements
-                run_result.logger.print_logs(logger);
+                python_logger.print_logs(logger);
 
                 // if an exception was raised
                 // Note: what would be more useful for this is to have a pyo3 conversion
@@ -432,10 +455,7 @@ impl InitializedPythonSnippetRunnerBuilder {
                 match run_result.exception {
                     true => {
                         // Return exception
-                        return Err(format!(
-                            //"Snippet {} failed with previous exception", snippet_python_build_information.
-                            "Snippet failed with previous exception"
-                        ));
+                        return Err(format!("Snippet failed with previous exception"));
                     }
                     false => (),
                 }
@@ -490,7 +510,6 @@ impl PythonRunnerResult {
         return Self {
             outputs: HashMap::new(),
             exception: false,
-            logger: PythonLogger::new()
         };
     }
 

@@ -80,7 +80,7 @@ pub struct SnippetParameterComponent {
     p_type: ExternalSnippetParameterType,
 }
 
-#[derive(Clone, Display)]
+#[derive(Clone)]
 pub enum SnippetParameterBaseStorage {
     String(String),
 }
@@ -90,6 +90,16 @@ impl IntoPy<Py<PyAny>> for SnippetParameterBaseStorage {
         match self {
             SnippetParameterBaseStorage::String(val) => {
                 return val.into_py(py);
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for SnippetParameterBaseStorage {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            SnippetParameterBaseStorage::String(val) => {
+                write!(f, "{}", val)
             }
         }
     }
