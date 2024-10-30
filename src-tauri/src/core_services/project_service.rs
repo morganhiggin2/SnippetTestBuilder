@@ -11,6 +11,7 @@ use crate::{
         external_snippet_manager::{ExternalSnippetManager, PackagePath},
         visual_snippet_component_manager::VisualSnippetComponentManager,
     },
+    utils::sequential_id_generator::Uuid,
 };
 
 // project manager
@@ -54,6 +55,8 @@ struct PlanActions {
 #[derive(Serialize, Deserialize)]
 struct BuildSnippetAction {
     package_path: PackagePath,
+    // this is to ensure we don't confused two snippets with the same package path
+    original_uuid: Uuid,
     x_position: f64,
     y_position: f64,
 }
@@ -62,14 +65,17 @@ struct BuildSnippetAction {
 struct BuildSnippetPipelineAction {
     // (from snippet path, from snippet connector name), (to snippet path, to snippet connector name)
     from_snippet_package_path: PackagePath,
+    from_snippet_original_uuid: Uuid,
     from_snippet_connector_name: String,
     to_snippet_package_path: PackagePath,
+    to_snippet_original_uuid: Uuid,
     to_snippet_connector_name: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct BuildSnippetParameterAction {
     snippet_package_path: PackagePath,
+    snippet_original_uuid: Uuid,
     parameter_name: String,
     parameter_value: String,
 }
@@ -112,6 +118,7 @@ impl ProjectManager {
             // create snippet action
             let snippet_action = BuildSnippetAction {
                 package_path: package_path,
+                original_uuid: snippet.get_uuid(),
                 x_position: x_position,
                 y_position: y_position,
             };
@@ -206,8 +213,10 @@ impl ProjectManager {
                         .build_snippet_pipeline_actions
                         .push(BuildSnippetPipelineAction {
                             from_snippet_package_path: from_snippet_python_path,
+                            from_snippet_original_uuid: snippet.get_uuid(),
                             from_snippet_connector_name: from_pipeline_connector_name,
                             to_snippet_package_path: to_snippet_python_path,
+                            to_snippet_original_uuid: connecting_snippet.get_uuid(),
                             to_snippet_connector_name: to_pipeline_connector_name,
                         });
                 }
@@ -237,6 +246,7 @@ impl ProjectManager {
                     plan.actions.build_snippet_parameter_actions.push(
                         BuildSnippetParameterAction {
                             snippet_package_path: snippet_package_path,
+                            snippet_original_uuid: snippet.get_uuid(),
                             parameter_name: parameter_name,
                             parameter_value: parameter_value,
                         },

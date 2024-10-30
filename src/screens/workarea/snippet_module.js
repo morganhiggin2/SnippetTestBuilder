@@ -167,7 +167,7 @@ export function generateSnippet(
     dragStart(id);
   });
   snippet_group.on("dragend", () => {
-    dragEnd(id, backgroundRect);
+    dragEnd(id);
   });
   //singlePipeInsert.pipe.on('click', () => {});
 

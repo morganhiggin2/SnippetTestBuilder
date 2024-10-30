@@ -60,8 +60,10 @@
             );
 
             // insert into mapping
-            package_path_to_visual_id[snippet_build_action.package_path.path] =
-                visual_id;
+            package_path_to_visual_id[
+                (snippet_build_action.package_path.path,
+                snippet_build_action.original_uuid)
+            ] = visual_id;
         }
 
         // for each pipelines
@@ -79,7 +81,9 @@
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            pipeline_build_action.from_snippet_package_path.path
+                            (pipeline_build_action.from_snippet_package_path
+                                .path,
+                            pipeline_build_action.from_snippet_original_uuid)
                         ],
                     snippetConnectorName:
                         pipeline_build_action.from_snippet_connector_name,
@@ -93,7 +97,8 @@
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            pipeline_build_action.to_snippet_package_path.path
+                            (pipeline_build_action.to_snippet_package_path.path,
+                            pipeline_build_action.to_snippet_original_uuid)
                         ],
                     snippetConnectorName:
                         pipeline_build_action.to_snippet_connector_name,
@@ -122,7 +127,8 @@
                     windowSessionUuid: window_session_id,
                     frontSnippetId:
                         package_path_to_visual_id[
-                            parameter_build_action.snippet_package_path.path
+                            (parameter_build_action.snippet_package_path.path,
+                            parameter_build_action.snippet_original_uuid)
                         ],
                     parameterName: parameter_build_action.parameter_name,
                 },

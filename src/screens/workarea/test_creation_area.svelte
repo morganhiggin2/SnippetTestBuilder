@@ -682,7 +682,7 @@
         };
     }
 
-    async function snippetDragEnd(id, snippet_background_rect) {
+    async function snippetDragEnd(id) {
         if (!snippetDragEvent) {
             invoke("logln", {
                 text: "snippet drag end event is null, should have some value",
@@ -764,13 +764,24 @@
             visualComponents[pipelineUuid].visual.show();
         }
 
-        // set position in back end
-        // TODO id may not be right
-        invoke("update_snippet_position", {
+        // get snippet background rect
+        let snippet = visualComponents[snippetDragEvent.snippet_id];
+
+        // get background rect
+        let snippet_background_rect = snippet.visual.getChildren(
+            function (node) {
+                return node.getId() === "background_rect";
+            },
+        )[0];
+
+        let snippet_background_rect_position =
+            snippet_background_rect.getAbsolutePosition(stage);
+
+        await invoke("update_snippet_position", {
             windowSessionUuid: window_session_id,
-            frontUuid: snippetDragEvent.id,
-            xPosition: snippet_background_rect.x,
-            yPosition: snippet_background_rect.y,
+            frontUuid: snippetDragEvent.snippet_id,
+            xPosition: snippet_background_rect_position.x,
+            yPosition: snippet_background_rect_position.y,
         });
 
         //remove snippet drag event by setting to null
