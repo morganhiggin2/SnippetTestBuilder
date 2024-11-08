@@ -11,13 +11,15 @@
     // logging
     let trigger_logging_;
 
+    // parameters
+    let update_parameter_text;
+
     export const trigger_logging = (stream_i) => {
         trigger_logging_(stream_i);
     };
 
     let create_snippet;
     let draw_pipeline;
-    let set_parameter_text;
 
     // temporary
     export function main_open_project(window_session_id) {
@@ -135,13 +137,10 @@
             );
 
             // update parameter value
-            set_parameter_text(
+            update_parameter_text(
                 parameter_front_uuid,
                 parameter_build_action.parameter_value,
             );
-
-            // WHAT we need to do is pre fill the parameters array since the parameters method won't be working yet because
-            // the parameter window is not rendered on startup'
         }
     }
 </script>
@@ -158,7 +157,7 @@
                 bind:trigger_logging={trigger_logging_}
                 bind:create_snippet
                 bind:draw_pipeline
-                bind:set_parameter_text
+                bind:update_parameter_text
                 {sidebar_width}
             />
         </div>

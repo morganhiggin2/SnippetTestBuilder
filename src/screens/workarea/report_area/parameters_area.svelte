@@ -32,24 +32,25 @@
 
     function update_parameter(id) {
         // get parameter text
-        let parameter_text = parameters_state.parameters.filter(
-            (param) => param[1]["id"] == id,
-        )[0][2];
+        let parameter_text = parameters_state.parameters.get(id).value;
 
         // update paramter text
         invoke("update_snippet_parameter_value", {
             windowSessionUuid: window_session_id,
             frontUuid: id,
             value: parameter_text,
-        });
+        })
+            .then(() => {})
+            .catch((e) => {
+                invoke("logln", { text: JSON.stringify(e) });
+            });
     }
 
+    /*
     export function set_parameter_text(id, text) {
         invoke("logln", { text: JSON.stringify(id + " " + text) });
         // get parameter text
-        let parameter_text = parameters_state.parameters.filter(
-            (param) => param[1]["id"] == id,
-        )[0][2];
+        let parameter_text = parameters_state.parameters.get(id).value;
 
         // update paramter text
         invoke("update_snippet_parameter_value", {
@@ -57,26 +58,26 @@
             frontUuid: id,
             value: text,
         });
-    }
+    }*/
 </script>
 
 <div class="body">
-    {#each parameters_state.parameters as parameter}
-        {#if parameter[1].p_type == "SingleLineText"}
+    {#each [...parameters_state.parameters] as [parameter_key, parameter_value]}
+        {#if parameter_value.parameter_information.p_type == "SingleLineText"}
             <div class="parameter tauri-regular">
                 <div class="parameter name">
-                    {parameter[1].name}
+                    {parameter_key.name}
                 </div>
                 <div
                     class="parameter value"
                     on:keyup={() => {
-                        on_key_up_typing(parameter[1].id);
+                        on_key_up_typing(parameter_key);
                     }}
                 >
                     <textarea
                         class="input-element"
                         rows="1"
-                        bind:value={parameter[2]}
+                        bind:value={parameter_value.value}
                     />
                 </div>
             </div>

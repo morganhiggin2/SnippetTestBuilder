@@ -23,13 +23,6 @@
         draw_pipeline_(from_uuid, to_uuid);
     };
 
-    // parameters
-    let set_parameter_text_;
-
-    export const set_parameter_text = (id, text) => {
-        set_parameter_text_(id, text);
-    };
-
     let window_height = 0;
     export let window_session_id;
     export let sidebar_width;
@@ -37,8 +30,9 @@
     let src = "";
 
     // parameters methods
-    let add_parameters;
+    let insert_parameters;
     let delete_parameters;
+    export let update_parameter_text;
 </script>
 
 <div class="body">
@@ -49,7 +43,7 @@
         <div class="test-creation-area">
             <TestCreationArea
                 {window_session_id}
-                {add_parameters}
+                {insert_parameters}
                 {delete_parameters}
                 bind:create_snippet={create_snippet_}
                 bind:draw_pipeline={draw_pipeline_}
@@ -59,9 +53,9 @@
             <ReportArea
                 {window_session_id}
                 bind:trigger_logging={trigger_logging_}
-                bind:add_parameters
+                bind:insert_parameters
                 bind:delete_parameters
-                bind:set_parameter_text={set_parameter_text_}
+                bind:update_parameter_text
                 {sidebar_width}
             />
         </div>

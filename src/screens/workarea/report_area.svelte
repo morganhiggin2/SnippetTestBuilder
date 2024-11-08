@@ -14,13 +14,6 @@
         trigger_logging_(stream_i);
     };
 
-    // parameters
-    let set_parameter_text_;
-
-    export const set_parameter_text = (id, text) => {
-        set_parameter_text_(id, text);
-    };
-
     // multi screen
     var screens = ["logging", "parameters"];
     var active_screen = "logging";
@@ -34,31 +27,53 @@
         log_text: "",
     };
     var parameters_state = {
-        parameters: [],
+        parameters: new Map(),
     };
 
     // parameters methods
-    export const add_parameters = (snippet_id, parameters) => {
-        let param_state_parameters = parameters_state.parameters;
+    export const insert_parameters = (snippet_id, parameters) => {
+        for (let i = 0; i < parameters.length; i++) {
+            const put_parameter = parameters[i];
 
-        for (const parameter of parameters) {
-            // [snippet id, paramter information, paramter text content as a string]
-            param_state_parameters.push([snippet_id, parameter, ""]);
+            let parameter_key = put_parameter.id;
+
+            parameters_state.parameters.set(parameter_key, {
+                parameter_information: put_parameter,
+                snippet_id: snippet_id,
+                value: "",
+            });
         }
-
-        parameters_state.param_state_parameters = param_state_parameters;
     };
 
     export const delete_parameters = (snippet_id) => {
-        var param_state_parameters = [];
+        let for_delete_params = [];
 
-        for (const parameter of parameters_state.parameters) {
-            if (parameter[0] != snippet_id) {
-                param_state_parameters.push(parameter);
+        for (const [
+            parameter_key,
+            parameter_value,
+        ] of parameters_state.parameters) {
+            if (parameter_value.snippet_id === snippet_id) {
+                for_delete_params.push(parameter_key);
             }
         }
 
-        parameters_state.parameters = param_state_parameters;
+        for (const parameter_key of for_delete_params) {
+            parameters_state.parameters.delete(parameter_key);
+        }
+    };
+
+    export const update_parameter_text = (parameter_id, text) => {
+        let parameter_key = parameter_id;
+
+        // only if it contains the key
+        if (parameters_state.parameters.has(parameter_key)) {
+            // get current value
+            let parameter_value =
+                parameters_state.parameters.get(parameter_key);
+            parameter_value.value = text;
+
+            parameters_state.parameters.set(parameter_key, parameter_value);
+        }
     };
 </script>
 
@@ -73,11 +88,7 @@
             bind:trigger_logging={trigger_logging_}
         />
     {:else if active_screen == "parameters"}
-        <ParametersArea
-            {window_session_id}
-            bind:parameters_state
-            bind:set_parameter_text={set_parameter_text_}
-        />
+        <ParametersArea {window_session_id} bind:parameters_state />
     {/if}
 </div>
 

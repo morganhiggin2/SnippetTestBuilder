@@ -33,7 +33,7 @@
     let visualComponents = {};
 
     // parameters methods
-    export let add_parameters;
+    export let insert_parameters;
     export let delete_parameters;
 
     onMount(async () => {
@@ -107,7 +107,7 @@
 
             // add parameters to parameter screen
             // add parameter to parameters list based on snippet id
-            add_parameters(
+            insert_parameters(
                 snippet_information.id,
                 snippet_information.parameters,
             );
