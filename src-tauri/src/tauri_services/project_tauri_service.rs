@@ -180,7 +180,7 @@ pub fn get_front_snippet_connector_id_from_snippet_uuid_and_name(
         None => return Err("Could not find snippet for the given snippet uuid".to_string()),
     };
 
-    // find the nsippet connector by name
+    // find the snippet connector by name
     let snippet_connector =
         match snippet.find_pipeline_connector_from_name(snippet_connector_name.to_string()) {
             Some(connector) => connector,
