@@ -221,37 +221,37 @@ impl ProjectManager {
                         });
                 }
             }
+        }
 
-            // add parameter values
-            // for each snippet
-            for snippet in snippet_manager.get_snippets_as_ref() {
-                // for each parameter
-                for parameter in snippet.get_parameters_as_copy() {
-                    let parameter_name = parameter.get_name();
+        // add parameter values
+        // for each snippet
+        for snippet in snippet_manager.get_snippets_as_ref() {
+            // for each parameter
+            for parameter in snippet.get_parameters_as_copy() {
+                let parameter_name = parameter.get_name();
 
-                    // get inner value as string
-                    let parameter_value = parameter.get_storage().to_string();
+                // get inner value as string
+                let parameter_value = parameter.get_storage().to_string();
 
-                    // get package path
-                    let snippet_package_path = match external_snippet_manager
-                        .find_external_snippet(snippet.get_external_snippet_id())
-                    {
-                        None => {
-                            return Err(format!("Could not find snippet in external snippet manager in project build actions step"));
-                        }
-                        Some(external_snippet) => external_snippet.get_package_path(),
-                    };
+                // get package path
+                let snippet_package_path = match external_snippet_manager
+                    .find_external_snippet(snippet.get_external_snippet_id())
+                {
+                    None => {
+                        return Err(format!("Could not find snippet in external snippet manager in project build actions step"));
+                    }
+                    Some(external_snippet) => external_snippet.get_package_path(),
+                };
 
-                    // add entry to plan.build_snippet_parameter_actions
-                    plan.actions.build_snippet_parameter_actions.push(
-                        BuildSnippetParameterAction {
-                            snippet_package_path: snippet_package_path,
-                            snippet_original_uuid: snippet.get_uuid(),
-                            parameter_name: parameter_name,
-                            parameter_value: parameter_value,
-                        },
-                    );
-                }
+                // add entry to plan.build_snippet_parameter_actions
+                plan.actions
+                    .build_snippet_parameter_actions
+                    .push(BuildSnippetParameterAction {
+                        snippet_package_path: snippet_package_path,
+                        snippet_original_uuid: snippet.get_uuid(),
+                        parameter_name: parameter_name,
+                        parameter_value: parameter_value,
+                    });
             }
         }
 
