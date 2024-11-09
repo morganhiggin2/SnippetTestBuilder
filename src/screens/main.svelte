@@ -9,6 +9,9 @@
     // for window uuid
     let window_session_id = 0;
 
+    // properties state
+    let project_properties_state;
+
     //for border resizing
     //sidebar-workarea
     let mouse_pos = { x: 0, y: 0 };
@@ -63,6 +66,7 @@
     <div class="navigation-bar">
         <NavigationBar
             {window_session_id}
+            {project_properties_state}
             on:triggerLogging={trigger_logging}
         />
     </div>
@@ -91,6 +95,7 @@
                 {window_session_id}
                 bind:trigger_logging={trigger_logging_}
                 bind:main_open_project={open_project}
+                bind:project_properties_state
                 sidebar_width={50 + secondary_sidebar_width}
             />
         </div>

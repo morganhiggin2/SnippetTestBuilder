@@ -33,6 +33,9 @@
     let insert_parameters;
     let delete_parameters;
     export let update_parameter_text;
+
+    // properties state
+    export let project_properties_state;
 </script>
 
 <div class="body">
@@ -56,6 +59,7 @@
                 bind:insert_parameters
                 bind:delete_parameters
                 bind:update_parameter_text
+                bind:project_properties_state
                 {sidebar_width}
             />
         </div>

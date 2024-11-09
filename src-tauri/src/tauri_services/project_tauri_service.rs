@@ -1,6 +1,7 @@
 use crate::{
     core_services::{
-        concurrent_processes::get_projects_directory, project_service::Plan,
+        concurrent_processes::get_projects_directory,
+        project_service::{get_project_directory_location_from_name, Plan},
         visual_directory_component_manager,
     },
     state_management::{
@@ -18,6 +19,7 @@ use std::ops::DerefMut;
 pub fn save_project(
     application_state: tauri::State<SharedApplicationState>,
     window_session_uuid: Uuid,
+    project_name: String,
 ) -> Result<(), String> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
@@ -40,7 +42,7 @@ pub fn save_project(
     let project_manager = &mut window_session.project_manager;
 
     // get location to save project
-    let projects_location = get_projects_directory();
+    let projects_location = get_project_directory_location_from_name(project_name);
 
     // save project
     project_manager.save_project(external_snippet_manager, projects_location)?;

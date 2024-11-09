@@ -81,6 +81,7 @@
     import { invoke, event } from "@tauri-apps/api";
 
     export let window_session_id;
+    export let project_properties_state;
 
     let logging_dispatch = createEventDispatcher();
 
@@ -103,7 +104,11 @@
     }
 
     function handleSaveClick(e) {
-        invoke("save_project", { windowSessionUuid: window_session_id })
+        // TODO problem, changing name does not rename it, it creates a new project with the new name
+        invoke("save_project", {
+            windowSessionUuid: window_session_id,
+            projectName: project_properties_state.project_name,
+        })
             .then(() => {})
             .catch((e) => {
                 invoke("logln", { text: JSON.stringify(e) });

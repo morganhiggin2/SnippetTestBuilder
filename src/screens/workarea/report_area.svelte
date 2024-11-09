@@ -32,8 +32,8 @@
         parameters: new Map(),
     };
 
-    var properties_state = {
-        workspace_name: "",
+    export var project_properties_state = {
+        project_name: "",
     };
 
     // parameters methods
@@ -96,7 +96,7 @@
     {:else if active_screen == "parameters"}
         <ParametersArea {window_session_id} bind:parameters_state />}
     {:else if active_screen == "properties"}
-        <PropertiesArea {window_session_id} bind:properties_state />
+        <PropertiesArea {window_session_id} bind:project_properties_state />
     {/if}
 </div>
 

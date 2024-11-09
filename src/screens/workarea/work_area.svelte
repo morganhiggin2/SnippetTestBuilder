@@ -11,6 +11,9 @@
     // logging
     let trigger_logging_;
 
+    // properties state
+    export let project_properties_state;
+
     // parameters
     let update_parameter_text;
 
@@ -158,6 +161,7 @@
                 bind:create_snippet
                 bind:draw_pipeline
                 bind:update_parameter_text
+                bind:project_properties_state
                 {sidebar_width}
             />
         </div>

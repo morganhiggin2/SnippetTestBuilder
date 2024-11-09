@@ -11,7 +11,7 @@
 
     // properties
     // workspace name
-    export let properties_state;
+    export let project_properties_state;
 
     // on key up from typing
     function on_key_up_typing() {
@@ -28,7 +28,7 @@
         // update paramter text
         /*invoke("update_workspace_properties", {
             windowSessionUuid: window_session_id,
-            workspaceName: properties_state.workspace_name,
+            workspaceName: project_properties_state.workspace_name,
         })
             .then(() => {})
             .catch((e) => {
@@ -49,7 +49,7 @@
             <textarea
                 class="input-element"
                 rows="1"
-                bind:value={properties_state.workspace_name}
+                bind:value={project_properties_state.project_name}
             />
         </div>
     </div>

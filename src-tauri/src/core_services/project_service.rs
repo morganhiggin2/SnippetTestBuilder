@@ -14,6 +14,8 @@ use crate::{
     utils::sequential_id_generator::Uuid,
 };
 
+use super::concurrent_processes::get_projects_directory;
+
 // project manager
 pub struct ProjectManager {
     pub snippet_manager: SnippetManager,
@@ -263,6 +265,22 @@ impl ProjectManager {
             }
         };
 
+        // create necessary directories for file
+        if let Some(parent_dir) = path.parent() {
+            match std::fs::create_dir_all(parent_dir) {
+                Ok(()) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Unable to create necessary directories for project file {}: {}",
+                        path.to_string_lossy(),
+                        e
+                    ));
+                }
+            }
+        } else {
+            return Err("Invalid project file path".to_string());
+        }
+
         // create file, truncate if exists
         let mut file = match std::fs::File::create(path.to_owned()) {
             Ok(some) => some,
@@ -334,4 +352,24 @@ impl ProjectManager {
     pub fn get_default_plan(&self) -> Plan {
         return Plan::default();
     }
+}
+
+/// Get the directory path of project given it's name
+pub fn get_project_directory_location_from_name(project_name: String) -> PathBuf {
+    // get working directory
+    let mut project_path = get_projects_directory();
+
+    // get project name path
+    let project_name_path: std::vec::Vec<String> =
+        project_name.split('.').map(|s| s.to_string()).collect();
+
+    // build path
+    for project_name_part in project_name_path {
+        project_path = project_path.join(project_name_part);
+    }
+
+    // append extension
+    project_path.set_extension("project");
+
+    return project_path;
 }
