@@ -19,10 +19,23 @@
 
     onMount(() => {
         // wait for done event
-        event.once("directory_initialized", (event) => {
+        event.once("directory_and_workspace_initialized", (event) => {
             invoke("get_snippet_directory_details", {}).then((result) => {
                 //set files to be the list of snippet files and directories
                 snippet_files = result;
+
+                //set parent snippet_files to be showing
+                for (const [i, file] of snippet_files.entries()) {
+                    if (file.level == 0) {
+                        snippet_files[i].showing = true;
+                    }
+                }
+            });
+
+            invoke("get_workspace_details", {}).then((result) => {
+                invoke("logln", { text: JSON.stringify(result) });
+                //set files to be the list of snippet files and directories
+                workspace_files = result;
 
                 //set parent snippet_files to be showing
                 for (const [i, file] of snippet_files.entries()) {
@@ -38,7 +51,7 @@
         });
 
         // call the spawn initalize snippet directory
-        invoke("spawn_initialize_snippet_directory", {
+        invoke("spawn_initialize_snippet_directory_and_workspace", {
             windowSessionUuid: window_session_id,
         }).then((_log_id) => {});
     });

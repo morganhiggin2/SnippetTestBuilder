@@ -5,9 +5,10 @@ use std::{
 
 use crate::{
     core_services::{
-        concurrent_processes::spawn_initialize_directory_event,
+        concurrent_processes::spawn_initialize_directory_and_workspace_event,
         installation_manager::{fetch_new_snippets_zip, unpack_snippet_zip_if_exists},
         visual_directory_component_manager::FrontDirectoryContent,
+        visual_workspace_component_manager::FrontWorkspaceContent,
     },
     state_management::{ApplicationState, SharedApplicationState},
     utils::sequential_id_generator::Uuid,
@@ -27,9 +28,23 @@ pub fn get_snippet_directory_details(
     return directory_manager.get_as_front(sequential_id_generator);
 }
 
+#[tauri::command]
+pub fn get_workspace_details(
+    application_state: tauri::State<SharedApplicationState>,
+) -> Vec<FrontWorkspaceContent> {
+    // get the state
+    let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    let workspace_manager = &mut state.workspace_manager;
+
+    // get front directory content
+    return workspace_manager.get_as_front();
+}
+
 /// spawn initialize snippet directory, returning log stream id
 #[tauri::command]
-pub fn spawn_initialize_snippet_directory(
+pub fn spawn_initialize_snippet_directory_and_workspace(
     application_state: tauri::State<SharedApplicationState>,
     app_handle: tauri::AppHandle,
     window_session_uuid: Uuid,
@@ -61,7 +76,8 @@ pub fn spawn_initialize_snippet_directory(
             }
         };
 
-        spawn_initialize_directory_event(application_state_ref.0, logging_instance).await;
+        spawn_initialize_directory_and_workspace_event(application_state_ref.0, logging_instance)
+            .await;
 
         // spawn download zip file
         match fetch_new_snippets_zip().await {
