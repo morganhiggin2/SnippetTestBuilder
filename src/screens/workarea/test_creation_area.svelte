@@ -35,6 +35,7 @@
     // parameters methods
     export let insert_parameters;
     export let delete_parameters;
+    export let open_project;
 
     onMount(async () => {
         //create stage
@@ -90,6 +91,12 @@
             );
 
             //snippetComponents.push({id: snippet_information.id, name: snippet_information.name, internal_id: snippet_id, pipeline_connectors: snippet_information.pipeline_connectors, drawable: snippetDrawable});
+        } else if (type == "Project") {
+            // get project information
+            let project_id = data["_id"];
+
+            // load project
+            open_project(window_session_id, project_id);
         }
     }
 

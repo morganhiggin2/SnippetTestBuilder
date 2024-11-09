@@ -60,7 +60,6 @@
         //set id on completion
         invoke("new_window_session").then((result) => {
             window_session_id = result;
-            open_project(window_session_id);
         });
     });
 </script>
@@ -98,7 +97,6 @@
             <Workarea
                 {window_session_id}
                 bind:trigger_logging={trigger_logging_}
-                bind:main_open_project={open_project}
                 bind:project_properties_state
                 sidebar_width={50 + secondary_sidebar_width}
             />

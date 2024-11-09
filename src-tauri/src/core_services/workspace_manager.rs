@@ -76,14 +76,24 @@ impl WorkspaceManager {
             }
         };
 
+        // extract file name without extension
+        let file_name_without_ext = {
+            let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+            let dot_idx = file_name.rfind('.');
+            match dot_idx {
+                Some(idx) => file_name[..idx].to_string(),
+                None => file_name,
+            }
+        };
+
         // create path id
         let mut child_path_id = path_id.to_owned();
 
         if child_path_id.len() == 0 {
-            child_path_id = file_name.to_owned();
+            child_path_id = file_name_without_ext.to_owned();
         } else {
             child_path_id.push('.');
-            child_path_id.push_str(&file_name);
+            child_path_id.push_str(&file_name_without_ext);
         }
 
         // if a directory
@@ -123,12 +133,12 @@ impl WorkspaceManager {
         } else if path.is_file() {
             // create file entry
             let file_entry = WorkspaceProjectEntry {
-                name: path.file_name().unwrap().to_string_lossy().to_string(),
+                name: file_name_without_ext.to_owned(),
             };
 
             // create path id
             let mut parent_path_id = path_id.to_owned();
-            parent_path_id.push_str(&file_name);
+            parent_path_id.push_str(&file_name_without_ext);
 
             // return the workspace entry
             return Ok(WorkspaceEntry {

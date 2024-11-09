@@ -356,7 +356,7 @@ impl ProjectManager {
 
 /// Get the directory path of project given it's name
 pub fn get_project_directory_location_from_name(project_name: String) -> PathBuf {
-    // get working directory
+    // get projects directory
     let mut project_path = get_projects_directory();
 
     // get project name path

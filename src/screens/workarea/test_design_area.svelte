@@ -34,6 +34,9 @@
     let delete_parameters;
     export let update_parameter_text;
 
+    // project loading
+    export let open_project;
+
     // properties state
     export let project_properties_state;
 </script>
@@ -48,6 +51,7 @@
                 {window_session_id}
                 {insert_parameters}
                 {delete_parameters}
+                {open_project}
                 bind:create_snippet={create_snippet_}
                 bind:draw_pipeline={draw_pipeline_}
             />

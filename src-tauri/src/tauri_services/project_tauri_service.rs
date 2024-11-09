@@ -43,6 +43,9 @@ pub fn save_project(
     // borrow split
     let project_manager = &mut window_session.project_manager;
 
+    // remove project parent part from name
+    let project_name = project_name.trim_start_matches("projects.").to_string();
+
     // get location to save project
     let projects_location = get_project_directory_location_from_name(project_name);
 
@@ -56,6 +59,7 @@ pub fn save_project(
 pub fn open_project(
     application_state: tauri::State<SharedApplicationState>,
     window_session_uuid: Uuid,
+    project_id: String,
 ) -> Result<Plan, String> {
     // get the state
     let state_guard = &mut application_state.0.lock().unwrap();
@@ -76,11 +80,14 @@ pub fn open_project(
     // borrow split
     let project_manager = &mut window_session.project_manager;
 
-    // get location to save project
-    let projects_location = get_projects_directory();
+    // remove project parent part from name
+    let project_name = project_id.trim_start_matches("projects.").to_string();
+
+    // get location to save project from project name
+    let project_location = get_project_directory_location_from_name(project_name);
 
     // try to get project build plan
-    let project_build_plan = match project_manager.open_project(projects_location) {
+    let project_build_plan = match project_manager.open_project(project_location) {
         Ok(some) => some,
         Err(e) => {
             // if cannot get plan, create default (empty) one

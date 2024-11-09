@@ -1,4 +1,9 @@
 <script>
+    import ParentSidebarElement from "./workspace_sidebar_elements/parent_sidebar_element.svelte";
+    import ProjectSidebarElement from "./workspace_sidebar_elements/project_sidebar_element.svelte";
+    import ContextMenu from "./context_menus/context_menu.svelte";
+    import ContextMenuOption from "./context_menus/context_menu_option.svelte";
+
     export let window_session_id;
     export let files = [];
 
@@ -106,7 +111,39 @@
         {/if}*/
 </script>
 
-<div class="body"></div>
+<div on:contextmenu|preventDefault={onRightClick} class="body noselect">
+    {#each files as file}
+        {#if file.showing}
+            {#if file.file_type == "Project"}
+                <div>
+                    <ProjectSidebarElement
+                        {...file}
+                        on:expand={fileExpand}
+                        on:contract={fileContract}
+                    />
+                </div>
+            {:else if file.file_type == "Parent"}
+                <div>
+                    <ParentSidebarElement
+                        {...file}
+                        on:expand={fileExpand}
+                        on:contract={fileContract}
+                    />
+                </div>
+            {/if}
+        {/if}
+    {/each}
+</div>
+
+{#if showContextMenu}
+    <ContextMenu
+        {...contextMenuPosition}
+        on:click={closeContextMenu}
+        on:clickoutside={closeContextMenu}
+    >
+        <ContextMenuOption on:click={() => {}} text="Do nothing" />
+    </ContextMenu>
+{/if}
 
 <style>
     .body {

@@ -24,17 +24,13 @@
     let create_snippet;
     let draw_pipeline;
 
-    // temporary
-    export function main_open_project(window_session_id) {
-        open_project(window_session_id).then(() => {});
-    }
-
-    async function open_project(window_session_id) {
+    async function open_project(window_session_id, project_id) {
         // get build plan
         let plan = {};
 
         plan = await invoke("open_project", {
             windowSessionUuid: window_session_id,
+            projectId: project_id,
         });
 
         invoke("logln", { text: JSON.stringify(plan) });
@@ -162,6 +158,7 @@
                 bind:draw_pipeline
                 bind:update_parameter_text
                 bind:project_properties_state
+                {open_project}
                 {sidebar_width}
             />
         </div>
