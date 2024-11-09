@@ -33,8 +33,6 @@
             projectId: project_id,
         });
 
-        invoke("logln", { text: JSON.stringify(plan) });
-
         let actions = plan.actions;
         // call actions to create build plan
 

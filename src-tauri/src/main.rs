@@ -11,7 +11,7 @@ use core_services::installation_manager::install_runables;
 use crate::state_management::{ApplicationState, SharedApplicationState};
 use crate::tauri_services::directory_tauri_service::{
     get_snippet_directory_details, get_workspace_details,
-    spawn_initialize_snippet_directory_and_workspace,
+    spawn_initialize_snippet_directory_and_workspace, spawn_refresh_workspace_event,
 };
 use crate::tauri_services::project_tauri_service::{
     get_directory_id_from_package_path, get_front_parameter_id_from_snippet_uuid_and_name,
@@ -65,7 +65,8 @@ fn main() {
             get_front_parameter_id_from_snippet_uuid_and_name,
             get_front_snippet_connector_id_from_snippet_uuid_and_name,
             open_project,
-            get_workspace_details
+            get_workspace_details,
+            spawn_refresh_workspace_event
         ])
         .run(tauri::generate_context!())
         .expect("error while starting tauri application");

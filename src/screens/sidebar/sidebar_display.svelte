@@ -33,16 +33,8 @@
             });
 
             invoke("get_workspace_details", {}).then((result) => {
-                invoke("logln", { text: JSON.stringify(result) });
                 //set files to be the list of snippet files and directories
                 workspace_files = result;
-
-                //set parent snippet_files to be showing
-                for (const [i, file] of snippet_files.entries()) {
-                    if (file.level == 0) {
-                        snippet_files[i].showing = true;
-                    }
-                }
             });
         });
 
@@ -55,6 +47,16 @@
             windowSessionUuid: window_session_id,
         }).then((_log_id) => {});
     });
+
+    export function register_listen_to_workspace_refresh() {
+        // wait for done event
+        event.once("workspace_refreshed", (event) => {
+            invoke("get_workspace_details", {}).then((result) => {
+                //set files to be the list of snippet files and directories
+                workspace_files = result;
+            });
+        });
+    }
 
     export function change_screen(screen) {
         active_screen = screen;

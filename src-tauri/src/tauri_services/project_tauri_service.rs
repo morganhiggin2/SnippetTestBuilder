@@ -1,8 +1,6 @@
 use crate::{
     core_services::{
-        concurrent_processes::{
-            get_projects_directory, spawn_initialize_directory_and_workspace_event,
-        },
+        concurrent_processes::get_projects_directory,
         project_service::{get_project_directory_location_from_name, Plan},
     },
     state_management::{

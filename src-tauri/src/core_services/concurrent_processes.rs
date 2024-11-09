@@ -16,9 +16,9 @@ use super::{runtime_logging_service::LoggingStreamInstance, workspace_manager::W
 
 /// This event spawns the initalize directory and workspace event, returning the event id and the log file id.
 /// This will emit the event id to the front id  when the process is complete
-pub async fn spawn_initialize_directory_and_workspace_event(
+pub async fn spawn_initialize_directory_event(
     application_state: Arc<Mutex<ApplicationState>>,
-    mut logging_stream_instance: LoggingStreamInstance,
+    logging_stream_instance: &mut LoggingStreamInstance,
 ) {
     // lock the application state
     let mut state_guard = application_state.lock().unwrap();
@@ -44,20 +44,18 @@ pub async fn spawn_initialize_directory_and_workspace_event(
         logging_stream_instance
             .append_log(format!("Finished successfully intializing all snippets"));
     }
+}
+
+pub async fn spawn_initialize_workspace_event(application_state: Arc<Mutex<ApplicationState>>) {
+    // lock the application state
+    let mut state_guard = application_state.lock().unwrap();
+    let state = state_guard.deref_mut();
 
     // Initialize directory of snippets
     let new_workspace_manager = WorkspaceManager::initialize().unwrap();
 
     // swap
     state.workspace_manager = new_workspace_manager;
-
-    // close the log
-    let app_handle = logging_stream_instance.close_log();
-
-    // emit event back to front end
-    app_handle
-        .emit_all("directory_and_workspace_initialized", "".to_string())
-        .unwrap();
 }
 
 pub async fn spawn_run_snippets_event(

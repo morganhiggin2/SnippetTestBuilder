@@ -3,9 +3,12 @@ use std::{
     sync::{Arc, MutexGuard},
 };
 
+use tauri::Manager;
+
 use crate::{
     core_services::{
-        concurrent_processes::spawn_initialize_directory_and_workspace_event,
+        concurrent_processes::spawn_initialize_directory_event,
+        concurrent_processes::spawn_initialize_workspace_event,
         installation_manager::{fetch_new_snippets_zip, unpack_snippet_zip_if_exists},
         visual_directory_component_manager::FrontDirectoryContent,
         visual_workspace_component_manager::FrontWorkspaceContent,
@@ -55,7 +58,7 @@ pub fn spawn_initialize_snippet_directory_and_workspace(
 
     // create log file and stream from window uuid
     // that way the log instance is specific to the window uuid
-    let logging_instance = state
+    let mut logging_instance = state
         .logging_manager
         .create_new_stream(app_handle, window_session_uuid)
         .unwrap();
@@ -63,7 +66,10 @@ pub fn spawn_initialize_snippet_directory_and_workspace(
 
     // get shared reference to state
     // note this is a custom clone implementation utilizing on arc::clone
-    let application_state_ref: SharedApplicationState =
+    let application_state_ref_one: SharedApplicationState =
+        SharedApplicationState(Arc::clone(&application_state.0));
+
+    let application_state_ref_two: SharedApplicationState =
         SharedApplicationState(Arc::clone(&application_state.0));
 
     // spawn process, passing ownership of shared application state
@@ -76,8 +82,17 @@ pub fn spawn_initialize_snippet_directory_and_workspace(
             }
         };
 
-        spawn_initialize_directory_and_workspace_event(application_state_ref.0, logging_instance)
-            .await;
+        spawn_initialize_directory_event(application_state_ref_one.0, &mut logging_instance).await;
+
+        spawn_initialize_workspace_event(application_state_ref_two.0).await;
+
+        // close the log
+        let app_handle = logging_instance.close_log();
+
+        // emit event back to front end
+        app_handle
+            .emit_all("directory_and_workspace_initialized", "".to_string())
+            .unwrap();
 
         // spawn download zip file
         match fetch_new_snippets_zip().await {
@@ -92,6 +107,28 @@ pub fn spawn_initialize_snippet_directory_and_workspace(
     return stream_i;
 }
 
+/// spawn initialize snippet directory, returning log stream id
+#[tauri::command]
+pub fn spawn_refresh_workspace_event(
+    application_state: tauri::State<SharedApplicationState>,
+    app_handle: tauri::AppHandle,
+    window_session_uuid: Uuid,
+) {
+    // get shared reference to state
+    // note this is a custom clone implementation utilizing on arc::clone
+    let application_state_ref: SharedApplicationState =
+        SharedApplicationState(Arc::clone(&application_state.0));
+
+    // spawn process, passing ownership of shared application state
+    tauri::async_runtime::spawn(async move {
+        spawn_initialize_workspace_event(application_state_ref.0).await;
+
+        // emit event back to front end
+        app_handle
+            .emit_all("workspace_refreshed", "".to_string())
+            .unwrap();
+    });
+}
 /*
 /// get the snippet directory in it's entirety, and it's information
 #[tauri::command]

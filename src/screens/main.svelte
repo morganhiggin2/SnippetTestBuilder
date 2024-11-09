@@ -25,6 +25,7 @@
 
     // temporary open project
     let open_project;
+    let register_listen_to_workspace_refresh;
 
     function secondarySidebarWorkareaResizeStart(event) {
         secondary_sidebar_workarea_resize_x_pos = event.pageX;
@@ -70,6 +71,7 @@
             {window_session_id}
             {project_properties_state}
             on:triggerLogging={trigger_logging}
+            {register_listen_to_workspace_refresh}
         />
     </div>
     <div
@@ -86,6 +88,7 @@
                 {window_session_id}
                 trigger_logging
                 bind:change_screen={change_sidebar_screen}
+                bind:register_listen_to_workspace_refresh
             />
         </div>
         <div

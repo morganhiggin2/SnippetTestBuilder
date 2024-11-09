@@ -83,6 +83,9 @@
     export let window_session_id;
     export let project_properties_state;
 
+    // refresh workspace on project save
+    export let register_listen_to_workspace_refresh;
+
     let logging_dispatch = createEventDispatcher();
 
     function handleRunClick(e) {
@@ -109,7 +112,14 @@
             windowSessionUuid: window_session_id,
             projectName: project_properties_state.project_name,
         })
-            .then(() => {})
+            .then(() => {
+                register_listen_to_workspace_refresh();
+
+                // spawn refresh workspace
+                invoke("spawn_refresh_workspace_event", {
+                    windowSessionUuid: window_session_id,
+                });
+            })
             .catch((e) => {
                 invoke("logln", { text: JSON.stringify(e) });
             });
