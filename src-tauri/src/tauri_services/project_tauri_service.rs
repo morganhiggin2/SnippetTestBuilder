@@ -1,18 +1,49 @@
 use crate::{
     core_services::{
-        concurrent_processes::get_projects_directory,
+        concurrent_processes::{get_projects_directory, spawn_initialize_workspace_event},
         project_service::{get_project_directory_location_from_name, Plan},
-        visual_directory_component_manager,
     },
     state_management::{
-        external_snippet_manager::{self, PackagePath},
-        visual_snippet_component_manager,
-        window_manager::WindowSession,
+        external_snippet_manager::PackagePath, window_manager::WindowSession, ApplicationState,
         SharedApplicationState,
     },
     utils::sequential_id_generator::Uuid,
 };
-use std::ops::DerefMut;
+use std::{
+    ops::DerefMut,
+    sync::{Arc, MutexGuard},
+};
+
+#[tauri::command]
+pub fn load_workspace(
+    application_state: tauri::State<SharedApplicationState>,
+    app_handle: tauri::AppHandle,
+    window_session_uuid: Uuid,
+) -> u32 {
+    // get the state
+    let mut state_guard: MutexGuard<ApplicationState> = application_state.0.lock().unwrap();
+    let state = state_guard.deref_mut();
+
+    // create log file and stream from window uuid
+    // that way the log instance is specific to the window uuid
+    let logging_instance = state
+        .logging_manager
+        .create_new_stream(app_handle, window_session_uuid)
+        .unwrap();
+    let stream_i = logging_instance.get_stream_i();
+
+    // get shared reference to state
+    // note this is a custom clone implementation utilizing on arc::clone
+    let application_state_ref: SharedApplicationState =
+        SharedApplicationState(Arc::clone(&application_state.0));
+
+    // spawn process, passing ownership of shared application state
+    tauri::async_runtime::spawn(async move {
+        spawn_initialize_workspace_event(application_state_ref.0, logging_instance).await;
+    });
+
+    return stream_i;
+}
 
 ///the service for commands between tauri and the front end
 #[tauri::command]
