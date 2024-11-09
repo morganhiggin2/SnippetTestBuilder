@@ -66,7 +66,7 @@
         {#if parameter_value.parameter_information.p_type == "SingleLineText"}
             <div class="parameter tauri-regular">
                 <div class="parameter name">
-                    {parameter_key.name}
+                    {parameter_value.parameter_information.name}
                 </div>
                 <div
                     class="parameter value"

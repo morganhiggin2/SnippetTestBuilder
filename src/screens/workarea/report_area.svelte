@@ -2,6 +2,7 @@
     import { invoke } from "@tauri-apps/api";
     import LoggingArea from "./report_area/logging_area.svelte";
     import ParametersArea from "./report_area/parameters_area.svelte";
+    import PropertiesArea from "./report_area/properties_area.svelte";
     import ScreenTabBar from "./report_area/screen_tab_bar.svelte";
 
     export var window_session_id;
@@ -15,7 +16,7 @@
     };
 
     // multi screen
-    var screens = ["logging", "parameters"];
+    var screens = ["logging", "parameters", "properties"];
     var active_screen = "logging";
 
     function change_screen(screen) {
@@ -26,8 +27,13 @@
     var logging_state = {
         log_text: "",
     };
+
     var parameters_state = {
         parameters: new Map(),
+    };
+
+    var properties_state = {
+        workspace_name: "",
     };
 
     // parameters methods
@@ -88,7 +94,9 @@
             bind:trigger_logging={trigger_logging_}
         />
     {:else if active_screen == "parameters"}
-        <ParametersArea {window_session_id} bind:parameters_state />
+        <ParametersArea {window_session_id} bind:parameters_state />}
+    {:else if active_screen == "properties"}
+        <PropertiesArea {window_session_id} bind:properties_state />
     {/if}
 </div>
 

@@ -38,6 +38,11 @@ export function generateSnippet(
   var leftPipeInserts = [];
   var rightPipeInserts = [];
 
+  // sort pipelines connectors by name
+  pipeline_connectors.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
+
   //go though pipelines, with assigning id
   for (var i = 0; i < pipeline_connectors.length; i++) {
     if (pipeline_connectors[i].input) {
