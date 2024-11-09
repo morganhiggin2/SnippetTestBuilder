@@ -24,6 +24,9 @@
     let create_snippet;
     let draw_pipeline;
 
+    // for open project
+    let clear_visuals;
+
     async function open_project(window_session_id, project_id) {
         // get build plan
         let plan = {};
@@ -32,6 +35,9 @@
             windowSessionUuid: window_session_id,
             projectId: project_id,
         });
+
+        // clear visuals
+        clear_visuals();
 
         let actions = plan.actions;
         // call actions to create build plan
@@ -156,6 +162,7 @@
                 bind:draw_pipeline
                 bind:update_parameter_text
                 bind:project_properties_state
+                bind:clear_visuals
                 {open_project}
                 {sidebar_width}
             />

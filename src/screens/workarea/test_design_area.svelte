@@ -36,6 +36,7 @@
 
     // project loading
     export let open_project;
+    export let clear_visuals;
 
     // properties state
     export let project_properties_state;
@@ -54,6 +55,7 @@
                 {open_project}
                 bind:create_snippet={create_snippet_}
                 bind:draw_pipeline={draw_pipeline_}
+                bind:clear_visuals
             />
         </div>
         <div class="logging-view">

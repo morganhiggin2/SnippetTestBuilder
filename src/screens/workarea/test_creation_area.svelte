@@ -62,6 +62,34 @@
         stage.draw();
     });
 
+    export function clear_visuals() {
+        //create stage
+        stage = new Konva.Stage({
+            id: "stage",
+            container: container,
+            width: window_width,
+            height: window_height,
+            draggable: true,
+        });
+
+        //on canvas click event
+        stage.on("click", handleCanvasClick);
+
+        //create snippet layer
+        snippetLayer = new Konva.Layer({});
+        pipelineLayer = new Konva.Layer({});
+
+        //add layer to stage
+        stage.add(snippetLayer);
+        stage.add(pipelineLayer);
+
+        //draw stage
+        stage.draw();
+
+        // reset visual components
+        visualComponents = {};
+    }
+
     async function handleDrop(e) {
         //get the bounding rectagle for canvas
         let boundingRect = selfObj.getBoundingClientRect();
