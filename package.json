@@ -13,7 +13,8 @@
     "@fontsource/inter": "4.5.15",
     "@fontsource/pt-mono": "4.5.11",
     "@tauri-apps/api": "^1.6.0",
-    "konva": "8.4.3"
+    "konva": "8.4.3",
+    "svelte-icons": "^2.1.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "2.5.3",

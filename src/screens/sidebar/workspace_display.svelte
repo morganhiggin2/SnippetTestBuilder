@@ -1,25 +1,6 @@
 <script>
-    import ContextMenu from "./context_menus/context_menu.svelte";
-    import ContextMenuOption from "./context_menus/context_menu_option.svelte";
-    import { invoke, event } from "@tauri-apps/api";
-    import { onMount } from "svelte";
-    import DirectorySidebarElement from "./snippet_sidebar_elements/directory_sidebar_element.svelte";
-    import SnippetSidebarElement from "./snippet_sidebar_elements/snippet_sidebar_element.svelte";
-    import { createEventDispatcher } from "svelte";
-
-    //files to sidebar
-    export let files = [];
     export let window_session_id;
-
-    /*
-    onMount(() => {
-        //invoke('get_snippet_directory', {}).then((result) => {files = result;});
-        //console.log(files)
-
-        logging_dispatch('triggerLogging', {
-            log_id: log_id
-        });
-    });*/
+    export let files = [];
 
     function fileExpand(e) {
         //get the id
@@ -88,41 +69,44 @@
     function closeContextMenu() {
         showContextMenu = false;
     }
+
+    /*
+        <div on:contextmenu|preventDefault={onRightClick} class="body noselect">
+            {#each files as file}
+                {#if file.showing}
+                    {#if file.file_type == "Snippet"}
+                        <div>
+                            <SnippetSidebarElement
+                                {...file}
+                                on:expand={fileExpand}
+                                on:contract={fileContract}
+                            />
+                        </div>
+                    {:else if file.file_type == "Directory"}
+                        <div>
+                            <DirectorySidebarElement
+                                {...file}
+                                on:expand={fileExpand}
+                                on:contract={fileContract}
+                            />
+                        </div>
+                    {/if}
+                {/if}
+            {/each}
+        </div>
+
+        {#if showContextMenu}
+            <ContextMenu
+                {...contextMenuPosition}
+                on:click={closeContextMenu}
+                on:clickoutside={closeContextMenu}
+            >
+                <ContextMenuOption on:click={() => {}} text="Do nothing" />
+            </ContextMenu>
+        {/if}*/
 </script>
 
-<div on:contextmenu|preventDefault={onRightClick} class="body noselect">
-    {#each files as file}
-        {#if file.showing}
-            {#if file.file_type == "Snippet"}
-                <div>
-                    <SnippetSidebarElement
-                        {...file}
-                        on:expand={fileExpand}
-                        on:contract={fileContract}
-                    />
-                </div>
-            {:else if file.file_type == "Directory"}
-                <div>
-                    <DirectorySidebarElement
-                        {...file}
-                        on:expand={fileExpand}
-                        on:contract={fileContract}
-                    />
-                </div>
-            {/if}
-        {/if}
-    {/each}
-</div>
-
-{#if showContextMenu}
-    <ContextMenu
-        {...contextMenuPosition}
-        on:click={closeContextMenu}
-        on:clickoutside={closeContextMenu}
-    >
-        <ContextMenuOption on:click={() => {}} text="Do nothing" />
-    </ContextMenu>
-{/if}
+<div class="body"></div>
 
 <style>
     .body {

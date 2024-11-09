@@ -2,15 +2,18 @@
     import { onMount } from "svelte";
     import NavigationBar from "./navigation_bar.svelte";
     import SectionSidebar from "./sidebar/section_sidebar.svelte";
-    import SnippetDisplay from "./sidebar/snippet_display.svelte";
     import Workarea from "./workarea/work_area.svelte";
     import { invoke, window } from "@tauri-apps/api";
+    import SidebarDisplay from "./sidebar/sidebar_display.svelte";
 
     // for window uuid
     let window_session_id = 0;
 
     // properties state
     let project_properties_state;
+
+    // for section sidebar screens
+    let change_sidebar_screen;
 
     //for border resizing
     //sidebar-workarea
@@ -77,12 +80,13 @@
         on:mouseup={handleMouseUp}
     >
         <div class="body sidebar" id="primary">
-            <SectionSidebar />
+            <SectionSidebar change_screen={change_sidebar_screen} />
         </div>
         <div class="body sidebar" id="secondary">
-            <SnippetDisplay
+            <SidebarDisplay
                 {window_session_id}
-                on:triggerLogging={trigger_logging}
+                trigger_logging
+                bind:change_screen={change_sidebar_screen}
             />
         </div>
         <div
