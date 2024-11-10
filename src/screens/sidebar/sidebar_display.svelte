@@ -55,8 +55,115 @@
         // wait for done event
         event.once("workspace_refreshed", (event) => {
             invoke("get_workspace_details", {}).then((result) => {
+                // keep showing the same for files that still exist
+                let new_workspace_files = [];
+
+                // build map
+                let old_workspace_files_showing_map = new Map();
+
+                for (const workspace_file of workspace_files) {
+                    old_workspace_files_showing_map.set(
+                        workspace_file.id,
+                        workspace_file.showing,
+                    );
+                }
+
+                for (const workspace_file of result) {
+                    if (
+                        old_workspace_files_showing_map.has(workspace_file.id)
+                    ) {
+                        workspace_file.showing =
+                            old_workspace_files_showing_map.get(
+                                workspace_file.id,
+                            );
+                    }
+
+                    new_workspace_files.push(workspace_file);
+                }
+
+                // This works on the premise that if an entry on a level is showing, all other entries on that level until
+                //  we enter a sublevel should show (as in a file system)
+                // Ensure that anything on the expanded levels is open
+                let level_to_index_map = new Map();
+                let level_start_indexes = [];
+
+                for (let i = 0; i < new_workspace_files.length; i++) {
+                    const workspace_file = new_workspace_files[i];
+                    let level = workspace_file.level;
+
+                    // prune higher levels
+                    while (
+                        level_start_indexes.length > 0 &&
+                        level_start_indexes[level_start_indexes.length - 1]
+                            .level > level
+                    ) {
+                        let previous_level_information =
+                            level_start_indexes.pop();
+
+                        // go back and if this level is marked as showing, then for each nonshowing in nonshowing list
+                        //  mark as showing
+                        // if all should be showing
+                        if (previous_level_information.all_showing == true) {
+                            for (const not_showing_index of previous_level_information.not_showing_indexes) {
+                                // set to showing
+                                new_workspace_files[not_showing_index].showing =
+                                    true;
+                            }
+                        }
+                    }
+
+                    // if a greater level or nothing in levels array
+                    // new entry in levels
+                    if (
+                        level_start_indexes.length == 0 ||
+                        level >
+                            level_start_indexes[level_start_indexes.length - 1]
+                                .level
+                    ) {
+                        level_start_indexes.push({
+                            level: level,
+                            all_showing: false,
+                            not_showing_indexes: [],
+                        });
+
+                        level_to_index_map[level] =
+                            level_start_indexes.length - 1;
+                    }
+
+                    // if level is showing
+                    if (workspace_file.showing == true) {
+                        // get level information
+                        let level_information =
+                            level_start_indexes[level_to_index_map[level]];
+
+                        // set to is showing if not already showing
+                        level_information.all_showing = true;
+                    } else {
+                        // get level information
+                        let level_information =
+                            level_start_indexes[level_to_index_map[level]];
+
+                        // add to not showing list
+                        level_information.not_showing_indexes.push(i);
+                    }
+                }
+
+                // for any other levels that have yet to be evaluated
+                for (const previous_level_information of level_start_indexes) {
+                    // go back and if this level is marked as showing, then for each nonshowing in nonshowing list
+                    //  mark as showing
+                    // if all should be showing
+                    if (previous_level_information.all_showing == true) {
+                        for (const not_showing_index of previous_level_information.not_showing_indexes) {
+                            // set to showing
+                            new_workspace_files[not_showing_index].showing =
+                                true;
+                        }
+                    }
+                }
+
                 //set files to be the list of snippet files and directories
-                workspace_files = result;
+                workspace_files = new_workspace_files;
             });
         });
     }

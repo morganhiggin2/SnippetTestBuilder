@@ -91,7 +91,7 @@
 </script>
 
 <div on:contextmenu|preventDefault={onRightClick} class="body noselect">
-    {#each files as file}
+    {#each files as file (file.id)}
         {#if file.showing}
             {#if file.file_type == "Snippet"}
                 <div>
