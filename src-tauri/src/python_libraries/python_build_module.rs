@@ -467,8 +467,8 @@ pub fn call_init() -> Result<(), String> {
             "
             import snippet_python_module as spm;
 
-            def init(*args, **kargs):
-                snippet = kargs[\"snippet\"]
+            def init(*args, **kwargs):
+                snippet = kwargs[\"snippet\"]
                 snippet.set_name(\"new-name\")
 
                 return snippet;

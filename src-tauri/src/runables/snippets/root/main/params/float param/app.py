@@ -1,6 +1,6 @@
 #import snippet_module as spm
 
-def init(*args, **kargs):
+def init(*args, **kwargs):
     snippet = args[0]
     snippet.add_parameter("num_input", "SingleLineText")
     snippet.add_output("num")

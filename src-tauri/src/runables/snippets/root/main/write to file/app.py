@@ -1,6 +1,6 @@
 #import snippet_module as spm
 
-def init(*args, **kargs):
+def init(*args, **kwargs):
     snippet = args[0]
     #snippet.add_input("numbers", "input_numbers_schema.yaml")
     #snippet.add_output("numbers", "output_numbers_schema.yaml")

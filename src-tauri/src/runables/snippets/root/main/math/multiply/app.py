@@ -1,6 +1,6 @@
 #import snippet_module as spm
 
-def init(*args, **kargs):
+def init(*args, **kwargs):
     snippet = args[0]
     snippet.add_input("a")
     snippet.add_input("b")
