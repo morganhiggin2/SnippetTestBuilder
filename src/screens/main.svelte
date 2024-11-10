@@ -25,6 +25,7 @@
 
     // temporary open project
     let open_project;
+    let delete_project;
     let register_listen_to_workspace_refresh;
 
     function secondarySidebarWorkareaResizeStart(event) {
@@ -89,6 +90,7 @@
                 trigger_logging
                 bind:change_screen={change_sidebar_screen}
                 bind:register_listen_to_workspace_refresh
+                {delete_project}
             />
         </div>
         <div
@@ -99,8 +101,10 @@
         <div class="body work-area">
             <Workarea
                 {window_session_id}
+                {register_listen_to_workspace_refresh}
                 bind:trigger_logging={trigger_logging_}
                 bind:project_properties_state
+                bind:delete_project
                 sidebar_width={50 + secondary_sidebar_width}
             />
         </div>

@@ -12,6 +12,9 @@
     export let file_type = "";
     export let project_display_id = "";
 
+    // project actions
+    export let delete_project;
+
     function onDragStart(e) {
         var drag_data = {
             _id: id,
@@ -25,9 +28,7 @@
     function onDragEnd(e) {}
 
     function onDoubleClick() {
-        // TODO delete project
-        // refresh workspace
-        // do this in screen above
+        delete_project(id);
     }
 
     /*
@@ -47,6 +48,7 @@
     draggable="true"
     on:dragstart={onDragStart}
     on:dragend={onDragEnd}
+    on:dblclick={onDoubleClick}
 >
     <!--if it is not a parent-->
     <svg

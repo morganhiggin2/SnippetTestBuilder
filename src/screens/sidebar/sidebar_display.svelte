@@ -15,6 +15,9 @@
     let snippet_files = [];
     let workspace_files = [];
 
+    // project actions
+    export let delete_project;
+
     let logging_dispatch = createEventDispatcher();
 
     onMount(() => {
@@ -74,6 +77,7 @@
         {:else if active_screen === "workspace"}
             <WorkspaceDisplay
                 {window_session_id}
+                {delete_project}
                 on:triggerLogging={trigger_logging}
                 files={workspace_files}
             />

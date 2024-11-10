@@ -7,6 +7,9 @@
     export let window_session_id;
     export let files = [];
 
+    // project actions
+    export let delete_project;
+
     function fileExpand(e) {
         //get the id
         let id = e.detail.id;
@@ -74,41 +77,6 @@
     function closeContextMenu() {
         showContextMenu = false;
     }
-
-    /*
-        <div on:contextmenu|preventDefault={onRightClick} class="body noselect">
-            {#each files as file}
-                {#if file.showing}
-                    {#if file.file_type == "Snippet"}
-                        <div>
-                            <SnippetSidebarElement
-                                {...file}
-                                on:expand={fileExpand}
-                                on:contract={fileContract}
-                            />
-                        </div>
-                    {:else if file.file_type == "Directory"}
-                        <div>
-                            <DirectorySidebarElement
-                                {...file}
-                                on:expand={fileExpand}
-                                on:contract={fileContract}
-                            />
-                        </div>
-                    {/if}
-                {/if}
-            {/each}
-        </div>
-
-        {#if showContextMenu}
-            <ContextMenu
-                {...contextMenuPosition}
-                on:click={closeContextMenu}
-                on:clickoutside={closeContextMenu}
-            >
-                <ContextMenuOption on:click={() => {}} text="Do nothing" />
-            </ContextMenu>
-        {/if}*/
 </script>
 
 <div on:contextmenu|preventDefault={onRightClick} class="body noselect">
@@ -120,6 +88,7 @@
                         {...file}
                         on:expand={fileExpand}
                         on:contract={fileContract}
+                        {delete_project}
                     />
                 </div>
             {:else if file.file_type == "Parent"}

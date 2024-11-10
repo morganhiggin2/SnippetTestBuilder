@@ -28,6 +28,9 @@
     let clear_visuals;
     let clear_report_area;
 
+    // for delete project
+    export let register_listen_to_workspace_refresh;
+
     async function open_project(window_session_id, project_id) {
         // get build plan
         let plan = {};
@@ -149,6 +152,21 @@
                 parameter_build_action.parameter_value,
             );
         }
+    }
+
+    export function delete_project(project_id) {
+        invoke("delete_project", {
+            windowSessionUuid: window_session_id,
+            projectId: project_id,
+        }).then(() => {
+            register_listen_to_workspace_refresh();
+
+            // spawn refresh workspace
+            invoke("spawn_refresh_workspace_event", {
+                windowSessionUuid: window_session_id,
+            });
+            //TODO refresh workspace
+        });
     }
 </script>
 

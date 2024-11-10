@@ -101,6 +101,41 @@ pub fn open_project(
     return Ok(project_build_plan);
 }
 
+#[tauri::command]
+pub fn delete_project(
+    application_state: tauri::State<SharedApplicationState>,
+    window_session_uuid: Uuid,
+    project_id: String,
+) -> Result<(), String> {
+    // get the state
+    let state_guard = &mut application_state.0.lock().unwrap();
+    let state = &mut state_guard.deref_mut();
+
+    //borrow split
+    let window_manager = &mut state.window_manager;
+
+    //find window session
+    let window_session: &mut WindowSession =
+        match window_manager.find_window_session_mut(window_session_uuid) {
+            Some(result) => result,
+            None => {
+                return Err("window session could not be found".to_string());
+            }
+        };
+
+    // borrow split
+    let project_manager = &mut window_session.project_manager;
+
+    // remove project parent part from name
+    let project_name = project_id.trim_start_matches("projects.").to_string();
+
+    // delete project
+    // NOTE this function surpresses errors
+    project_manager.delete_project(project_name);
+
+    return Ok(());
+}
+
 // create snippet:
 // given an external snippet path, give me an external snippet id
 #[tauri::command]

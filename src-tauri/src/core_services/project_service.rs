@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     io::{Read, Write},
     path::PathBuf,
 };
@@ -347,6 +348,81 @@ impl ProjectManager {
         };
 
         return Ok(plan);
+    }
+
+    pub fn delete_project(&self, project_name: String) {
+        // get location of the project
+        let project_location = get_project_directory_location_from_name(project_name);
+
+        // delete the project file itself
+        match std::fs::remove_file(project_location.clone()) {
+            Ok(()) => (),
+            Err(e) => {
+                println!(
+                    "Unable to delete project file at {}: {}",
+                    project_location.to_string_lossy(),
+                    e
+                );
+            }
+        }
+
+        // remove file part from directory
+        let mut project_location = match project_location.parent() {
+            Some(parent_dir) => parent_dir.to_path_buf(),
+            None => PathBuf::from("projects"),
+        };
+
+        // delete all empty folders until the projects folder (and not including the projects folder)
+        loop {
+            // if the projects directory, cannot delete any further
+            if project_location.file_name() == Some(OsStr::new("projects")) {
+                break;
+            }
+
+            // check if directory is empty
+            let is_directory_empty = match std::fs::read_dir(&project_location) {
+                Ok(mut dir) => {
+                    match dir.next() {
+                        // directory is empty
+                        None => true,
+
+                        // directory is not empty
+                        Some(_) => false,
+                    }
+                }
+                Err(_) => {
+                    // assume directory is not empty in case of error
+                    false
+                }
+            };
+
+            // if directory is not empty, do not delete it
+            if !is_directory_empty {
+                break;
+            }
+
+            // delete current directory
+            if let Err(e) = std::fs::remove_dir(&project_location) {
+                println!(
+                    "Unable to delete directory {}: {}",
+                    project_location.to_string_lossy(),
+                    e
+                );
+                break;
+            }
+
+            // if there is a parent directory, get it
+            match project_location.parent() {
+                Some(parent_dir) => {
+                    project_location = parent_dir.to_path_buf();
+                }
+
+                // no parents left, we are done
+                None => {
+                    break;
+                }
+            };
+        }
     }
 
     pub fn get_default_plan(&self) -> Plan {
