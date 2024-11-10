@@ -79,6 +79,17 @@
             parameter_value.value = text;
 
             parameters_state.parameters.set(parameter_key, parameter_value);
+
+            // update paramter text
+            invoke("update_snippet_parameter_value", {
+                windowSessionUuid: window_session_id,
+                frontUuid: parameter_id,
+                value: text,
+            })
+                .then(() => {})
+                .catch((e) => {
+                    invoke("logln", { text: JSON.stringify(e) });
+                });
         }
     };
 

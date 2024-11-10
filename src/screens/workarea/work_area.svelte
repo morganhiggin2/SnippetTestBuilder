@@ -6,8 +6,6 @@
     export let window_session_id;
     export let sidebar_width;
 
-    let sessions = [];
-
     // logging
     let trigger_logging_;
 
@@ -165,7 +163,6 @@
             invoke("spawn_refresh_workspace_event", {
                 windowSessionUuid: window_session_id,
             });
-            //TODO refresh workspace
         });
     }
 </script>

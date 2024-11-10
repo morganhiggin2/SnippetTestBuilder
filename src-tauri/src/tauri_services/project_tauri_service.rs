@@ -97,6 +97,10 @@ pub fn open_project(
         }
     };
 
+    // clear visual snippet service
+
+    // clear snippet service
+
     // send plan to front end, load
     return Ok(project_build_plan);
 }

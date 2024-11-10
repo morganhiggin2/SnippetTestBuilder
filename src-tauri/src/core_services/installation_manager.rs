@@ -232,7 +232,7 @@ pub async fn fetch_new_snippets_zip() -> Result<(), String> {
 
     // download metadata file, check for new versions
     let metadata_url =
-        "https://www.snippettestbuilder.com/download/_standard_snippets/metadata.txt";
+        "https://www.snippettestbuilder.com/download/_standard_snippets_v1/metadata.txt";
     let metadata_path = runables_directory.join(".metadata");
 
     download_file(metadata_url.to_string(), metadata_path.to_owned()).await?;
@@ -333,7 +333,7 @@ pub async fn fetch_new_snippets_zip() -> Result<(), String> {
         // Scope for snippets zip file
         {
             // create url for snippets zip from new version
-            let snippets_zip_url = format!("https://www.snippettestbuilder.com/download/_standard_snippets/{}/standard_snippets.zip", new_version);
+            let snippets_zip_url = format!("https://www.snippettestbuilder.com/download/_standard_snippets_v1/{}/standard_snippets.zip", new_version);
 
             download_file(snippets_zip_url.to_string(), snippets_zip_path.to_owned()).await?;
         }

@@ -312,7 +312,7 @@ impl ProjectManager {
     /// Read the project from the project file path
     ///
     /// returns the project build information
-    pub fn open_project(&self, path: PathBuf) -> Result<Plan, String> {
+    pub fn open_project(&mut self, path: PathBuf) -> Result<Plan, String> {
         // create file, truncate if exists
         let mut file = match std::fs::File::open(path.to_owned()) {
             Ok(some) => some,
@@ -346,6 +346,10 @@ impl ProjectManager {
                 return Err(format!("Unable to serialize plan: {}", e));
             }
         };
+
+        // clear snippet manager and visual component manager
+        self.snippet_manager = SnippetManager::default();
+        self.visual_component_manager = VisualSnippetComponentManager::default();
 
         return Ok(plan);
     }

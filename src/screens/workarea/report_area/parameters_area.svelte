@@ -15,7 +15,7 @@
     // one event per paramter
     let parameter_typing_timers = {};
     // in miliseconds
-    let typing_interval = 2000;
+    let typing_interval = 400;
 
     // on key up from typing
     function on_key_up_typing(id) {
