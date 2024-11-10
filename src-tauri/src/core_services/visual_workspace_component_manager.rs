@@ -19,6 +19,7 @@ pub struct FrontWorkspaceContent {
     // the id is going to be the path id
     id: String,
     name: String,
+    project_display_id: String,
     file_type: FrontWorkspaceContentType,
     level: u32,
     showing: bool,
@@ -68,12 +69,16 @@ impl VisualWorkspaceComponentManager {
     ) {
         let path_id = root_workspace_entry.get_path_id();
 
+        // remove project parent part from name
+        let path_display_id = path_id.trim_start_matches("projects.").to_string();
+
         match root_workspace_entry.get_entry_type() {
             WorkspaceEntryType::WorkspaceParentEntry(parent_workspace_entry) => {
                 // create parent front entry
                 let front_workspace_entry = FrontWorkspaceContent {
                     id: path_id,
                     name: parent_workspace_entry.get_name(),
+                    project_display_id: path_display_id,
                     file_type: FrontWorkspaceContentType::Parent,
                     level: level,
                     showing: false,
@@ -96,6 +101,7 @@ impl VisualWorkspaceComponentManager {
                 let front_workspace_entry = FrontWorkspaceContent {
                     id: path_id,
                     name: project_workspace_entry.get_name(),
+                    project_display_id: path_display_id,
                     file_type: FrontWorkspaceContentType::Project,
                     level: level,
                     showing: false,

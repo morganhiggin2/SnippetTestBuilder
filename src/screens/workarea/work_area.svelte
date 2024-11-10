@@ -26,6 +26,7 @@
 
     // for open project
     let clear_visuals;
+    let clear_report_area;
 
     async function open_project(window_session_id, project_id) {
         // get build plan
@@ -38,6 +39,9 @@
 
         // clear visuals
         clear_visuals();
+
+        // clear report area
+        clear_report_area();
 
         let actions = plan.actions;
         // call actions to create build plan
@@ -163,6 +167,7 @@
                 bind:update_parameter_text
                 bind:project_properties_state
                 bind:clear_visuals
+                bind:clear_report_area
                 {open_project}
                 {sidebar_width}
             />

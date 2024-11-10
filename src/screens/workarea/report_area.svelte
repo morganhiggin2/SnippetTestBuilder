@@ -81,6 +81,17 @@
             parameters_state.parameters.set(parameter_key, parameter_value);
         }
     };
+
+    export function clear_report_area() {
+        //state for each screen
+        logging_state = {
+            log_text: "",
+        };
+
+        parameters_state = {
+            parameters: new Map(),
+        };
+    }
 </script>
 
 <div class="body" style="width: calc(100% - {sidebar_width}px);">

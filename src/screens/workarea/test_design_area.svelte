@@ -37,6 +37,7 @@
     // project loading
     export let open_project;
     export let clear_visuals;
+    export let clear_report_area;
 
     // properties state
     export let project_properties_state;
@@ -53,6 +54,7 @@
                 {insert_parameters}
                 {delete_parameters}
                 {open_project}
+                {project_properties_state}
                 bind:create_snippet={create_snippet_}
                 bind:draw_pipeline={draw_pipeline_}
                 bind:clear_visuals
@@ -66,6 +68,7 @@
                 bind:delete_parameters
                 bind:update_parameter_text
                 bind:project_properties_state
+                bind:clear_report_area
                 {sidebar_width}
             />
         </div>

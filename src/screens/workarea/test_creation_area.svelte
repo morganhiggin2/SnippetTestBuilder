@@ -36,6 +36,7 @@
     export let insert_parameters;
     export let delete_parameters;
     export let open_project;
+    export let project_properties_state;
 
     onMount(async () => {
         //create stage
@@ -122,9 +123,13 @@
         } else if (type == "Project") {
             // get project information
             let project_id = data["_id"];
+            let display_id = data["display_id"];
 
             // load project
             open_project(window_session_id, project_id);
+
+            // set properties project name
+            project_properties_state.project_name = display_id;
         }
     }
 

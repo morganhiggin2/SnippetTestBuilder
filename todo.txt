@@ -1,0 +1,3 @@
+1. able to delete projects
+2. project name gets filled in project name in properties when open project
+3. update url to get snippet metadata and downloads from, and new snippet version only for the new fetch metadata url

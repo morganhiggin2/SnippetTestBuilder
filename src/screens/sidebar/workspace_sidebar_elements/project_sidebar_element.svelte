@@ -10,17 +10,25 @@
     export let name = "";
     export let level = 0;
     export let file_type = "";
+    export let project_display_id = "";
 
     function onDragStart(e) {
         var drag_data = {
             _id: id,
             type: file_type,
+            display_id: project_display_id,
         };
 
         e.dataTransfer.setData("text/plain", JSON.stringify(drag_data));
     }
 
     function onDragEnd(e) {}
+
+    function onDoubleClick() {
+        // TODO delete project
+        // refresh workspace
+        // do this in screen above
+    }
 
     /*
     dispatch('expand', {
