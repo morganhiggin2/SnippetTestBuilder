@@ -1,1 +1,5 @@
 1. When switching projects and on parameters window, it shows blank until refresh again
+2. text area does not expand with screen or text
+3. cargo test is not compiling. Decouple all tauri things code and package as seperate library
+    - tauri app handle has to be deocupled
+    - can define a trait in the library that the tauri app can define the logic using the app handle, to avoid having to use tauri code in rust code

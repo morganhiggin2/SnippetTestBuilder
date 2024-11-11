@@ -52,6 +52,20 @@ impl WorkspaceManager {
     pub fn initialize() -> Result<Self, String> {
         let base_path = get_projects_directory();
 
+        // create the necessary directories to ensure this path exists
+        if !base_path.exists() {
+            match std::fs::create_dir_all(&base_path) {
+                Ok(_) => (),
+                Err(e) => {
+                    return Err(format!(
+                        "Failed to create directories {}: {}",
+                        base_path.to_string_lossy().to_string(),
+                        e
+                    ));
+                }
+            };
+        }
+
         let root_entry =
             WorkspaceManager::recursive_create_workspace_entries(base_path, "".to_string())?;
 
